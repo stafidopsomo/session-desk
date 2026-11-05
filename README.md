@@ -2,7 +2,7 @@
 
 A proposed local app for preparing and running independent tabletop adventures. **Session Desk is a working title.**
 
-**Current status: architecture review, not a runnable tester release.** No executable, provider connection or automated adventure preparation has been delivered on this branch. Implementation is gated below, following the owner's instruction to resolve architecture/dependency gaps first.
+**Current status: architecture review, not a runnable tester release.** No executable, product provider adapter or automated adventure preparation has been delivered on this branch. Implementation is gated below, following the owner's instruction to resolve architecture/dependency gaps first.
 
 ## Intended tester experience
 
@@ -18,10 +18,24 @@ These steps are the release acceptance target, not installation instructions for
 - [Product scope and release-readiness assessment](docs/READINESS.md)
 - [Architecture and data boundaries](docs/ARCHITECTURE.md)
 - [Provider feasibility and official references](docs/PROVIDERS.md)
+- [Codex diagnostic results and remaining blockers](docs/CODEX-PREFLIGHT.md)
 - [CI, packaging and release design](docs/RELEASE-PIPELINE.md)
 - [Acceptance milestones](docs/IMPLEMENTATION-GATES.md)
 
 First import format: **an existing local 5e.tools adventure plus images**, confirmed by the owner. PDF ingestion is deferred. Windows x64 is the proposed first target; other platforms need separate builds and tests.
+
+First AI route: **ChatGPT through Codex**, confirmed by the owner. A read-only local diagnostic established authentication and protocol availability, but hit a Windows sandbox error before checking isolation. No model job ran. Structured generation, cancellation, distribution authentication and clean-machine setup remain unverified.
+
+## Developer readiness checks
+
+With Python 3.12 and Git already installed, run from this checkout:
+
+```text
+python tools/check_product_boundary.py
+python -m unittest discover -s tests -v
+```
+
+The readiness workflow runs these offline checks with synthetic data. It does not run Codex or build/publish an application. These commands are for development, not tester installation instructions.
 
 ## Privacy and distribution
 

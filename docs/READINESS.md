@@ -37,12 +37,13 @@ This is evidence from one local library snapshot, not a universal guarantee abou
 - Code, imported source content and generated/user content have separate storage and distribution boundaries.
 - AI-generated notes, translations, illustrations and region proposals are drafts until validated/reviewed. Existing source geometry should be imported by code, not recreated by a model.
 - Installation and deterministic imports should be reproducible. Model outputs are not promised to be bit-for-bit identical; their inputs, versions and provenance must be recorded.
+- ChatGPT through Codex is the first AI preparation route to validate, confirmed by the owner.
 
 ## Outstanding architecture dependencies
 
 1. Accept the workspace/resource/job schemas and migration/backup contract described in ARCHITECTURE.md.
 2. Confirm Windows x64 as the first release target; define the supported Windows versions during packaging validation.
-3. Choose the first supported provider/authentication route and verify it in the intended product context. Do not promise all three providers or illustration generation at parity.
+3. Validate the selected Codex route in the intended product context: isolation, installation, new-user authentication, structured generation and cancellation. The read-only preflight authenticated successfully, but its sandbox command failed. See CODEX-PREFLIGHT.md. Do not promise all three providers or illustration generation at parity.
 4. Agree that uncertain AI-generated map regions require review/correction rather than being automatically considered precise fog.
 5. Confirm distribution. Provisional default: keep this repository private and share only audited build files. Separate clean repository before any source-sharing or public-repository decision.
 
@@ -50,4 +51,4 @@ Those are gates to application implementation, not terminal commands for testers
 
 ## Current deliverable
 
-A clean release branch, architecture assessment, provider findings, release design and measurable milestones. No new product app, CI execution, provider inference, installer or tester release is claimed.
+A clean release branch, architecture assessment, provider findings, release design and measurable milestones, plus a read-only Codex diagnostic and synthetic/offline readiness checks. A readiness workflow is included; its actual run status is separate from this assessment. No new product app, live provider inference, installer or tester release is claimed.

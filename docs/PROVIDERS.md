@@ -12,9 +12,11 @@ Support provider **capabilities**, not interchangeable brand labels: structured 
 
 Official [Codex App Server documentation](https://learn.chatgpt.com/docs/app-server) describes the interface for rich product clients. It distinguishes local/open-source app-server authentication from commercial/hosted services, and recommends the explicit Sign in with ChatGPT route. [Sign in with ChatGPT's app-server integration](https://developers.openai.com/siwc/token-sharing-open-source/codex-app-server) documents passing a user-authorized ChatGPT-plan OAuth token to app-server over a configured provider. A model catalog is not an entitlement check.
 
-**Proposed adapter:** local app-server over its documented structured protocol. Select and validate the proper authentication route for distribution before implementation; do not silently reuse the developer's login or assume ChatGPT web sessions are an API. Sign in with ChatGPT registration/client configuration is an outstanding integration dependency. No browser automation or scraped cookies.
+**Selected first route:** ChatGPT through Codex, confirmed by the owner. The proposed adapter uses local app-server over its documented structured protocol. Validate the proper authentication route for distribution before implementation; do not silently reuse the developer's login or assume ChatGPT web sessions are an API. Sign in with ChatGPT registration/client configuration is an outstanding integration dependency. No browser automation or scraped cookies.
 
 Text/structured generation is a plausible first vertical slice. Vision and image generation require their own documented and tested capability; do not advertise illustration support solely from a model name. No live capability or clean-Windows install was verified in this assessment.
+
+The read-only [Codex preflight](CODEX-PREFLIGHT.md) initialized the installed app-server, confirmed an existing ChatGPT-authenticated account, and found structured-output, ephemeral-thread and interruption fields in generated schemas. Its sandbox command failed before either synthetic canary could be read. Protocol fields are not successful live capabilities, and authentication on this developer machine is not a supported sign-in flow for a new tester.
 
 ## Anthropic / Claude Code
 

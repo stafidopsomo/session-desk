@@ -1,6 +1,8 @@
 # CI and release pipeline design
 
-**Design only. No workflow or runnable artifact has been published.** The architecture gate must be resolved before implementing a build pipeline for an application that does not yet exist. In particular, do not publish the old personal app or notes prototype as a supposed clean alpha.
+**Application build/release pipeline: design only.** A small readiness workflow now checks the campaign-free history/file boundary and offline diagnostic tests. It does not build, run a provider, upload artifacts or publish a release. The architecture gate must be resolved before implementing a build pipeline for an application that does not yet exist. In particular, do not publish the old personal app or notes prototype as a supposed clean alpha.
+
+The implemented readiness workflow uses read-only repository permissions, SHA-pinned checkout/setup-python actions, Windows 2025 and Python 3.12. It fetches only the tested commit's history, not other branch histories. Its exact file allowlist, text-only checks and independent-root check help catch accidental leakage; they do not replace review, secret scanning or a future packaged-artifact privacy audit. The runner image and Python patch version are not locked for reproducible application builds at this stage.
 
 ## Branch and repository policy
 

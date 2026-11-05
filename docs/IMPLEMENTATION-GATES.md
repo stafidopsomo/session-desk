@@ -11,16 +11,19 @@ Confirmed by owner:
 - Create a clean release-dev line and retire the superseded prototype branch.
 - Keep the normal product UI small; users do not need an ongoing coding chat.
 - Preserve the personal instance and migrate it manually only after product stability.
+- First end-to-end AI preparation route: ChatGPT through Codex.
 
 Awaiting resolution:
 
 - Accept the workspace, source graph, job/resource and provider boundaries in ARCHITECTURE.md.
 - Confirm the proposed Windows x64 first target and define the supported OS floor in the packaging spike.
-- Select the first supported provider/auth route. OpenAI Sign in with ChatGPT configuration/registration and the intended distribution context must be resolved if that route is selected. Verify the equivalent SDK/installation conditions before choosing another adapter.
+- Resolve the selected Codex route's isolation, supported installation and distribution authentication. The local diagnostic authenticated but failed its sandbox command; no live generation or cancellation was tested. OpenAI Sign in with ChatGPT configuration/registration and the intended distribution context remain unresolved. See CODEX-PREFLIGHT.md.
 - Accept capability-specific support and review of uncertain geometry. No promise that all text providers automatically generate artwork or precise masks.
 - Distribution question is still pending. The provisional path keeps this repository private and shares clean build assets only. A separate clean product repository remains an option.
 
 **Do not start application implementation before these are resolved.** Do not install provider tooling, make paid/inference calls or publish a tester build as part of this preflight.
+
+Read-only developer diagnostics and synthetic offline readiness checks may establish evidence during this gate. Their existence does not satisfy the executable spike or authorize a live model test.
 
 ## Gate 1 — executable architecture spike
 

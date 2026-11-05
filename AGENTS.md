@@ -2,6 +2,7 @@
 
 - This is a campaign-free product worktree. Read README.md and docs/IMPLEMENTATION-GATES.md first.
 - The current phase is architecture assessment. Do not begin application implementation, dependency installation or executable publication until the recorded architecture gates are explicitly resolved with the owner.
+- Read-only developer diagnostics and their synthetic/offline readiness checks are permitted in this phase. They are not the product adapter, a live conformance test or a release build. The live diagnostic must never run in CI.
 - Do not merge the personal branch, copy its data directories, scan adjacent campaign folders for defaults, or add campaign-bearing commits as parents. Keep this history independent.
 - Synthetic, original test fixtures only. No source-book text, official maps, real characters, local workspace state, authentication material or real provider transcripts in source, fixtures, CI artifacts or releases.
 - Build code and user content must be separate. All user-editable content lives outside the installation and repository.
