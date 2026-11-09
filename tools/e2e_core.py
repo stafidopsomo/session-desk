@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from playwright.sync_api import sync_playwright, expect
 from tests.fixtures import make_library
+from sessiondesk.store import Store
 from tools.smoke_core import call, launch
 
 
@@ -103,6 +104,15 @@ def run(exe=None, artifacts=None):
             page.get_by_role("button",name="Library",exact=True).click()
             page.get_by_role("checkbox",name="I reviewed this image",exact=False).check()
             page.get_by_role("button",name="Present to players").click()
+            # Synthetic legacy import: enrich its metadata while the same tab is
+            # visible. The player must reload the new asset, not retain the DM image.
+            synthetic_store=Store(base/'app/profile/SessionDesk')
+            with synthetic_store.db(wid) as conn:
+                legacy=synthetic_store.get(conn,'adventure:'+aid)
+                player_asset=next(m for m in legacy['maps'] if m['image_type']=='mapPlayer')['asset']
+                legacy.pop('book',None);legacy.pop('book_schema',None)
+                for media in legacy['maps']:media.pop('player_map',None)
+                synthetic_store.put(conn,'adventure:'+aid,legacy)
             with page.expect_popup() as popup:
                 page.get_by_role("button",name="Open player screen").click()
             player = popup.value
@@ -112,6 +122,9 @@ def run(exe=None, artifacts=None):
             expect(player.locator('#player-tabs')).to_contain_text("Observatory floor")
             expect(player.locator('body')).not_to_contain_text("Private browser note")
             expect(player.locator('body')).not_to_contain_text("DM_ONLY_SYNTHETIC_SECRET")
+            with player.expect_response(lambda r: '/asset/' in r.url and player_asset in r.url):
+                call(ready,'import/start',{**scope,'path':str(source),'source':'DEMO'})
+            expect(player.locator('#player-tabs')).to_contain_text('Observatory floor')
             # Space-pan after focusing outside the map must not produce a reveal stroke.
             page.get_by_role("button",name="Reveal",exact=True).click()
             page.wait_for_function("""() => {const c=document.querySelector('#stage canvas');return c && c.getContext('2d').getImageData(Math.floor(c.width/2),Math.floor(c.height*.7),1,1).data[3]===255;}""")

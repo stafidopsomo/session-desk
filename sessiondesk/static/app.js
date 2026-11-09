@@ -400,9 +400,9 @@ class Stage {
   size(){this.w=this.root.clientWidth;this.h=this.root.clientHeight;this.dpr=Math.min(devicePixelRatio||1,2);this.canvas.width=this.w*this.dpr;this.canvas.height=this.h*this.dpr;}
   async load(media){
     if(!media){this.media=null;this.image=null;this.paint();return;}
-    if(this.media?.id===media.id)return;
+    if(this.media?.id===media.id&&this.media.asset===media.asset&&this.media.width===media.width&&this.media.height===media.height){this.media=media;return;}
     this.media=media;this.image=null;this.fogKey='';this.ink=[];const image=new Image();
-    image.onload=()=>{if(this.dead||this.media?.id!==media.id)return;this.image=image;this.fit();};
+    image.onload=()=>{if(this.dead||this.media?.id!==media.id||this.media.asset!==media.asset)return;this.image=image;this.fit();};
     image.onerror=()=>toast('Image could not be decoded. Check the imported file.');image.src=asset(media);
   }
   fit(){if(!this.media)return;this.scale=Math.min(this.w/this.media.width,this.h/this.media.height)*.95;this.x=(this.w-this.media.width*this.scale)/2;this.y=(this.h-this.media.height*this.scale)/2;this.paint();}
