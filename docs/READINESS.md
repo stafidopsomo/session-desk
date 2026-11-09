@@ -1,14 +1,14 @@
 # Release-readiness assessment
 
-Assessment date: November 5, 2026. This assessment makes no model calls and imports no real adventure content into this branch.
+Initial assessment: November 5, 2026. Scope/owner decisions updated November 9, 2026. This work makes no model calls and imports no real adventure content into this branch.
 
 ## Decision
 
-**Proceed with architecture and isolation. Do not start the application build yet.**
+**Proceed to Gate 1 implementation of the non-AI core.** The owner accepted ARCHITECTURE.md and Windows x64, with one top-right Settings menu containing Display and the global AI switch, and Open player screen kept separate. All provider/AI features and route-isolation work are deferred, so the earlier Codex preflight gap does not block the core build.
 
-The destination is technically plausible, but the current personal app and the superseded notes/map prototype do not already satisfy its architecture. The owner explicitly asked not to start another partial implementation when architectural dependencies are missing. A new executable or placeholder installer would hide these gaps rather than close them.
+This resolves design approval; it does not establish a built/tested EXE. The first release still needs deterministic import, manual preparation/review, isolated persistent workspaces, maps/fog/notes/player presentation and clean-machine packaging evidence. See IMPLEMENTATION-GATES.md.
 
-## Evidence from the current code
+## Historical starting-point assessment (November 5)
 
 | Area | Existing behavior | Product requirement |
 |---|---|---|
@@ -17,7 +17,7 @@ The destination is technically plausible, but the current personal app and the s
 | Data storage | Live state, notes and edits span JSON files in the checkout | Versioned workspace database, managed asset store, backups and migrations outside the install |
 | Import | Adventure-specific import code and hand-authored corrections | A generic source adapter with schema detection, reference resolution and validation |
 | Geometry | Known map regions plus campaign-specific collars/layout fixes | Preserve verified regions; distinguish areas/features from whole rooms; review missing/ambiguous boundaries |
-| AI work | Machine-specific CLI execution and manual review/import | Supported provider adapters, capability checks, durable jobs, typed drafts and app-managed review |
+| AI work — deferred | Machine-specific CLI execution and manual review/import | Later supported adapters/capabilities; no provider dependency in the first core |
 | Packaging | A batch file assumes Python/paths on the owner's machine | Frozen Windows runtime tested without developer tools or personal files |
 | Release process | No product CI/build/release workflow | Synthetic tests, clean-profile E2E, artifact privacy gate and reproducible packaging |
 
@@ -33,22 +33,23 @@ This is evidence from one local library snapshot, not a universal guarantee abou
 
 - Local, independent workspaces; no automatic migration of the personal campaign.
 - Existing local 5e.tools adventure/image library is the first import path. PDF/OCR is outside the first release.
-- Small user workflow: Add adventure → Prepare and review → Start session. Provider configuration belongs in Settings.
+- Small core workflow: Add adventure → manually Prepare/review → Start session. Settings is top-right and groups Display with AI; Open player screen remains a separate header control.
 - Code, imported source content and generated/user content have separate storage and distribution boundaries.
-- AI-generated notes, translations, illustrations and region proposals are drafts until validated/reviewed. Existing source geometry should be imported by code, not recreated by a model.
+- Existing source geometry is imported by code and reviewed/corrected manually. AI notes/translations/art/geometry proposals remain a deferred phase; their draft/review boundaries are accepted design constraints.
 - Installation and deterministic imports should be reproducible. Model outputs are not promised to be bit-for-bit identical; their inputs, versions and provenance must be recorded.
-- ChatGPT through Codex is the first AI preparation route to validate, confirmed by the owner.
+- Windows x64 and the architecture are confirmed. The owner/friend machines are target test hardware, not already verified environments.
+- The first build has AI Off/unavailable and makes no provider calls. ChatGPT through Codex remains the earlier candidate for later AI work.
 
-## Outstanding architecture dependencies
+## Remaining engineering proofs
 
-1. Accept the workspace/resource/job schemas and migration/backup contract described in ARCHITECTURE.md.
-2. Confirm Windows x64 as the first release target; define the supported Windows versions during packaging validation.
-3. Validate the selected Codex route in the intended product context: isolation, installation, new-user authentication, structured generation and cancellation. The read-only preflight authenticated successfully, but its sandbox command failed. See CODEX-PREFLIGHT.md. Do not promise all three providers or illustration generation at parity.
-4. Agree that uncertain AI-generated map regions require review/correction rather than being automatically considered precise fog.
-5. Confirm distribution. Provisional default: keep this repository private and share only audited build files. Separate clean repository before any source-sharing or public-repository decision.
+1. Build the core architecture spike and establish the supported Windows-version floor through actual package/machine tests.
+2. Verify independent workspace storage, transactions, migrations/rollback and asset-complete backup/import outside the installation.
+3. Implement generic deterministic source import and manual notes/resource/geometry review, then test with synthetic sources and a separately selected owned-library acceptance run.
+4. Verify the Settings layout, separate Open player screen control and the unavailable/Off AI state, including zero provider activity.
+5. Implement/audit CI packaging and clean-profile launch before sharing an alpha. Keep this repository private; default to direct sharing of vetted ZIP/EXE files rather than tester repository access.
 
-Those are gates to application implementation, not terminal commands for testers. See IMPLEMENTATION-GATES.md for concrete proofs required before a build is called an alpha.
+These are implementation acceptance checks, not more architecture approvals for the owner to read. Provider authentication, installation, isolation and generation are future AI-phase proofs and are not required for the current core.
 
 ## Current deliverable
 
-A clean release branch, architecture assessment, provider findings, release design and measurable milestones, plus a read-only Codex diagnostic and synthetic/offline readiness checks. A readiness workflow is included; its actual run status is separate from this assessment. No new product app, live provider inference, installer or tester release is claimed.
+Approved architecture and a scoped non-AI implementation path, clean independent history, offline readiness checks, release design and historical provider/preflight notes. The existing workflow checks readiness only. No product app, installer, provider integration or tester release is claimed as delivered by this scope update.

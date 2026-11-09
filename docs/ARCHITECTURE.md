@@ -1,14 +1,14 @@
-# Proposed architecture
+# Approved architecture
 
-Status: design awaiting the implementation gate. Working product name: Session Desk.
+Status: approved by the owner on November 9, 2026, with the Settings/AI-switch changes below. Windows x64 is confirmed. The current implementation scope is the non-AI core; every provider/AI feature and its isolation work is deferred. This is an approved design, not a claim that the application or EXE is already implemented. Working product name: Session Desk.
 
 ## Runtime and deployment
 
 Start with one Python application and a local browser UI. Preserve the useful DM/player concepts without adding an Electron rewrite, cloud service, Redis, Docker or a separate database server.
 
-The Windows distribution should bundle its Python runtime and core dependencies in a frozen one-folder application. Double-clicking the EXE starts a loopback server and opens the UI. A batch launcher may be supplied as an alternative, but testers must not install Python/Git/Node merely to run the core app. A later native window wrapper is optional, not an architectural prerequisite.
+The confirmed first distribution target is Windows x64 on the owner's laptop, main PC and a friend's PC. Bundle the Python runtime and core dependencies in a frozen one-folder application. Double-clicking the EXE starts a loopback server and opens the UI. A batch launcher may be supplied as an alternative, but testers must not install Python/Git/Node merely to run the core app. Establish the supported Windows-version floor through the packaging spike and actual machine tests; hardware confirmation is not a completed compatibility test. A later native window wrapper is optional.
 
-Only the selected AI integration may need an additional official provider component. Settings offers detection, a supported installation/update flow and provider-owned sign-in. Authentication cannot be completed silently on behalf of a new user. Core play must remain usable without an AI login.
+The first build installs no provider components and requires no AI account. Deterministic import, manual preparation/editing, resource review, maps/fog, notes and presentation must work independently. A future AI phase may add supported provider setup/sign-in under the same Settings menu after its own implementation and validation.
 
 ## Code, content and personal-app boundary
 
@@ -30,8 +30,8 @@ Personal development stays on the private personal branch. Product work stays in
 1. **Workspace service:** create/open/list/export/import workspaces; versioned SQLite state and schema migrations.
 2. **Source adapters:** parse supported library versions into an internal adventure graph; resolve source-entry IDs, local image paths, chapter/section links and source geometry.
 3. **Resource service:** content-addressed assets, dependency/provenance manifests, safe local file validation and draft/approved states.
-4. **Preparation service:** create bounded jobs from selected resources, track dependencies and accept validated results.
-5. **Provider adapters:** authentication/status/capabilities, submit/cancel jobs, structured progress/results and quota errors. No campaign semantics inside an adapter.
+4. **Preparation service:** manage imported/manual resources, dependencies and validated review results in the core. Bounded AI preparation jobs are deferred.
+5. **Provider adapters — deferred:** future authentication/status/capabilities, submit/cancel jobs, structured progress/results and quota errors. No campaign semantics inside an adapter. Do not load or implement adapters for the first core build.
 6. **Review/editor service:** compare source and draft, edit notes/translations, correct region geometry, approve selected results.
 7. **Session/presentation service:** DM and player views, shared tabs, notes and fog with explicit visibility state. Provider jobs never control live reveal directly.
 8. **Local API/UI:** workspace- and adventure-scoped endpoints, fixed app assets, structured errors and concise workflows.
@@ -45,7 +45,7 @@ Use opaque, stable IDs. Never use a room number alone as a cross-workspace key.
 - `SourceEntry`: adventure ID, original source ID, chapter/entry locator, normalized structure and references. Location/room/NPC is metadata, not an assumption about all entries.
 - `Map`: adventure ID, asset references, coordinate dimensions/transforms, optional grid calibration and source locator.
 - `Region`: map ID, stable source-region ID, source-entry relationship, polygon, role (`room`, `feature`, `landing`, `area`, `unknown`) and verification status. One entry may relate to several regions/maps.
-- `PreparationResource`: scoped source IDs, kind, language, draft/approved/superseded state, input fingerprint, prompt/schema version, provider provenance and result/asset reference.
+- `PreparationResource`: scoped source IDs, kind, language, origin (`imported`, `manual`, later `ai`), draft/approved/superseded state, input fingerprint and asset reference. Prompt/provider provenance is optional future metadata; manual resources do not require a provider.
 - `Character`: workspace-scoped record, user-confirmed fields and optional adventure links. No preloaded party, level, gold or backstory.
 - `Session`: workspace/adventure links, presentation tabs, room notes and fog operations. Keep preparation separate from actual-play history.
 - `Job`: kind, immutable input manifest/hash, provider/capability requirements, state, attempts, cancellation flag, result reference and safe failure classification.
@@ -54,17 +54,28 @@ SQLite transactions own mutable state. Assets live in managed folders using rela
 
 Workspace backup/export must include its database, manifest and required images, not a JSON file whose maps remain stranded on another computer. Test import into a different root path. Explicit exports may contain source material; they are user content, not application release artifacts.
 
-## Deterministic import, then optional preparation
+## Current core: deterministic import and manual preparation
 
-`Select library → validate source/schema → preview inventory → choose adventure → import graph/assets/verified regions → prepare selected missing resources → review → play`
+`Select library → validate source/schema → preview inventory → choose adventure → import graph/assets/known regions → manually prepare or import missing materials → review → play`
 
 The import is idempotent by source fingerprint. Missing files and unsupported structures produce actionable reports; they do not create fabricated resources or trigger unapproved downloads. Keep source/adventure identifiers generic, including non-numeric keys and shared keys across physical regions.
 
-Text extraction, source lookup, image copying, reference resolution and known map polygons are code tasks. AI receives only selected relevant source excerpts and a typed task. Translation language, encounter assumptions and desired preparation are explicit user choices, not hard-coded campaign preferences.
+Text extraction, source lookup, image copying, reference resolution and known map polygons are code tasks. The core supports manual notes/translations and user-supplied pictures without promising automatic generation. Locale, encounter assumptions and desired preparation are user choices, not hard-coded campaign preferences. In the deferred AI phase, a provider would receive only selected relevant source excerpts and a typed task.
 
 Do not infer walls or doors from a keyed region alone. It may mark a throne, landing or subsection. Imported geometry and image dimensions must agree after scaling/cropping. Preserve originals; unclear geometry remains unverified. AI may propose masks or polygons, but only reviewed geometry becomes the basis of precise room reveal. Manual brush/fog editing remains available.
 
-## Durable, bounded AI jobs
+## Global AI switch and Settings
+
+- One **Settings** menu in the top-right header contains **Display** (text size, layout/density and related presentation preferences) and **AI**. Keep **Open player screen** as its own header button in its existing position, outside Settings.
+- The global **AI on/off** control governs all AI features. Default is Off. In the first non-AI build it is fixed Off/unavailable with a short explanation; do not offer a working-looking On state, sign-in or generation action without an implementation.
+- When AI support is implemented later, enforce Off in the backend as well as the UI. Reject new AI submissions, stop/cancel active AI operations through the adapter, leave queued AI jobs stopped and prevent automatic resumption. A result racing with disable cannot be auto-approved or presented.
+- Off also stops AI-related provider discovery/install/auth requests, account/quota polling, model calls, background preparation and retry/provider fallback. Existing saved provider credentials are not deleted merely by switching Off.
+- Preserve source imports, manual edits, approved notes/art, session state and fog. Turning AI Off does not disable the rest of the application or remove already-created materials. Turning it back On later does not automatically spend allowance or resume pending jobs; the user chooses the preparation action.
+- Future provider options live in this same Settings menu. Avoid a separate provider toolbar and repeated disabled AI buttons on room cards.
+
+## Future phase only: durable, bounded AI jobs
+
+The following accepted boundaries remain design constraints for later AI work. Provider routes, isolation, authentication and generation are not implemented or required for the current core gates.
 
 - Persist jobs before submission. Resume by input hash and completed resources, not by guessing from filenames.
 - Separate text, vision/region proposals and image generation. Each requires its own capability.
@@ -78,7 +89,7 @@ Do not infer walls or doors from a keyed region alone. It may mark a throne, lan
 
 ## UI surface
 
-The home screen lists workspaces and **Add adventure**. An adventure has Library/Maps, Preparation and Session views. One **Prepare** flow chooses missing resource kinds and shows a resumable queue; **Review** is the resulting inbox. **Start session** opens the DM/player workflow. Provider installation and connection live in Settings, not on every room card.
+The home screen lists workspaces and **Add adventure**. An adventure has Library/Maps, Preparation and Session views. The current **Prepare/review** workflow handles manual/imported resources and geometry correction. **Start session** opens the DM/player workflow. One top-right Settings menu groups Display and AI, with Open player screen kept separate. Automatic preparation and provider setup enter this surface only in the later AI phase.
 
 Room actions are contextual: read/edit preparation, review available scene, reveal/hide and shared notes. Advanced generation controls stay in the preparation view. Unavailable features explain their missing capability; no button claims a provider can generate images merely because it can generate text.
 

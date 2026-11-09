@@ -1,76 +1,75 @@
 # Implementation and alpha acceptance gates
 
-This is the development handoff for future work in this chat/worktree. The personal campaign remains on its own branch and is not migrated automatically.
+Updated November 9, 2026. These are implementation/acceptance milestones, not a request for the owner to approve another document packet. The personal campaign remains separate and is not migrated automatically.
 
-## Gate 0 — architecture, before application implementation
+## Gate 0 — resolved for the non-AI core
 
-Confirmed by owner:
+Owner decisions confirmed on November 9:
 
-- Import an existing local 5e.tools adventure/image library first.
-- No personal campaign material in the shared product.
-- Create a clean release-dev line and retire the superseded prototype branch.
-- Keep the normal product UI small; users do not need an ongoing coding chat.
-- Preserve the personal instance and migrate it manually only after product stability.
-- First end-to-end AI preparation route: ChatGPT through Codex.
+- ARCHITECTURE.md is accepted, including workspace/source/resource/job boundaries and review of uncertain geometry.
+- Windows x64 is the first target: the owner's laptop, main PC and a friend's PC. The supported Windows-version floor is established by the packaging spike and recorded machine tests, not another architecture approval.
+- One top-right Settings menu groups Display and the global AI on/off control. Keep Open player screen in its separate existing header position.
+- All proposed AI features and route-isolation work are deferred for now. This includes provider adapters, component installation/discovery, sign-in, account/quota polling, generation, image/mask proposals and live diagnostics. They are not prerequisites for the current core.
+- Existing local 5e.tools adventure/images remain the first import format. PDF/OCR stays deferred.
+- Preserve the clean product history and the existing personal instance. No campaign data in source/builds; no automatic personal migration.
 
-Awaiting resolution:
+The safe distribution default is audited ZIP/EXE files shared directly with testers, without giving them access to this private repository. Public source/repository distribution remains a later decision and does not block the core spike.
 
-- Accept the workspace, source graph, job/resource and provider boundaries in ARCHITECTURE.md.
-- Confirm the proposed Windows x64 first target and define the supported OS floor in the packaging spike.
-- Resolve the selected Codex route's isolation, supported installation and distribution authentication. The local diagnostic authenticated but failed its sandbox command; no live generation or cancellation was tested. OpenAI Sign in with ChatGPT configuration/registration and the intended distribution context remain unresolved. See CODEX-PREFLIGHT.md.
-- Accept capability-specific support and review of uncertain geometry. No promise that all text providers automatically generate artwork or precise masks.
-- Distribution question is still pending. The provisional path keeps this repository private and shares clean build assets only. A separate clean product repository remains an option.
+**Gate 1 core implementation and core dependency/packaging work may proceed.** No provider tooling or live AI work is authorized by this scope change. Gate 0 is a design approval, not proof that an app, installer or alpha already exists.
 
-**Do not start application implementation before these are resolved.** Do not install provider tooling, make paid/inference calls or publish a tester build as part of this preflight.
+## Gate 1 — executable core architecture spike
 
-Read-only developer diagnostics and synthetic offline readiness checks may establish evidence during this gate. Their existence does not satisfy the executable spike or authorize a live model test.
+Prove with original synthetic data:
 
-## Gate 1 — executable architecture spike
+1. A frozen Windows x64 app starts under a fresh standard-user profile with no installed Python/Git/Node dependency for its core runtime. Record the tested Windows versions and derive the supported OS floor.
+2. Workspaces store state/assets outside the installation. Two separate workspaces cannot see or modify each other's records, and replacing the app does not overwrite them.
+3. The source adapter imports a small synthetic adventure/map graph, including repeated keys and a region representing a feature rather than a whole room.
+4. The header has one Settings menu with Display and AI. Open player screen remains outside that menu. AI is Off/unavailable in this build; import, manual editing and presentation remain usable.
+5. There is no provider installation, account access, quota polling or inference. Prove that AI enable/submit attempts cannot bypass the unavailable state. Existing historical diagnostic tools are not bundled as product features.
 
-Prove, with original synthetic data:
+This spike is not a tester release. Use its results to lock the runtime/packaging dependencies and schema/API contracts. Expand the current readiness-tree allowlist deliberately when actual product source/build specifications are added; preserve the campaign-free boundary.
 
-1. Frozen Windows app starts under a fresh standard-user profile with no Python/Git/Node dependency for the core runtime.
-2. One workspace stores its state/assets outside the installation; a second workspace does not see its records.
-3. Source adapter imports a small synthetic adventure with map regions, including repeated keys and a region representing only a feature.
-4. A selected provider's supported sign-in and one bounded structured-text task works through the app, without a developer chat, browser automation or developer credentials. Permission/staging boundaries prevent direct production writes.
-5. App-managed provider component installation/detection is verified on a clean machine. If it requires undocumented manual steps, the claimed one-click setup is not ready.
+## Gate 2 — useful non-AI vertical slice
 
-This spike is not a tester release. Its outcomes determine the locked toolchain and final schema/API contracts before more UI is built.
-
-## Gate 2 — first useful vertical slice
-
-`New workspace → select library → select adventure → import inventory/known maps and regions → prepare one selected resource → review/edit → present on player screen → save/restart/export/import`
+`New workspace → select local library → select adventure → import inventory/maps/known regions → manually prepare/edit or import materials → review → present → save/restart/export/import`
 
 Requirements:
 
-- Exact source locators and useful missing-resource errors.
-- No source download or paid account provisioning hidden inside installation.
-- All input facts, generated drafts, user edits and active session state remain distinguishable.
-- Notes/translations use the selected locale and preserve configured proper names; no personal party assumptions.
-- Room/brush fog, player-safe map selection and reviewed geometry; incomplete geometry is visibly incomplete.
-- Queued/cancelled/failed AI jobs resume safely without duplicate generation or automatic billing/provider fallback.
-- Workspace backup restores required images and state into a different location.
+- Exact source locators, version/schema detection and useful missing-resource errors.
+- No hidden source downloads, account provisioning or paid dependencies in the core setup.
+- Imported facts/assets, manual edits and actual session state remain distinguishable. Translations/notes can be entered or imported manually; no automatic generation is promised.
+- Locale, names, rules profile and encounter assumptions belong to the workspace, with no preloaded personal party or campaign preferences.
+- Room/brush fog, player-safe map selection and geometry review/correction. Missing or uncertain geometry remains visible as incomplete and does not become a fabricated precise reveal mask.
+- Shared player tabs/notes and explicit visibility actions; preparation never reveals a room automatically.
+- Import/export cancellation, failure recovery and asset validation. Backup/import into another root includes all required images and state.
+- One top-right Settings menu; Display and AI control together; Open player screen stays separate. AI remains Off with no provider/background activity.
 
 ## Gate 3 — Icewind Dale acceptance, local owned-source test
 
-Use the owner's selected library outside Git and outside CI. Import its inventory without adventure-specific code changes. Confirm image resolution, chapters/source links, maps with and without keyed regions, repeated physical areas and source-entry references. Compare imported geometry to actual images. Missing or ambiguous content is reported rather than fabricated.
+Use the owner's explicitly selected library outside Git/CI. Import its inventory without adventure-specific code changes. Confirm image resolution, chapter/source links, maps with/without keyed regions, repeated physical areas and source-entry references. Compare geometry with actual images; report ambiguity or missing content instead of inventing it. This acceptance path requires no AI.
 
-The observed local inventory (42 maps, 38 region-bearing maps, 465 regions) is an assessment datum, not a hard-coded expected value for all users/versions.
+The earlier local inventory (42 maps,38 region-bearing maps,465 regions) is an assessment datum, not a hard-coded expectation for every library version.
 
-Do not publish the source files, resulting adventure workspace, model context or screenshots containing book/personal content in test fixtures or product releases.
+Do not publish source files, the resulting workspace or screenshots containing book/personal content in fixtures or releases.
 
-## Gate 4 — private tester alpha
+## Gate 4 — first private tester alpha, AI deferred
 
-- Build/release pipeline implemented and green for the exact tag/commit.
-- Installation tested on a clean Windows machine; no developer folders or saved accounts are required.
-- Fresh profile starts with no campaigns, notes, characters, usage/account snapshots or source books.
-- Only implemented and verified provider capabilities are offered.
-- No image automation is claimed without an actual image-provider artifact test; manual import is clearly available instead.
-- Session workflow, backups/migrations, cancellation and provider-failure paths pass end-to-end tests.
-- Artifact manifest, privacy audit, dependency notices, signing status and checksums verified.
-- Tester instructions are genuinely short: extract → run EXE → choose source → connect provider if desired → prepare/review/play. An honest Known limitations section accompanies the alpha.
-- Feedback/support exports are opt-in and redact personal content, credentials and paths by default.
+- Build/release pipeline is implemented and green for the exact tag/commit.
+- Windows x64 ZIP starts on clean standard-user profiles without developer tools/accounts. Test on the named owner/friend machines when available and record the actual results; naming them is not a completed hardware test.
+- Fresh profiles contain no campaigns, characters, notes, source books, account state or personal branding.
+- Import/manual preparation, review, maps/fog, tabs/notes, backup/restore and persistence pass end to end.
+- Settings groups Display and the global AI control; Open player screen stays outside. AI is Off/unavailable, and the artifact contains no provider runtime/dependency or claimed AI capability.
+- Artifact manifest, privacy audit, dependency notices, signing status and checksums are verified.
+- Tester instructions stay short: extract → run EXE → select local library/adventure → import/review/edit → play. Known limitations explicitly say AI preparation is deferred.
+- The owner may download the vetted private build and provide its ZIP directly to testers. Do not assume a private GitHub release link is accessible without repository permissions.
+- Feedback exports are opt-in and redact personal content, credentials and local paths by default.
 
-## After stability
+## Later AI phase — separate workstream
 
-Plan personal-campaign migration as a separate export/import feature with a backup, dry run, compatibility report and rollback. Do not rewrite the live personal app or attach its history to the product branch. PDF/OCR imports, additional operating systems, more providers, native window shells and remote player devices are later milestones, not silent additions to the first alpha.
+ChatGPT through Codex remains the earlier selected first candidate, but no provider route or isolation implementation is required now. When the owner resumes AI work, validate supported installation/authentication, an enforced staging boundary, bounded structured output, cancellation and the global Off policy before enabling any capability. The historical sandbox preflight is neither a successful integration nor a blocker to the current core.
+
+Use capability-specific validation and human review for uncertain geometry. Do not silently revive deferred AI work, add paid fallbacks or claim that text-provider access includes artwork generation.
+
+## Personal migration and later platforms
+
+After product stability, prepare personal-campaign migration with backup, dry run, compatibility report and rollback. Do not rewrite the live personal app or merge its history. PDF/OCR, other operating systems, additional providers, native shells and remote player devices remain later scope.

@@ -1,48 +1,44 @@
 # Session Desk — release development
 
-A proposed local app for preparing and running independent tabletop adventures. **Session Desk is a working title.**
+A local app for preparing and running independent tabletop adventures. Session Desk is a working title.
 
-**Current status: architecture review, not a runnable tester release.** No executable, product provider adapter or automated adventure preparation has been delivered on this branch. Implementation is gated below, following the owner's instruction to resolve architecture/dependency gaps first.
+**Gate 0 is approved for the non-AI core (November 9, 2026).** The owner accepted the architecture and Windows x64 target. Core implementation/packaging can proceed; all AI/provider/isolation work is deferred. This checkout still contains design and offline readiness tools, not a runnable tester EXE.
 
-## Intended tester experience
+## First tester workflow
 
-1. Download and extract the Windows release ZIP. Run `SessionDesk.exe`; no Python, Git, Node or coding editor is required to run the core app.
-2. Choose an existing local 5e.tools adventure and image library. Select the adventure to import. A fresh install has no campaign or characters preloaded.
-3. Connect a supported AI provider in Settings, using the user's own account. The setup flow handles supported provider dependencies; the user completes the provider's sign-in.
-4. Choose **Prepare**, review the proposed materials, then **Start session**. The user operates the app through its features; a coding assistant or ongoing developer chat is not part of this workflow.
+1. Download/extract the vetted Windows x64 ZIP and run SessionDesk.exe. The core runtime must not require installed Python/Git/Node or a coding editor.
+2. Select an existing local 5e.tools adventure/image library and import an adventure. A fresh profile has no campaign or characters preloaded.
+3. Review maps/regions, enter notes/translations manually and add/import pictures as needed.
+4. Start a session using the DM/player views, explicit fog controls, shared tabs and notes. Save and back up the workspace independently of app upgrades.
 
-These steps are the release acceptance target, not installation instructions for a build that already exists. An account, provider allowance and internet access are still needed for online AI work; local play and already-created materials should work offline.
+One top-right **Settings** menu contains **Display** and the global **AI on/off** control. **Open player screen** stays in its separate existing header position. In the first build AI is Off/unavailable; there is no provider setup, account/allowance polling or generation. The non-AI workflow does not depend on a provider login or an ongoing developer chat.
 
-## Decisions and implementation gate
+These are acceptance targets, not instructions for an EXE that already exists. Windows x64 is confirmed for the owner's laptop/main PC and a friend's PC; supported Windows versions and compatibility are established by packaging/machine tests.
 
-- [Product scope and release-readiness assessment](docs/READINESS.md)
-- [Architecture and data boundaries](docs/ARCHITECTURE.md)
-- [Provider feasibility and official references](docs/PROVIDERS.md)
-- [Codex diagnostic results and remaining blockers](docs/CODEX-PREFLIGHT.md)
-- [CI, packaging and release design](docs/RELEASE-PIPELINE.md)
-- [Acceptance milestones](docs/IMPLEMENTATION-GATES.md)
+## Approved design and implementation milestones
 
-First import format: **an existing local 5e.tools adventure plus images**, confirmed by the owner. PDF ingestion is deferred. Windows x64 is the proposed first target; other platforms need separate builds and tests.
+- [Architecture and Settings/AI switch behavior](docs/ARCHITECTURE.md)
+- [Current gates and first non-AI release scope](docs/IMPLEMENTATION-GATES.md)
+- [Readiness assessment and remaining engineering proofs](docs/READINESS.md)
+- [CI, packaging and distribution design](docs/RELEASE-PIPELINE.md)
 
-First AI route: **ChatGPT through Codex**, confirmed by the owner. A read-only local diagnostic established authentication and protocol availability, but hit a Windows sandbox error before checking isolation. No model job ran. Structured generation, cancellation, distribution authentication and clean-machine setup remain unverified.
+[Provider feasibility](docs/PROVIDERS.md) and [Codex preflight](docs/CODEX-PREFLIGHT.md) are historical references for the deferred AI phase. They are not blockers or setup steps for the core build. ChatGPT through Codex remains the earlier first AI candidate, with no capability or distribution authentication claimed as implemented.
 
-## Developer readiness checks
+## Existing developer checks
 
-With Python 3.12 and Git already installed, run from this checkout:
+With Python 3.12 and Git already installed:
 
 ```text
 python tools/check_product_boundary.py
 python -m unittest discover -s tests -v
 ```
 
-The readiness workflow runs these offline checks with synthetic data. It does not run Codex or build/publish an application. These commands are for development, not tester installation instructions.
+The readiness workflow runs these offline checks using synthetic data. It does not run a provider, build an application or publish an artifact. Product build/E2E jobs must be added as the core is implemented.
 
 ## Privacy and distribution
 
-This branch begins with a parentless commit and contains no personal campaign content. Development uses a separate worktree from the live personal app.
+This branch has parentless, campaign-free history and a separate worktree. Do not copy personal content or merge personal commits into it. All editable user content belongs in external workspaces.
 
-The surrounding GitHub repository still contains private campaign history on other refs. **Do not make that repository public or give testers repository access.** Pending a final distribution decision, testers receive only audited release ZIP/EXE assets. A separate clean repository is required before sharing source access without exposing the personal repository.
+The surrounding private GitHub repository contains campaign history on other refs. Testers receive only audited ZIP/EXE files shared directly, without repository access. The owner can download a private build and forward its vetted ZIP; a private release URL is not public distribution. Source sharing requires a separate clean repository.
 
-No books, adventure pictures, character records, user workspaces, credentials, generated campaign notes or personal branding belong in the product build. Users import their own local source library after installation.
-
-The superseded prototype is not the base for this product. No personal-app migration occurs until a stable release exists and the owner chooses to migrate.
+No source books, official adventure art, character records, workspaces, credentials or personal branding belong in the product build. The owner may migrate the personal campaign later after stability using a separately verified backup/import path.

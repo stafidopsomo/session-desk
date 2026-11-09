@@ -1,5 +1,7 @@
 # Codex connection preflight
 
+**November 9 scope:** all AI/provider implementation and route-isolation work is deferred. This document preserves the November 5 feasibility/diagnostic record; it is not a setup step or blocker for the approved non-AI core. Do not install providers, query accounts/quotas or repeat live diagnostics for the current milestone. Revalidate provider facts/interfaces when AI work is explicitly resumed.
+
 Date: November 5, 2026. Selected first route: **ChatGPT through Codex**.
 
 ## Result

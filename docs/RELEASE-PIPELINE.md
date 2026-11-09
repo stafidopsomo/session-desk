@@ -1,6 +1,6 @@
 # CI and release pipeline design
 
-**Application build/release pipeline: design only.** A small readiness workflow now checks the campaign-free history/file boundary and offline diagnostic tests. It does not build, run a provider, upload artifacts or publish a release. The architecture gate must be resolved before implementing a build pipeline for an application that does not yet exist. In particular, do not publish the old personal app or notes prototype as a supposed clean alpha.
+**Application build/release pipeline: design only.** A small readiness workflow now checks the campaign-free history/file boundary and offline diagnostic tests. It does not build, run a provider, upload artifacts or publish a release. Gate 0 was resolved on November 9 for the non-AI core; application/package implementation may proceed, and its build/release jobs must be added as real code and evidence exist. In particular, do not publish the old personal app or notes prototype as a supposed clean alpha.
 
 The implemented readiness workflow uses read-only repository permissions, SHA-pinned checkout/setup-python actions, Windows 2025 and Python 3.12. It fetches only the tested commit's history, not other branch histories. Its exact file allowlist, text-only checks and independent-root check help catch accidental leakage; they do not replace review, secret scanning or a future packaged-artifact privacy audit. The runner image and Python patch version are not locked for reproducible application builds at this stage.
 
@@ -8,17 +8,17 @@ The implemented readiness workflow uses read-only repository permissions, SHA-pi
 
 - `release-dev` has a parentless, campaign-free history and a separate worktree. Feature branches should descend from it.
 - The personal branch remains private and independent. Never merge its commits into the release history.
-- For now, share only vetted release files; access to a branch of a private repository is not isolation from that repository's other refs/history.
+- Share audited ZIP/EXE files directly with testers. The owner can download a private build and forward its vetted ZIP. A private GitHub release URL is not accessible without repository permissions; giving access to a branch does not isolate other refs/history.
 - Before exposing source or changing repository visibility, move the clean product history to a separate repository and verify its object/ref contents. No personal repository visibility change is authorized.
 - Production/alpha tags must point to commits reachable from the clean product branch. Never build product tags from the personal branch.
 
 ## Packaging decision
 
-Start with a Windows x64 **one-folder frozen Python build in a ZIP**, with `SessionDesk.exe` at the top level and a very short README. A batch launcher is an optional convenience; it cannot be the only means of acquiring missing runtimes on a tester's machine.
+The owner confirmed Windows x64 on November 9, targeting the laptop, main PC and a friend's PC. Establish the supported Windows-version floor with packaging/machine tests. Start with a **one-folder frozen Python build in a ZIP**, with `SessionDesk.exe` at the top level and a very short README. A batch launcher is an optional convenience; it cannot be the only means of acquiring missing runtimes on a tester's machine.
 
 [PyInstaller's official packaging documentation](https://pyinstaller.org/en/stable/operating-mode.html) explains bundling the Python interpreter/dependencies so users do not need an installed Python. It also requires platform-specific builds. Its recommendation to validate one-folder mode before one-file mode fits an inspectable first alpha.
 
-Do not bundle all AI tools into every core install. Bundle core dependencies, then provide an app-managed setup for the selected official provider component once its installation/redistribution route is verified. Provider login remains a user interaction. If that path cannot be made reliable, the affected provider is not ready for the tester claim.
+The first core build contains no AI provider components or dependencies. AI is Off/unavailable in the unified top-right Settings menu, alongside Display. Open player screen remains its own header control. Provider installation/authentication/isolation and generation belong to a later phase, with separate validation before any capability is enabled.
 
 The application install is read-only. Workspaces live in a user-data directory and survive replacement/upgrades. Support paths with spaces, Unicode names, standard users and no developer repository installed.
 
@@ -30,12 +30,12 @@ Required jobs:
 
 1. **Boundary audit:** assert the allowlisted product tree, no campaign data or credentials, no source-book fixtures, and the expected clean-history baseline.
 2. **Static checks:** Python and UI syntax/lint/type checks, format checks, dependency/license inventory and secret scanning.
-3. **Unit and contract tests:** synthetic source adapters, unknown schema errors, IDs/references, jobs, provider fakes, source visibility, coordinate transforms and draft validation.
+3. **Unit and contract tests:** synthetic source adapters, unknown schema errors, IDs/references, import/export jobs, source visibility, coordinate transforms, resource validation and enforcement of the unavailable/Off AI state.
 4. **Storage tests:** workspace isolation, transaction failures, version migrations with rollback/backup, export/import including all assets, and no credential export.
-5. **UI/E2E:** empty first run → synthetic adventure import → map/room review → fake-provider preparation → approval → player presentation → restart and persistence.
-6. **Windows package build and smoke test:** frozen EXE starts from an extracted ZIP under a clean temporary profile. Hide developer tool paths for the launch test and verify that installed Python/Node/Git are not needed for core runtime. Provider dependency/authentication remains a separate test.
+5. **UI/E2E:** empty first run → synthetic adventure import → manual notes/resource/geometry preparation and review → player presentation → restart and persistence. Check Display/AI in one Settings menu, Open player screen outside it, and zero provider activity.
+6. **Windows package build and smoke test:** frozen EXE starts from an extracted ZIP under a clean temporary profile. Hide developer tool paths for the launch test and verify that installed Python/Node/Git are not needed for core runtime. Provider dependencies/authentication are absent from this first artifact; they are future AI-phase tests.
 
-Use original synthetic fixtures, including repeated region keys, one feature polygon that is not a full room, a map with no keyed regions, a missing player-safe image and a deliberately bad generated draft. No real book or real provider inference belongs in CI. Mock tests are not evidence of a working account integration; a bounded live conformance check is a separate release gate.
+Use original synthetic fixtures, including repeated region keys, one feature polygon that is not a full room, a map with no keyed regions, a missing player-safe image and a deliberately invalid manual draft. No real book or real provider inference belongs in CI. No account integration is claimed in the core. Bounded live provider conformance belongs to the deferred AI phase, not the first core release gate.
 
 ## Release/tag pipeline
 
@@ -53,6 +53,6 @@ Code signing is a distribution decision: do not falsely label an unsigned alpha 
 
 ## Release is blocked until proved
 
-There is currently no product application, package specification, dependency lock, provider integration, clean-profile build result or pipeline run for this branch. They must not be replaced with placeholder scripts that merely open the old app, install arbitrary tools, or publish a docs-only ZIP as a product.
+There is currently no product application, package specification, dependency lock or clean-profile product build result for this branch. Provider integration is intentionally deferred and does not block the scoped core release. The missing application and build work must not be replaced with placeholder scripts that merely open the old app, install arbitrary tools, or publish a docs-only ZIP as a product.
 
 A source timestamp and dependency lock support reproducible builds, but do not by themselves establish byte-identical EXEs. Claim bit-for-bit reproducibility only after comparing independent builds. Record provenance and hashes from the first real alpha regardless.

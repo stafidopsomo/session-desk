@@ -1,5 +1,7 @@
 # AI provider feasibility
 
+**November 9 scope:** all AI/provider implementation and route-isolation work is deferred. This document preserves the November 5 feasibility/diagnostic record; it is not a setup step or blocker for the approved non-AI core. Do not install providers, query accounts/quotas or repeat live diagnostics for the current milestone. Revalidate provider facts/interfaces when AI work is explicitly resumed.
+
 Checked against official documentation on November 5, 2026. This is a capability/integration assessment, not a completed integration or entitlement test. No inference, login change or provider installation was performed.
 
 ## Product boundary
@@ -48,7 +50,7 @@ Each adapter must provide:
 
 Credentials remain in the provider/approved OS store. Do not place token snapshots, login sessions or personal accounts in a build, workspace export or support report. A future explicit API-key mode must be user-selected and clearly identified; it is not part of the approved default.
 
-## Implementation recommendation
+## Future AI phase recommendation (deferred)
 
 Validate **one supported text-provider route end to end** before claiming the preparation workflow works. Add the other adapters against the same job/resource contract, then enable each capability after its own conformance proof. Unsupported image generation must remain unavailable rather than routed through a guessed subscription loophole.
 
