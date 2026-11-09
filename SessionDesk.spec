@@ -5,7 +5,7 @@ root = Path(SPECPATH)
 static = root / "sessiondesk" / "static"
 a = Analysis([str(root / "launcher.pyw")], pathex=[str(root)],
              binaries=[], datas=[(str(static / name), "sessiondesk/static")
-                for name in ("index.html", "app.js", "style.css", "icon.svg")],
+                for name in ("index.html", "app.js", "book.js", "style.css", "icon.svg")],
              hiddenimports=[], hookspath=[], hooksconfig={}, runtime_hooks=[],
              excludes=["playwright", "pip", "setuptools", "unittest", "pydoc"],
              noarchive=False, optimize=1)

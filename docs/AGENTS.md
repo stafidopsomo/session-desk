@@ -18,3 +18,5 @@
 
 - Explicit local-library installation is authorized: verified 2014 source release, chosen new/empty location, no downloaded code execution and optional adventure images on import. Existing-copy imports stay read-only/offline; no unrequested downloads. Test network behavior with synthetic data/fakes in CI.
 - Normal GUI launch exits after the last DM/player window closes (reload grace); headless tests opt into this lifecycle explicitly. Never terminate the personal campaign server when managing the product EXE.
+
+- November 9 book/room UX correction: follow source chapter/section order, hide player variants from DM navigation, persist resource pins above search, and keep room source/preparation beside the map. Use source boundaries directly; correction is freehand Draw boundary/Save boundary, with no coordinate editor or verification approval. Preserve old data when enriching the same source snapshot.

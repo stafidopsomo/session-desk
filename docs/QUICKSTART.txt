@@ -9,11 +9,20 @@ SESSION DESK — WINDOWS DEVELOPMENT PREVIEW
    for that installed copy; this is not the complete image archive.
    No books or pictures are bundled in the Session Desk ZIP.
 4. Read import warnings. Review images for secrets before marking them safe
-   to share. Verify region boundaries before using region reveal, or use
-   the fog brush. Selecting an entry or region never reveals it.
+   to share. Source room boundaries can be used directly. If one is wrong,
+   select the room, choose Draw boundary, drag around its complete edge and
+   Save boundary. There are no coordinate fields or verification steps.
+   Selecting or reading an entry/room never reveals it.
 5. Prepare / review lets you write narration/translations and private notes.
    Present sends reviewed media to the player screen. Player tabs, zoom,
    temporary drawing and shared notes work on the same computer/TV.
+   The sidebar follows the book's chapter/section order. Pin resources to
+   keep them above search. Room source and preparation open beside the map;
+   Book / resources gives you a full reader with boxes, lists and tables.
+
+If upgrading an older imported adventure, import that same adventure once
+more to add its original book structure. Notes, pins, manually drawn edges,
+custom pictures and the existing session/fog are preserved.
 
 Your workspaces are saved in %LOCALAPPDATA%\SessionDesk\workspaces,
 outside this application folder. Export a workspace backup before moving

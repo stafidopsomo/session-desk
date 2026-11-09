@@ -17,6 +17,7 @@ if (-not $SkipInstall) {
 }
 Invoke-Checked $Python @('-m','unittest','discover','-s','tests','-v')
 Invoke-Checked 'node' @('--check','sessiondesk/static/app.js')
+Invoke-Checked 'node' @('--test','tests/book-renderer.test.mjs')
 Invoke-Checked $Python @('tools/e2e_core.py')
 Invoke-Checked $Python @('tools/build_windows.py')
 $taskArchive = @(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'dist') -Filter '*windows-x64.zip' |

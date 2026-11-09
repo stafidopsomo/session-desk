@@ -14,7 +14,7 @@ from tools.smoke_core import call, launch
 def run(exe=None, artifacts=None):
     with tempfile.TemporaryDirectory(prefix="sessiondesk-browser-") as temp:
         base = Path(temp)
-        source = make_library(base / "library", wrapped=True)
+        source = make_library(base / "library", wrapped=True, rich=True)
         with launch(base / "app",exe) as ready, sync_playwright() as p:
             browser = p.chromium.launch()
             context = browser.new_context(viewport={"width":1440,"height":960},device_scale_factor=1)
@@ -33,6 +33,9 @@ def run(exe=None, artifacts=None):
             page.get_by_role("button",name="New workspace").click()
             page.locator('#workspace-name').fill("Browser test table")
             page.get_by_role("button",name="Create workspace",exact=True).click()
+            page.get_by_role("button",name="Add adventure",exact=True).click()
+            page.get_by_role('button',name='Close Add adventure',exact=True).click()
+            expect(page.locator('#dialog')).not_to_be_visible()
             page.get_by_role("button",name="Add adventure",exact=True).click()
             # A native picker is stubbed with a synthetic path. This verifies its
             # button never submits/validates the empty form before choosing.
@@ -66,6 +69,9 @@ def run(exe=None, artifacts=None):
             page.get_by_role("button",name="Import adventure",exact=True).click()
             page.get_by_role("button",name="Open adventure").click()
             expect(page.get_by_role("heading",name="Observatory floor")).to_be_visible()
+            expect(page.locator('.library')).not_to_contain_text('Observatory floor — Player')
+            expect(page.locator('.book-navigation')).to_contain_text('The observatory')
+            expect(page.locator('.book-navigation')).to_contain_text('The lower gallery')
             wid = call(ready,"bootstrap")["workspaces"][0]["id"]
             aid = call(ready,"workspace",{"workspace":wid})["adventures"][0]["id"]
             scope = {"workspace":wid,"adventure":aid}
@@ -73,11 +79,27 @@ def run(exe=None, artifacts=None):
             page.locator('#region-select').select_option(index=1)
             assert call(ready,"session",scope) == before, "Selecting a region must not reveal it"
             page.get_by_role("button",name="Read / prepare source").click()
+            expect(page.locator('#stage canvas')).to_be_visible()
+            expect(page.locator('#room-source .book-box.readaloud')).to_be_visible()
+            expect(page.locator('#room-source .book-table')).to_be_visible()
+            expect(page.locator('#region-points')).to_have_count(0)
+            page.locator('#room-source [data-action=pin]').click()
+            expect(page.locator('.pinned-resources')).to_contain_text('Arrival platform')
+            page.locator('#search').fill('lens')
+            expect(page.locator('.pinned-resources')).to_contain_text('Arrival platform')
+            page.locator('#search').fill('')
+            expect(page.locator('.pinned-resources')).to_contain_text('Arrival platform')
             page.locator('#translation').fill("Ένα ήσυχο παρατηρητήριο κάτω από γυάλινη στέγη.")
             page.locator('#private-notes').fill("Private browser note")
             page.get_by_role("checkbox",name="Reviewed and approved").check()
             page.get_by_role("button",name="Save preparation").click()
             expect(page.locator('#toast')).to_have_text("Preparation saved.")
+            if artifacts:page.screenshot(path=str(artifacts/'room-reader.png'))
+            page.get_by_role('button',name='Book / resources',exact=True).click()
+            expect(page.locator('.sourceview .book-box.readaloud')).to_be_visible()
+            expect(page.locator('.sourceview .book-table')).to_be_visible()
+            expect(page.locator('.book-navigation')).not_to_contain_text('16b')
+            if artifacts:page.screenshot(path=str(artifacts/'book-reader.png'))
             page.get_by_role("button",name="Library",exact=True).click()
             page.get_by_role("checkbox",name="I reviewed this image",exact=False).check()
             page.get_by_role("button",name="Present to players").click()
@@ -104,10 +126,17 @@ def run(exe=None, artifacts=None):
                 page.mouse.up()
             assert call(ready,"session",scope)["fog"], "Reveal brush did not commit: " + page.locator('.toolbar').inner_text() + ' / ' + page.locator('#toast').inner_text()
             page.locator('#region-select').select_option(index=1)
-            page.locator('#region-role').select_option('room')
-            page.get_by_role("button",name="Save / verify boundary").click()
-            page.get_by_role("button",name="Reveal region",exact=True).click()
-            expect(page.locator('#toast')).to_have_text("Region boundary verified.")
+            page.get_by_role('button',name='Draw boundary',exact=True).click()
+            page.get_by_role('button',name='Fit',exact=True).click()
+            box=page.locator('#stage').bounding_box();scale=min(box['width']/900,box['height']/600)*.95
+            offset_x=box['x']+(box['width']-900*scale)/2;offset_y=box['y']+(box['height']-600*scale)/2
+            boundary=[[100,150],[350,150],[350,400],[100,400],[100,150]]
+            page.mouse.move(offset_x+boundary[0][0]*scale,offset_y+boundary[0][1]*scale);page.mouse.down()
+            for px,py in boundary[1:]:page.mouse.move(offset_x+px*scale,offset_y+py*scale,steps=8)
+            page.mouse.up()
+            page.get_by_role('button',name='Save boundary',exact=True).click()
+            expect(page.locator('#toast')).to_have_text('Room boundary saved.')
+            page.get_by_role("button",name="Reveal room",exact=True).click()
             page.locator('#shared-note').fill("The platform is clear.")
             page.get_by_role("button",name="Save shared note").click()
             expect(player.locator('#player-note')).to_have_text("The platform is clear.")

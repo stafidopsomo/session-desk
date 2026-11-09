@@ -62,7 +62,7 @@ The import is idempotent by source fingerprint. Missing files and unsupported st
 
 Text extraction, source lookup, image copying, reference resolution and known map polygons are code tasks. The core supports manual notes/translations and user-supplied pictures without promising automatic generation. Locale, encounter assumptions and desired preparation are user choices, not hard-coded campaign preferences. In the deferred AI phase, a provider would receive only selected relevant source excerpts and a typed task.
 
-Do not infer walls or doors from a keyed region alone. It may mark a throne, landing or subsection. Imported geometry and image dimensions must agree after scaling/cropping. Preserve originals; unclear geometry remains unverified. AI may propose masks or polygons, but only reviewed geometry becomes the basis of precise room reveal. Manual brush/fog editing remains available.
+Do not infer walls or doors from a keyed region alone. It may mark a throne, landing or subsection. Imported geometry and image dimensions must agree after scaling/cropping. Preserve originals; unclear geometry remains unverified. The November 9 owner correction uses source-provided boundaries immediately, with no coordinate editor or verification step. To correct a boundary, drag its complete edge on the map and save it; backend shape/dimension validation still applies. Missing boundaries require drawing or the fog brush. Future AI proposals remain deferred.
 
 ## Global AI switch and Settings
 
@@ -94,3 +94,11 @@ The home screen lists workspaces and **Add adventure**. An adventure has Library
 Room actions are contextual: read/edit preparation, review available scene, reveal/hide and shared notes. Advanced generation controls stay in the preparation view. Unavailable features explain their missing capability; no button claims a provider can generate images merely because it can generate text.
 
 Local HTTP access is loopback-only with instance/session protection, same-origin write checks and tightly bounded asset routes. A separate device/LAN player mode, hosted accounts and remote access are deferred; a local TV window is not a security boundary against an adversarial user on the same computer.
+
+## Book navigation and room workflow (November 9 correction)
+
+Preserve the imported chapter/section hierarchy and structured source nodes for heading, read-aloud box, list, table and illustration rendering. Keep nameless source IDs out of headings/navigation; contextual notes retain their parent breadcrumb. Linked areas resolve to their source entry. This reader preserves book structure rather than flattening it into one text dump; cross-source statblock references currently retain their citation, without the complete 5e.tools hover/reference engine.
+
+The left sidebar contains DM maps in book order. Player variants stay behind their DM map; exact-size and explicit autoScale parent links share the DM coordinate space for fog. Unsupported transforms are not guessed. Pins are workspace/adventure-scoped user data, independent of search/preparation/session and included in backups. A room's source and manual preparation open in the same map page. Whole-book reading remains available separately.
+
+An older snapshot can be enriched by re-importing the identical source fingerprint. Preserve preparation, pins, manual pictures, shared notes, session tabs/fog and saved room boundaries. Changed source snapshots still require a new workspace; the enrichment path is not a general destructive refresh.

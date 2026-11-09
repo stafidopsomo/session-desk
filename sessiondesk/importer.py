@@ -53,10 +53,13 @@ def plain(value):
         return ""
     # 5e.tools inline tags: keep display text, never interpret HTML or scripts.
     def display(match):
-        parts = match[1].split("|")
+        tag, payload = match[1], match[2]
+        parts = payload.split("|")
+        if tag in ('area', 'filter', 'link', 'book', 'adventure'):
+            return parts[0]
         return parts[2] if len(parts) >= 3 and parts[2] else parts[0]
     for _ in range(8):
-        changed = re.sub(r"\{@\w+ ([^{}]*)}", display, value)
+        changed = re.sub(r"\{@(\w+) ([^{}]*)}", display, value)
         if changed == value:
             break
         value = changed
@@ -200,7 +203,8 @@ class Library:
             raise UserError("Unsupported adventure schema: expected data chapters.")
         aid = stable("5etools", source.lower())
         graph = {"id": aid, "name": meta["name"], "source": source,
-                 "adapter": "5etools-local-v1", "entries": [], "maps": [], "pictures": [],
+                 "adapter": "5etools-local-v2", "book_schema": 1, "book": chapters,
+                 "entries": [], "maps": [], "pictures": [],
                  "warnings": [], "source_fingerprint": hashlib.sha256(
                      json.dumps(raw, sort_keys=True, ensure_ascii=False).encode()).hexdigest()}
         blobs, images, lookup = {}, [], {}
@@ -218,14 +222,16 @@ class Library:
                     walk(child, trail + [i], chapter, parent)
             elif isinstance(node, dict):
                 if node.get("type") == "image":
-                    images.append((node, trail, chapter, parent))
+                    images.append((node, trail, chapter, parent, count))
                     return
                 entry_id = parent
-                if node.get("name") or node.get("id"):
+                if node.get("name") or node.get("id") or node.get("caption"):
                     entry_id = stable(aid, "entry", trail)
-                    title = plain(node.get("name", str(node.get("id", "Untitled"))))
+                    fallback = {"insetReadaloud": "Read-aloud", "inset": "Boxed note", "table": "Table"}.get(node.get("type"), "Source note")
+                    title = plain(node.get("name") or node.get("caption") or fallback)
                     entry = {"id": entry_id, "key": str(node.get("id", "")), "name": title,
-                             "chapter": chapter, "parent": parent, "path": trail,
+                             "chapter": chapter, "parent": parent, "path": trail, "order": count,
+                             "entry_type": node.get("type", "entries"), "has_heading": bool(node.get("name") or node.get("caption")),
                              "text": text_content(node), "locator": {"source": source,
                              "chapter": chapter, "entry": node.get("id"), "path": trail}}
                     graph["entries"].append(entry)
@@ -237,7 +243,7 @@ class Library:
 
         for i, chapter in enumerate(chapters):
             walk(chapter, [i], i)
-        for node, trail, chapter, parent in images:
+        for node, trail, chapter, parent, order in images:
             if cancelled():
                 raise UserError("Import cancelled; workspace unchanged.")
             href = node.get("href", {})
@@ -264,7 +270,9 @@ class Library:
                 record = {"id": stable(aid, "image", trail), "name": plain(node.get("title") or
                           node.get("mapName") or image.stem), "asset": digest, "width": w,
                           "height": h, "chapter": chapter, "entry": parent,
-                          "source_path": path, "regions": [], "player_safe": False}
+                          "source_path": path, "regions": [], "player_safe": False,
+                          "path": trail, "order": order, "image_type": node.get("imageType", "picture"),
+                          "source_id": str(node.get("id", "")), "map_parent": node.get("mapParent")}
                 is_map = bool(node.get("mapRegions") or node.get("imageType") in ("map", "mapPlayer"))
                 record["kind"] = "map" if is_map else "picture"
                 record["safety_note"] = "Review for labels, secrets and spoilers before sharing."
@@ -274,6 +282,11 @@ class Library:
                     matches = lookup.get(str(region.get("area", "")), [])
                     nearby = [e for e in matches if e["chapter"] == chapter]
                     matches = nearby or matches
+                    if len(matches) == 1 and not matches[0]["has_heading"]:
+                        context = matches[0]
+                        while context.get("parent") and not context["has_heading"]:
+                            context = next(e for e in graph["entries"] if e["id"] == context["parent"])
+                        matches = [context]
                     try:
                         points = polygon(region.get("points"), w, h) if dims_match else []
                     except UserError:
@@ -293,6 +306,17 @@ class Library:
                 graph["warnings"].append(str(exc) if isinstance(exc, UserError) else f"Cannot read image: {path}")
         if len(graph["warnings"]) > 500:
             graph["warnings"] = graph["warnings"][:500] + ["Further warnings omitted."]
+        for player in (x for x in graph["maps"] if x["image_type"] == "mapPlayer"):
+            parent = player.get("map_parent")
+            if not isinstance(parent, dict) or set(parent) - {"id", "autoScale"}:
+                continue
+            matches = [x for x in graph["maps"] if x["image_type"] != "mapPlayer" and
+                       x["source_id"] == str(parent.get("id")) and x["chapter"] == player["chapter"]]
+            if len(matches) != 1:
+                continue
+            dm = matches[0]
+            if (dm["width"], dm["height"]) == (player["width"], player["height"]) or parent.get("autoScale") is True:
+                dm["player_map"] = player["id"]
         # Include asset hashes: a changed source image is a changed import, even with identical JSON.
         graph["fingerprint"] = hashlib.sha256((graph["source_fingerprint"] +
                             "".join(sorted(blobs))).encode()).hexdigest()

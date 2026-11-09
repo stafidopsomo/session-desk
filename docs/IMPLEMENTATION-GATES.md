@@ -23,6 +23,19 @@ The safe distribution default is audited ZIP/EXE files shared directly with test
 
 ## Gate 1 — executable core architecture spike
 
+Current proof status after development preview 3:
+
+| Gate 1 check | Status |
+|---|---|
+| 1. Bundled EXE on a genuinely clean standard-user Windows account, OS floor recorded | Partial: packaged startup, hidden developer PATH, fresh app-data profile and Windows CI pass. A real clean account/VM and OS-floor evidence remain pending. |
+| 2. External isolated workspaces and replacement-safe data | Passed synthetic isolation, restart, relocation and asset-complete backup/restore checks. |
+| 3. Generic source graph, repeated keys and feature regions | Passed synthetic cases and the selected local 2014 source import. |
+| 4. Settings, separate player control and useful non-AI flow | Passed source/frozen-browser checks; book hierarchy, pins, inline room prep and drawing corrections are usability improvements within this flow. |
+| 5. AI unavailable and no provider activity | Passed backend rejection and offline/fake-provider tests. |
+
+Gate 0 stays closed. These UI corrections do not reopen architecture approval, and no new owner document approval is needed. The next Gate 1 acceptance action is the genuine clean-standard-user Windows test, then recording the actual supported version. Gate 2 usability work can continue while that evidence is collected.
+
+
 Prove with original synthetic data:
 
 1. A frozen Windows x64 app starts under a fresh standard-user profile with no installed Python/Git/Node dependency for its core runtime. Record the tested Windows versions and derive the supported OS floor.
@@ -43,7 +56,7 @@ Requirements:
 - No hidden source downloads, account provisioning or paid dependencies in the core setup.
 - Imported facts/assets, manual edits and actual session state remain distinguishable. Translations/notes can be entered or imported manually; no automatic generation is promised.
 - Locale, names, rules profile and encounter assumptions belong to the workspace, with no preloaded personal party or campaign preferences.
-- Room/brush fog, player-safe map selection and geometry review/correction. Missing or uncertain geometry remains visible as incomplete and does not become a fabricated precise reveal mask.
+- Room/brush fog, player-safe map selection and direct mouse boundary correction. Source polygons are usable without an approval step; missing geometry requires a drawn edge or brush. Do not invent geometry. The November 9 owner correction removes coordinate fields and verification controls.
 - Shared player tabs/notes and explicit visibility actions; preparation never reveals a room automatically.
 - Import/export cancellation, failure recovery and asset validation. Backup/import into another root includes all required images and state.
 - One top-right Settings menu; Display and AI control together; Open player screen stays separate. AI remains Off with no provider/background activity.

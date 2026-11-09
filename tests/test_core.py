@@ -75,12 +75,12 @@ class CoreTests(WorkspaceCase):
         with self.assertRaises(UserError): self.store.asset(other,self.graph["maps"][0]["asset"])
         with self.assertRaises(UserError): self.store.prepare(other,self.aid,self.graph["entries"][1]["id"],{})
 
-    def test_unverified_regions_cannot_be_revealed_and_reveal_is_additive(self):
+    def test_missing_boundaries_require_drawing_and_reveal_is_additive(self):
         media = self.imported()
         with self.assertRaises(UserError):
-            self.store.session_action(self.wid,self.aid,{"action":"reveal_region","media":media["id"],"region":media["regions"][0]["id"]})
+            uncertain=self.graph['maps'][3]
+            self.store.session_action(self.wid,self.aid,{"action":"reveal_region","media":uncertain["id"],"region":uncertain["regions"][0]["id"]})
         r = media["regions"][0]
-        self.store.review_map(self.wid,self.aid,media["id"],{"region":{**r,"verified":True,"role":"room"}})
         self.store.session_action(self.wid,self.aid,{"action":"fog","media":media["id"],"mode":"reveal","points":[[30,40]],"radius":20})
         state = self.store.session_action(self.wid,self.aid,{"action":"reveal_region","media":media["id"],"region":r["id"]})
         self.assertEqual(len(state["fog"][media["id"]]),2)

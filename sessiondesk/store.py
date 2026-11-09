@@ -109,7 +109,7 @@ class Store:
                 "SELECT value FROM documents WHERE key LIKE 'adventure:%'")]
             return {"meta": self.get(conn, "meta"), "adventures": [
                 {k: a[k] for k in ("id", "name", "source", "fingerprint")} |
-                {"maps": len(a["maps"]), "pictures": len(a["pictures"]), "warnings": len(a["warnings"])}
+                {"maps": sum(x.get("image_type") != "mapPlayer" for x in a["maps"]), "pictures": len(a["pictures"]), "warnings": len(a["warnings"])}
                 for a in adventures]}
 
     def adventure(self, wid, aid):
@@ -118,6 +118,7 @@ class Store:
             if not graph:
                 raise UserError("Adventure not found in this workspace.")
             graph["preparation"] = self.get(conn, "prep:" + aid, {})
+            graph["pins"] = self.get(conn, "pins:" + aid, {"items": []})["items"]
             return graph
 
     def import_graph(self, wid, graph, blobs):
@@ -125,7 +126,22 @@ class Store:
             old = self.get(conn, "adventure:" + graph["id"])
             if old:
                 if old["fingerprint"] == graph["fingerprint"]:
-                    return {"id": graph["id"], "unchanged": True}
+                    if old.get("book_schema", 0) >= graph.get("book_schema", 0):
+                        return {"id": graph["id"], "unchanged": True}
+                    # Enrich the same snapshot without resetting manual material or session state.
+                    previous = {m["id"]: m for m in old["maps"] + old["pictures"]}
+                    for item in graph["maps"] + graph["pictures"]:
+                        saved = previous.get(item["id"], {})
+                        item["player_safe"] = saved.get("player_safe", False)
+                        regions = {r["id"]: r for r in saved.get("regions", [])}
+                        for region in item["regions"]:
+                            if region["id"] in regions:
+                                for field in ("points", "role", "verified", "boundary_origin"):
+                                    if field in regions[region["id"]]:
+                                        region[field] = regions[region["id"]][field]
+                    graph["pictures"] += [m for m in old["pictures"] if m.get("origin") == "manual"]
+                    self.put(conn, "adventure:" + graph["id"], graph)
+                    return {"id": graph["id"], "unchanged": False, "enriched": True}
                 raise UserError("This source changed. Import into a new workspace to preserve existing preparation/session state.")
             for digest, (mime, data) in blobs.items():
                 if hashlib.sha256(data).hexdigest() != digest:
@@ -140,6 +156,24 @@ class Store:
                 conn.execute("INSERT OR IGNORE INTO assets VALUES (?,?,?)", (digest, mime, len(data)))
             self.put(conn, "adventure:" + graph["id"], graph)
         return {"id": graph["id"], "unchanged": False}
+
+    def pin(self, wid, aid, kind, resource, enabled):
+        with self.lock, self.db(wid) as conn:
+            graph = self.get(conn, "adventure:" + identifier(aid))
+            if not graph or kind not in ("entry", "media") or type(enabled) is not bool:
+                raise UserError("Invalid pinned resource.")
+            candidates = graph["entries"] if kind == "entry" else graph["maps"] + graph["pictures"]
+            if resource not in {x["id"] for x in candidates}:
+                raise UserError("Resource not found in this adventure.")
+            saved = self.get(conn, "pins:" + aid, {"items": []})
+            item = {"kind": kind, "id": resource}
+            saved["items"] = [x for x in saved["items"] if x != item]
+            if enabled:
+                if len(saved["items"]) >= 64:
+                    raise UserError("Unpin a resource before adding another (64 maximum).")
+                saved["items"].append(item)
+            self.put(conn, "pins:" + aid, saved)
+            return saved["items"]
 
     def prepare(self, wid, aid, entry, payload):
         with self.lock, self.db(wid) as conn:
@@ -177,7 +211,8 @@ class Store:
                 if role not in ("room", "feature", "landing", "area", "unknown"):
                     raise UserError("Unknown region role.")
                 region.update(points=polygon(change.get("points"), item["width"], item["height"]),
-                              role=role, verified=change.get("verified") is True)
+                              role=role, verified=change.get("verified") is True,
+                              boundary_origin="manual")
             # Revoking safety immediately removes that media from the player screen.
             session = self.get(conn, "session:" + aid, self.empty_session())
             if not item["player_safe"]:
@@ -224,9 +259,18 @@ class Store:
         if not player:
             return state
         media = {x["id"]: x for x in graph["maps"] + graph["pictures"] if x["player_safe"]}
+        all_maps = {x["id"]: x for x in graph["maps"]}
+        tabs = []
+        for mid in state["tabs"]:
+            if mid not in media:
+                continue
+            record = {k: media[mid][k] for k in ("id", "name", "asset", "width", "height", "kind")}
+            player_map = all_maps.get(media[mid].get("player_map"))
+            if player_map:
+                record["asset"] = player_map["asset"]
+            tabs.append(record)
         # Player serialization has an explicit allowlist: no regions, locators, book text or DM prep.
-        return {"tabs": [{k: media[mid][k] for k in ("id", "name", "asset", "width", "height", "kind")}
-                         for mid in state["tabs"] if mid in media], "active": state["active"],
+        return {"tabs": tabs, "active": state["active"],
                 "fog": {k: v for k, v in state["fog"].items() if k in state["tabs"]},
                 "notes": {k: v for k, v in state["notes"].items() if k in state["tabs"]},
                 "revision": state["revision"]}
@@ -272,9 +316,9 @@ class Store:
                         [media["width"], media["height"]], [0, media["height"]]]}]
                 elif action == "reveal_region":
                     region = next((r for r in media["regions"] if r["id"] == payload.get("region")), None)
-                    if not region or not region["verified"] or not region["points"]:
-                        raise UserError("Review/verify this region's boundary before room reveal; brush is always available.")
-                    operations.append({"mode": "reveal", "polygon": region["points"]})
+                    if not region or not region["points"]:
+                        raise UserError("Draw this room's boundary first, or use the reveal brush.")
+                    operations.append({"mode": "reveal", "polygon": polygon(region["points"], media["width"], media["height"])})
                 else:
                     mode = payload.get("mode")
                     if mode not in ("reveal", "hide"):
@@ -337,7 +381,7 @@ class Store:
                 continue
             prefix, _, suffix = key.partition(":")
             identifier(suffix)
-            if prefix not in ("adventure", "prep", "session") or not isinstance(value, dict):
+            if prefix not in ("adventure", "prep", "session", "pins") or not isinstance(value, dict):
                 raise UserError("Unknown backup document.")
             if prefix != "adventure":
                 continue
@@ -352,6 +396,16 @@ class Store:
             media_ids = {identifier(m["id"]) for m in media}
             if len(entry_ids) != len(entries) or len(media_ids) != len(media):
                 raise UserError("Duplicate source/media identity.")
+            if entry_ids & media_ids:
+                raise UserError("Source/media identities overlap.")
+            parents = {entry['id']: entry.get('parent') for entry in entries}
+            for eid in entry_ids:
+                current, seen = eid, set()
+                while current is not None:
+                    if current not in parents or current in seen or len(seen) > 100:
+                        raise UserError("Invalid or cyclic book hierarchy.")
+                    seen.add(current)
+                    current = parents[current]
             for entry in entries:
                 string(entry["name"], 2000)
                 string(entry["text"], 10000000)
@@ -377,11 +431,19 @@ class Store:
             graphs[suffix] = (value, entry_ids, {m["id"]: m for m in media})
         for key, value in documents.items():
             prefix, _, aid = key.partition(":")
-            if prefix not in ("prep", "session"):
+            if prefix not in ("prep", "session", "pins"):
                 continue
             if aid not in graphs:
                 raise UserError("Orphan preparation/session in backup.")
             _, entries, media = graphs[aid]
+            if prefix == "pins":
+                if not isinstance(value.get("items"), list) or len(value["items"]) > 64:
+                    raise UserError("Invalid pinned resources.")
+                for pin in value["items"]:
+                    candidates = entries if pin.get("kind") == "entry" else media if pin.get("kind") == "media" else {}
+                    if pin.get("id") not in candidates:
+                        raise UserError("Invalid pinned resource reference.")
+                continue
             if prefix == "prep":
                 for eid, prep in value.items():
                     if eid not in entries or prep["status"] not in ("draft", "approved"):

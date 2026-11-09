@@ -1,12 +1,12 @@
 # Windows core build status
 
-Updated November 9, 2026. Version: **0.1.0-dev.2**. This is an unsigned development preview; no alpha tag/release has been published.
+Updated November 9, 2026. Version: **0.1.0-dev.3**. This is an unsigned development preview; no alpha tag/release has been published.
 
 ## Implemented
 
 - Empty, named workspaces stored outside the installation in schema-versioned SQLite; workspace/adventure-scoped routes, transactions, stable source/map/region IDs and independently managed hashed assets.
 - Explicit local 5e.tools index/adventure/image import, inventory and warnings, chapter/path/entry locators, deterministic fingerprints and safe repeated imports. Imports run as cancellable background tasks; cancellation ends before the atomic commit. Changed snapshots require a new workspace, preserving manual preparation.
-- Manual narration/translations, draft/approved review and private DM notes. Imported names remain unchanged. Media folders, manual picture import, image-sharing review and manual source-region boundary correction/verification. Unverified/uncertain geometry never enables precise region reveal.
+- Manual narration/translations, draft/approved review and private DM notes. Imported names remain unchanged. Media folders, manual picture import, image-sharing review and manual source-region boundary correction/verification. Valid source boundaries are usable directly. Missing geometry requires a manually drawn edge or the brush; there is no verification step or coordinate-field UI.
 - Separate DM/player windows, explicit presentation, shared tabs selectable/closable from either window, shared notes, persistent room/brush fog, pan/zoom, adjustable fog brush, and temporary player drawing/color/clear. Region selection never reveals; reveal operations add to prior cleared fog.
 - Top-right Settings groups Display and global AI. AI is fixed Off/unavailable; backend AI routes reject submissions/enabling. No provider runtime, install, discovery, sign-in or calls. Open player screen remains a separate header control.
 - Complete image-inclusive backup/restore with hashes, size/path/type/identity validation, new workspace identity on restore, and unsupported-schema refusal without resetting data. Initial schema is version 1; no previous product schema needs migration yet.
@@ -18,8 +18,8 @@ Updated November 9, 2026. Version: **0.1.0-dev.2**. This is an unsigned developm
 
 Host: **Windows 11 Pro x64, build 26300**, Python **3.12.10**. Automated unit/CI content is original synthetic data, generated outside the repository. Unit/CI fixtures never use a personal campaign/save or source book. Separate owned-library and upstream setup checks below run only in temporary folders outside Git; no source content or images are stored in reports/releases.
 
-- 40 offline unit/contract tests: importer identities/locators, ambiguous dimensions, workspace isolation, additive reveal, private/player separation, player tabs, backup relocation/corruption/path/identity rejection, unsupported schema, same-origin/auth checks, AI rejection, ephemeral drawing and publication gating; historical diagnostics use only fakes.
-- Real Chromium source and frozen-browser E2E: create workspace, inspect/import, save Greek preparation, verify boundary, explicit presentation, player reload, brush reveal, Space-pan after outside focus, shared notes, player drawing/zoom/tab activation/close-all, Settings layout and disabled AI. External browser requests are blocked and asserted absent.
+- 45 offline unit/contract tests: importer identities/locators, ambiguous dimensions, workspace isolation, additive reveal, private/player separation, player tabs, backup relocation/corruption/path/identity rejection, unsupported schema, same-origin/auth checks, AI rejection, ephemeral drawing and publication gating; historical diagnostics use only fakes.
+- Real Chromium source and frozen-browser E2E: create workspace, inspect/import, save Greek preparation, draw/save a complete boundary, explicit presentation, player reload, brush reveal, Space-pan after outside focus, shared notes, player drawing/zoom/tab activation/close-all, Settings layout and disabled AI. External browser requests are blocked and asserted absent.
 - Frozen lifecycle smoke: fresh application-data directory with Python/Git/Node hidden from PATH; import, manual preparation, player-safe serialization, restart persistence, asset-complete backup and restore. Extracted-ZIP verification also checks entry/ZIP hashes, Unicode relocation and unchanged install files.
 - Product source boundary and JavaScript syntax checks. Explicit package content audit scans developer path/name markers and excludes tests, personal data, provider tools and arbitrary source-tree directories.
 
@@ -44,3 +44,14 @@ The default data folder is `%LOCALAPPDATA%/SessionDesk/`. Closing the last DM/pl
 - Installer tests use original synthetic archives and fake transports in CI. Extraction rejects path traversal/links/collisions and size limits; failed/cancelled setup cleans only its own verified staging directory and does not overwrite an existing nonempty destination.
 - Last-window close/reload/player-window behavior has deterministic tests. Source and frozen lifecycle smoke tests verify shutdown releases the process/EXE. Existing user data remains outside the application and survives replacement.
 - The owner's previously running Desktop test EXE was stopped gracefully to release its file lock; no files/workspaces were deleted.
+
+## Development preview 3 book and table workflow
+
+- The sidebar follows chapter/section/source order, including contextual maps and illustrations. Player map variants are omitted from DM navigation/search; supported parent links select the player asset behind the DM map while preserving common fog/drawing coordinates.
+- Original structured book nodes render headings, read-aloud boxes, lists, tables and illustrations; area links open the right entry and nameless IDs such as 16b no longer masquerade as headings. Cross-source statblocks retain their source citation; a complete 5e.tools reference/hover engine is not claimed.
+- Pins stay above search, survive clearing/changing queries and persist per adventure, including backup/restore. Room source and private preparation stay in the map page. Unsaved form edits are retained while navigating within the open adventure.
+- Complete room edges can be drawn by dragging and saved directly. Source boundaries work without verification; polygon coordinates remain internal. Reading/selecting a room never reveals it, and explicit reveal adds to prior cleared fog.
+- Add adventure has an accessible top-right close control. Existing imports can gain the richer book snapshot by re-importing the identical source once; regression tests preserve notes, fog/tabs, pins, manual images and drawn boundaries.
+- 45 Python tests and 2 Node renderer tests cover persistence/enrichment, player-asset projection, source HTML escaping, nested typography and area links. Browser E2E also covers book boxes/tables, stable pins across search/backspace, inline room editing, hidden player variants, freehand boundary save/reveal and the close control.
+- Selected owned-source inspection: Sunless Citadel has 2 DM maps + 2 hidden player variants, and Icewind Dale 42 DM maps + 39 hidden player variants. All of these parent links use supported matching dimensions/autoScale metadata. No owned source text, artwork or screenshots are committed or uploaded in CI.
+- Gate 0 remains resolved. Gate 1 checks 2-5 have supporting evidence; check 1 still needs a genuine clean Windows standard-user account/VM and a recorded OS floor. Fresh app-data/PATH isolation is not substituted for that test.

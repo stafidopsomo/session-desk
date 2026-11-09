@@ -129,6 +129,8 @@ class Application:
                 return {k: v for k, v in job.items() if k != "cancel"} | {"cancel_requested": job["cancel"].is_set()}
         if path == "/api/prepare":
             return store.prepare(body["workspace"], body["adventure"], body["entry"], body)
+        if path == "/api/pin":
+            return {"pins": store.pin(body["workspace"], body["adventure"], body.get("kind"), body.get("id"), body.get("enabled"))}
         if path == "/api/media/review":
             return store.review_map(body["workspace"], body["adventure"], body["media"], body)
         if path == "/api/media/add":
@@ -233,9 +235,9 @@ def make_server(app, port=0):
                     return self.send(403, {"error": "Invalid host."})
                 parsed = urlsplit(self.path)
                 path, query = parsed.path, parse_qs(parsed.query)
-                if self.command == "GET" and path in ("/", "/app.js", "/style.css", "/icon.svg"):
+                if self.command == "GET" and path in ("/", "/app.js", "/book.js", "/style.css", "/icon.svg"):
                     filename = "index.html" if path == "/" else path[1:]
-                    mime = {"index.html": "text/html", "app.js": "text/javascript", "style.css": "text/css", "icon.svg": "image/svg+xml"}[filename]
+                    mime = {"index.html": "text/html", "app.js": "text/javascript", "book.js": "text/javascript", "style.css": "text/css", "icon.svg": "image/svg+xml"}[filename]
                     return self.send(200, (STATIC / filename).read_bytes(), mime)
                 token = self.headers.get("Authorization", "").removeprefix("Bearer ")
                 if path.startswith("/asset/"):
