@@ -29,7 +29,7 @@ function mediaItems() { return S.graph ? [...S.graph.maps, ...S.graph.pictures] 
 function selectedMedia() { return mediaItems().find(x => x.id === S.media); }
 function selectedEntry() { return S.graph?.entries.find(x => x.id === S.entry); }
 function selectedRegion() { return selectedMedia()?.regions.find(x => x.id === S.region); }
-const button = (action, text, klass = '', extra = '') => `<button data-action="${action}" class="${klass}" ${extra}>${text}</button>`;
+const button = (action, text, klass = '', extra = '') => `<button type="button" data-action="${action}" class="${klass}" ${extra}>${text}</button>`;
 function header() {
   return `<header class="top"><div class="brand"><img src="/icon.svg" alt="">Session Desk</div>
     ${S.overview ? button('home', 'Workspaces', 'quiet') : ''}<span class="title muted">${esc(S.overview?.meta.name || 'Your table, locally')}</span>
@@ -44,7 +44,7 @@ function showSettings() {
     <label class="check"><input id="density" type="checkbox" ${document.body.classList.contains('dense') ? 'checked' : ''}>Compact layout</label>
     <hr><h3>AI</h3><label class="check"><input type="checkbox" role="switch" aria-label="AI" disabled>Off</label>
     <p class="muted">AI preparation is unavailable in this build. Import, edit, review and play without a provider.</p>
-    <hr><small>${esc(S.boot?.version || '0.1.0-dev.1')} · local Windows preview</small><p>${button('quit', 'Quit app', 'quiet')}</p>`;
+    <hr><small>${esc(S.boot?.version || 'Development build')} · local Windows preview</small><p>${button('quit', 'Quit app', 'quiet')}</p>`;
   document.body.append(panel);
   $('#text-size').oninput = e => { document.documentElement.style.setProperty('--scale', e.target.value / 100); localStorage.setItem('textSize', e.target.value); };
   $('#density').onchange = e => { document.body.classList.toggle('dense', e.target.checked); localStorage.setItem('density', String(e.target.checked)); };
@@ -67,7 +67,7 @@ async function openWorkspace(wid) {
     <div class="cards">${S.overview.adventures.map(a => `<article class="card"><h2>${esc(a.name)}</h2>
       <p class="count">${a.maps} maps · ${a.pictures} pictures${a.warnings ? ` · ${a.warnings} import warnings` : ''}</p>
       ${button('adventure','Open adventure','',`data-id="${a.id}"`)}</article>`).join('')}</div>
-    ${!S.overview.adventures.length ? '<div class="empty"><h2>Add your first adventure</h2><p>Import from an existing local 5e.tools adventure and image library. No source files are downloaded.</p></div>' : ''}</main>`;
+    ${!S.overview.adventures.length ? '<div class="empty"><h2>Add your first adventure</h2><p>Use your existing local 5e.tools copy, or install one at a location you choose.</p></div>' : ''}</main>`;
 }
 async function openAdventure(aid) {
   S.aid = aid; S.graph = await request('adventure'); S.session = await request('session');
@@ -168,12 +168,68 @@ async function sessionAction(action, extra = {}) {
   else { renderTabs($('#dm-tabs'),S.session,false); S.stage?.paint(); }
 }
 function modal(html) { const d = $('#dialog'); d.innerHTML = html; d.showModal(); }
-function dismiss() { $('#dialog').close(); }
+let sourceJob = null, sourceValidation = null;
+function dismiss() {
+  if (sourceJob) { toast('Cancel the current operation before closing this window.'); return; }
+  $('#dialog').close();
+}
+$('#dialog').addEventListener('cancel',e=>{if(sourceJob){e.preventDefault();toast('Cancel the current operation before closing this window.');}});
 function importDialog() {
-  modal(`<h2>Add adventure</h2><p class="muted">Select your existing local 5e.tools library. Files are read only when you choose to inspect or import.</p>
-    <form data-form="inspect"><label for="library-path">Library folder</label><div class="row"><input name="path" id="library-path" required placeholder="Folder containing data/adventures.json">${button('pick-folder','Choose folder','quiet')}</div>
-    <label for="image-path">Image library folder · optional</label><input name="images" id="image-path" placeholder="Defaults to the selected library’s img folder">
-    <div class="row"><button type="submit" class="primary">Inspect library</button>${button('dismiss','Cancel','quiet')}</div></form><div id="inventory"></div>`);
+  sourceValidation = null;
+  modal(`<h2>Add adventure</h2><p class="muted">Connect a local source library, then choose your adventure.</p>
+    <div class="row source-modes">${button('source-existing','Use existing copy','active')}${button('source-install','Install local copy')}</div>
+    <div id="source-form"></div><div id="source-status" role="status" aria-live="polite"></div><div id="inventory"></div>`);
+  existingSourceForm();
+}
+function existingSourceForm(path='',images='') {
+  $('#source-form').innerHTML=`<form data-form="inspect"><label for="library-path">5e.tools library folder</label>
+    <div class="row"><input name="path" id="library-path" required value="${esc(path)}" placeholder="Folder containing data/adventures.json">${button('pick-folder','Choose folder','quiet')}</div>
+    <details><summary>Separate image folder · optional</summary><label for="image-path">Image library folder</label><input name="images" id="image-path" value="${esc(images)}" placeholder="Uses the library’s img folder"></details>
+    <div class="row"><button type="submit" class="primary">Validate copy</button>${button('dismiss','Close','quiet')}</div></form>`;
+  for(const input of $('#source-form').querySelectorAll('input'))input.addEventListener('input',()=>{
+    sourceValidation=null;$('#inventory').innerHTML='';$('#source-status').innerHTML='';
+  });
+}
+async function validateSource() {
+  sourceValidation=null;$('#inventory').innerHTML='';$('#source-status').innerHTML='<p>Checking local copy…</p>';
+  try {
+    const path=$('#library-path').value,images=$('#image-path').value;
+    const result=await request('library',{path,images});sourceValidation={...result,selectedPath:path,selectedImages:images};
+    $('#source-status').innerHTML=`<div class="notice success"><strong>✓ Local 5e.tools copy found</strong><p>${result.version ? `Version ${esc(result.version)} · ` : ''}${result.available} of ${result.adventures.length} adventure data files found.</p>
+      <p>${result.download_images ? 'Adventure images will download during import, as selected at installation.' : result.images_found ? 'Image folder found.' : 'No images found. Text can still be imported; missing images will be reported.'}</p></div>`;
+    $('#inventory').innerHTML=`<label for="adventure-source">Choose adventure</label><select id="adventure-source">${result.adventures.map(a=>`<option value="${esc(a.id)}" ${a.available?'':'disabled'}>${esc(a.name)}${a.available?'':' · data missing'}</option>`).join('')}</select><p>${button('import-adventure','Import adventure','primary',result.available?'':'disabled')}</p>`;
+  } catch(error) { $('#source-status').innerHTML=`<div class="notice error"><strong>Copy not validated</strong><p>${esc(error.message)}</p></div>`; }
+}
+function sourceBusy(busy) {
+  for(const node of document.querySelectorAll('#source-form input,#source-form button,#source-form select,#inventory button,#inventory select,.source-modes button'))node.disabled=busy;
+}
+function jobStatus(state) {
+  const root=$('#source-status');if(!root)return;
+  const verb=state.kind==='install'?'Installation':'Import';
+  if(['failed','cancelled'].includes(state.state)) {
+    root.innerHTML=`<div class="notice error"><strong>${verb} ${state.state==='failed'?'stopped':'cancelled'}</strong><p>${esc(state.error||'Operation cancelled.')}</p>${state.error_code?`<small>Reference: ${esc(state.error_code)}</small>`:''}</div>`;
+    return;
+  }
+  root.innerHTML=`<div class="notice"><strong>${esc(state.message||verb+' in progress')}</strong><p>${state.total?`${Math.floor(state.done/1024/1024)} / ${Math.ceil(state.total/1024/1024)} MB`:state.kind==='import'?'Reading source entries and images…':'Preparing local files…'}</p>
+    <progress ${state.total?`max="${state.total}" value="${state.done}"`:''}></progress><p>${button('cancel-source-job',state.cancel_requested?'Stopping…':'Cancel '+(state.kind==='install'?'installation':'import'),'quiet',`data-id="${state.id}" ${state.cancel_requested?'disabled':''}`)}</p></div>`;
+}
+async function trackSourceJob(job) {
+  sourceJob=job;sourceBusy(true);jobStatus(job);
+  try {
+    while(true) {
+      await new Promise(resolve=>setTimeout(resolve,500));
+      const state=await request('import/status',{job:job.id});sourceJob=state;
+      if(state.state==='complete')return state.result;
+      jobStatus(state);
+      if(['failed','cancelled'].includes(state.state))return null;
+    }
+  } catch(error) {
+    await request('import/cancel',{job:job.id}).catch(()=>{});
+    // A lost connection ends polling/progress too. Recheck rather than silently
+    // starting a duplicate job whose outcome is unknown.
+    jobStatus({...job,state:'failed',error:'Connection lost. Reopen the app to check whether the operation completed. '+error.message});
+    return null;
+  } finally { sourceJob=null;sourceBusy(false); }
 }
 async function fileBytes(file) {
   if (!file || file.size > 64 * 1024 * 1024) throw Error('Select a file up to 64 MB.');
@@ -181,14 +237,13 @@ async function fileBytes(file) {
 }
 async function importAdventure() {
   const source = $('#adventure-source')?.value; if (!source) throw Error('Choose an available adventure.');
-  const job = await request('import/start',{path:$('#library-path').value,images:$('#image-path').value,source});
-  $('#inventory').innerHTML = '<p>Importing source entries and local images…</p><progress></progress>' + button('cancel-import','Cancel import','quiet',`data-id="${job.id}"`);
-  while (true) {
-    await new Promise(resolve => setTimeout(resolve,500));
-    const state = await request('import/status',{job:job.id});
-    if (state.state === 'complete') { dismiss(); await openWorkspace(S.wid); toast(state.result.unchanged ? 'Already imported; preparation and session preserved.' : 'Adventure imported. Review maps and import warnings before sharing.'); return; }
-    if (['failed','cancelled'].includes(state.state)) throw Error(state.error);
-  }
+  if(sourceJob||!sourceValidation)return;
+  sourceJob={kind:'import',state:'starting'};sourceBusy(true);
+  try {
+    const job=await request('import/start',{path:sourceValidation.selectedPath,images:sourceValidation.selectedImages,source});
+    const result=await trackSourceJob(job);
+    if(result){dismiss();await openWorkspace(S.wid);toast(result.unchanged?'Already imported; preparation and session preserved.':'Adventure imported. Review maps and import warnings before sharing.');}
+  } catch(error){sourceJob=null;jobStatus({kind:'import',state:'failed',error:error.message});sourceBusy(false);}
 }
 async function onAction(b) {
   const a = b.dataset.action, m = selectedMedia();
@@ -202,9 +257,22 @@ async function onAction(b) {
     <label>Preparation language</label><input name="language" value="English" maxlength="80"><label>Rules profile</label><select name="rules"><option>Unspecified</option><option>2014</option><option>2024</option><option>Other</option></select>
     <div class="row"><button type="submit" class="primary">Create workspace</button>${button('dismiss','Cancel','quiet')}</div></form>`);
   if (a === 'import') return importDialog();
-  if (a === 'pick-folder') { const result = await request('pick-folder'); if (result.path) $('#library-path').value = result.path; return; }
+  if (a === 'source-existing') {
+    if(sourceJob)return;sourceValidation=null;existingSourceForm();$('#source-status').innerHTML='';$('#inventory').innerHTML='';
+    document.querySelectorAll('.source-modes button').forEach(x=>x.classList.toggle('active',x===b));return;
+  }
+  if (a === 'source-install') {
+    if(sourceJob)return;const options=await request('library/options');sourceValidation=null;$('#source-status').innerHTML='';$('#inventory').innerHTML='';
+    document.querySelectorAll('.source-modes button').forEach(x=>x.classList.toggle('active',x===b));
+    $('#source-form').innerHTML=`<form data-form="install"><p>5e.tools ${esc(options.rules)} · v${esc(options.version)} · approximately ${options.download_mb} MB for the core copy.</p>
+      <label for="install-location">Install location · new or empty folder</label><input id="install-location" name="location" required placeholder="Choose where to keep your local library"><p>${button('pick-install-folder','Choose location','quiet')}</p>
+      <label class="check"><input type="checkbox" name="include_images" checked>Include adventure images as needed</label><p class="muted">${esc(options.image_mode)} Without this option, the copy has text and tools only.</p>
+      <div class="row"><button type="submit" class="primary">Install and validate</button>${button('dismiss','Close','quiet')}</div></form>`;return;
+  }
+  if (a === 'pick-install-folder') {const result=await request('pick-folder',{purpose:'install'});if(result.path)$('#install-location').value=result.path.replace(/[\\/]$/,'')+'/5etools-2014';return;}
+  if (a === 'pick-folder') { const result = await request('pick-folder'); if (result.path) {$('#library-path').value = result.path;await validateSource();} return; }
   if (a === 'import-adventure') return importAdventure();
-  if (a === 'cancel-import') { await request('import/cancel',{job:b.dataset.id}); return; }
+  if (a === 'cancel-source-job') { await request('import/cancel',{job:b.dataset.id});b.disabled=true;b.textContent='Stopping…';return; }
   if (a === 'view') { S.view = b.dataset.view; S.mode = 'pan'; S.search = ''; return renderAdventure(); }
   if (a === 'entry') { S.entry = b.dataset.id; return renderAdventure(); }
   if (a === 'media') { S.media = b.dataset.id; S.region = null; S.mode = 'pan'; return renderAdventure(); }
@@ -244,7 +312,14 @@ document.addEventListener('submit', async e => {
     const data = Object.fromEntries(new FormData(form));
     if (form.dataset.form === 'workspace') { const w = await request('workspace/create',data); dismiss(); await openWorkspace(w.id); }
     if (form.dataset.form === 'inspect') {
-      const result = await request('library',data); $('#inventory').innerHTML = `<label for="adventure-source">Adventure</label><select id="adventure-source">${result.adventures.map(a => `<option value="${esc(a.id)}" ${a.available ? '' : 'disabled'}>${esc(a.name)}${a.available ? '' : ' · data missing'}</option>`).join('')}</select><p>${button('import-adventure','Import adventure','primary')}</p>`;
+      await validateSource();
+    }
+    if (form.dataset.form === 'install') {
+      if(sourceJob)return;
+      sourceJob={kind:'install',state:'starting'};sourceBusy(true);
+      const job=await request('library/install',{location:data.location,include_images:data.include_images==='on'});
+      const result=await trackSourceJob(job);
+      if(result){existingSourceForm(result.path);await validateSource();}
     }
     if (form.dataset.form === 'preparation') {
       const saved = await request('prepare',{entry:S.entry,translation:data.translation,notes:data.notes,status:data.approved ? 'approved' : 'draft'});
@@ -255,7 +330,10 @@ document.addEventListener('submit', async e => {
       const r=await fetch('/api/backup/restore',{method:'POST',headers:{'Content-Type':'application/zip',Authorization:'Bearer '+token},body:data.file});
       const w=await r.json();if(!r.ok)throw Error(w.error);dismiss();await openWorkspace(w.id);toast('Backup restored as a separate workspace.');
     }
-  } catch(error) { toast(error.message); } finally { submit.disabled=false; }
+  } catch(error) {
+    if(form.dataset.form==='install'){sourceJob=null;sourceBusy(false);jobStatus({kind:'install',state:'failed',error:error.message});}
+    else toast(error.message);
+  } finally { submit.disabled=false; }
 });
 
 function inPolygon(points,x,y) {
@@ -365,6 +443,12 @@ async function poll(){
   finally{S.pollBusy=false;}
 }
 async function start(){
+  const client=crypto.randomUUID();
+  await request('client/ping',{client});
+  setInterval(()=>request('client/ping',{client}).catch(()=>{}),10000);
+  window.addEventListener('pagehide',()=>{
+    fetch('/api/client/close',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({client})}).catch(()=>{});
+  });
   document.documentElement.style.setProperty('--scale',(localStorage.getItem('textSize')||100)/100);document.body.classList.toggle('dense',localStorage.getItem('density')==='true');
   if(isPlayer){if(!S.wid||!S.aid)throw Error('Open this player screen from an adventure.');playerShell();S.session=await request('player');updatePlayer();}
   else{S.boot=await request('bootstrap');home();}

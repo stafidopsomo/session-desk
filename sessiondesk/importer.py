@@ -12,6 +12,10 @@ class UserError(ValueError):
     pass
 
 
+class ImportTooLarge(UserError):
+    pass
+
+
 MAX_JSON = 48 * 1024 * 1024
 MAX_IMAGE = 48 * 1024 * 1024
 MAX_TOTAL = 1024 * 1024 * 1024
@@ -159,12 +163,24 @@ class Library:
                  "available": self.source_path(str(x["id"])).is_file()}
                 for x in items if isinstance(x, dict) and x.get("id")]
 
+    def validate(self):
+        items = self.inventory()
+        version = None
+        package = self.root / "package.json"
+        if package.is_file() and not package.is_symlink():
+            metadata = read_json(package)
+            version = metadata.get("version") if isinstance(metadata, dict) else None
+        return {"valid": True, "path": str(self.root), "images_path": str(self.images.resolve()),
+                "version": version, "adventures": items,
+                "available": sum(x["available"] for x in items),
+                "images_found": self.images.is_dir() and any(self.images.iterdir())}
+
     def source_path(self, source):
         if not re.fullmatch(r"[a-zA-Z0-9_-]{1,100}", source):
             raise UserError("Invalid adventure source ID.")
         return confined(self.data, f"adventure/adventure-{source.lower()}.json")
 
-    def load(self, source, cancelled=lambda: False):
+    def load(self, source, cancelled=lambda: False, fetch_missing=None):
         meta = next((x for x in self.inventory() if x["id"].lower() == source.lower()), None)
         if not meta or not meta["available"]:
             raise UserError("Adventure data is missing from the selected library.")
@@ -172,8 +188,14 @@ class Library:
         raw = read_json(self.source_path(source))
         chapters = raw.get("data") if isinstance(raw, dict) else None
         if not isinstance(chapters, list):
-            wrapper = raw.get("adventureData", {}) if isinstance(raw, dict) else {}
-            chapters = wrapper.get("data")
+            wrapper = raw.get("adventureData") if isinstance(raw, dict) else None
+            if isinstance(wrapper, list):
+                matching = [x for x in wrapper if isinstance(x, dict) and
+                            str(x.get("id", x.get("source", ""))).lower() == source.lower()]
+                if len(matching) != 1:
+                    raise UserError("Adventure wrapper must contain one matching source ID.")
+                wrapper = matching[0]
+            chapters = wrapper.get("data") if isinstance(wrapper, dict) else None
         if not isinstance(chapters, list) or not chapters:
             raise UserError("Unsupported adventure schema: expected data chapters.")
         aid = stable("5etools", source.lower())
@@ -225,6 +247,8 @@ class Library:
                 continue
             try:
                 image = confined(self.images, path.removeprefix("img/"))
+                if not image.is_file() and fetch_missing and image.suffix.lower() in RASTER:
+                    fetch_missing(path.removeprefix("img/"), image, cancelled)
                 if image.suffix.lower() not in RASTER or not image.is_file():
                     raise UserError(f"Missing/unsupported local image: {path}")
                 if image.stat().st_size > MAX_IMAGE:
@@ -234,9 +258,9 @@ class Library:
                 if not 0 < w <= 30000 or not 0 < h <= 30000 or w * h > 100000000:
                     raise UserError(f"Image dimensions exceed supported limits: {path}")
                 digest = hashlib.sha256(data).hexdigest()
+                if digest not in blobs and sum(len(x[1]) for x in blobs.values()) + len(data) > MAX_TOTAL:
+                    raise ImportTooLarge("Imported images exceed 1 GB; import a smaller adventure.")
                 blobs[digest] = (mime, data)
-                if sum(len(x[1]) for x in blobs.values()) > MAX_TOTAL:
-                    raise UserError("Imported images exceed 1 GB; import a smaller adventure.")
                 record = {"id": stable(aid, "image", trail), "name": plain(node.get("title") or
                           node.get("mapName") or image.stem), "asset": digest, "width": w,
                           "height": h, "chapter": chapter, "entry": parent,
@@ -263,6 +287,8 @@ class Library:
                         "review_note": "Check extent/role against image; source polygons may mark a feature."
                         if points else "Dimensions/geometry uncertain; draw a boundary manually."})
                 graph["maps" if is_map else "pictures"].append(record)
+            except ImportTooLarge:
+                raise
             except (OSError, UserError) as exc:
                 graph["warnings"].append(str(exc) if isinstance(exc, UserError) else f"Cannot read image: {path}")
         if len(graph["warnings"]) > 500:

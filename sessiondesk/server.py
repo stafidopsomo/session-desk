@@ -5,11 +5,13 @@ import json
 from pathlib import Path
 import secrets
 import threading
+import time
 from urllib.parse import parse_qs, urlsplit
 import uuid
 
 from . import __version__
 from .importer import Library, MAX_IMAGE, MAX_TOTAL, UserError
+from .library_setup import LibrarySetup
 
 STATIC = Path(__file__).parent / "static"
 
@@ -19,46 +21,86 @@ class Application:
         self.store = store
         self.dm_token, self.player_token = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
         self.jobs, self.ink = {}, {}
+        self.clients = {}
+        self.no_clients_since = None
+        self.started = time.monotonic()
+        self.setup = LibrarySetup(store.root)
         self.lock = threading.RLock()
         self.server = None
 
-    def start_import(self, payload):
-        library = Library(payload.get("path", ""), payload.get("images"))
-        self.store.folder(payload["workspace"])
+    def start_job(self, kind, operation):
         with self.lock:
             if any(x["state"] in ("running", "committing") for x in self.jobs.values()):
-                raise UserError("An import is already running. Wait or cancel it first.")
+                raise UserError("A source operation is running. Wait or cancel it first.")
             jid = str(uuid.uuid4())
             event = threading.Event()
-            job = {"id": jid, "state": "running", "cancel": event}
+            job = {"id": jid, "kind": kind, "state": "running", "cancel": event,
+                   "message": "Starting " + kind, "done": 0, "total": 0}
             self.jobs[jid] = job
+
+        def progress(message, done=0, total=0):
+            with self.lock:
+                job.update(message=message, done=done, total=total)
 
         def run():
             try:
-                graph, blobs = library.load(payload["source"], event.is_set)
-                if event.is_set():
-                    raise UserError("Import cancelled; workspace unchanged.")
-                # Commit is the cancellation boundary: once committing, finish atomically.
-                with self.lock:
-                    job["state"] = "committing"
-                result = self.store.import_graph(payload["workspace"], graph, blobs)
+                result = operation(event, job, progress)
                 with self.lock:
                     job.update(state="complete", result=result)
             except Exception as exc:
                 with self.lock:
                     job.update(state="cancelled" if event.is_set() else "failed",
-                               error=str(exc) if isinstance(exc, UserError) else "Import failed; verify your local source files and available disk space.")
+                               error=str(exc) if isinstance(exc, UserError) else
+                               "Operation stopped. Check source files, folder permissions and available space.",
+                               error_code=kind.upper() + "_" + type(exc).__name__.upper())
         threading.Thread(target=run, daemon=True).start()
-        return {"id": jid, "state": "running"}
+        return {"id": jid, "kind": kind, "state": "running"}
+
+    def start_import(self, payload):
+        library = Library(payload.get("path", ""), payload.get("images"))
+        self.store.folder(payload["workspace"])
+        def operation(event, job, progress):
+            fetcher = self.setup.fetcher(library)
+            progress("Reading chapters and downloading missing adventure images" if fetcher else "Reading chapters and local images")
+            graph, blobs = library.load(payload["source"], event.is_set, fetcher)
+            with self.lock:
+                if event.is_set():
+                    raise UserError("Import cancelled; workspace unchanged.")
+                job["state"] = "committing"
+            progress("Saving imported adventure")
+            return self.store.import_graph(payload["workspace"], graph, blobs)
+        return self.start_job("import", operation)
+
+    def should_exit(self, now=None):
+        now = time.monotonic() if now is None else now
+        with self.lock:
+            if any(not c["closed"] and now - c["seen"] < 90 for c in self.clients.values()):
+                self.no_clients_since = None
+                return False
+            if not self.clients and now - self.started < 120:
+                return False
+            if self.no_clients_since is None:
+                self.no_clients_since = now
+            if now - self.no_clients_since < 8:
+                return False
+            for job in self.jobs.values():
+                if job["state"] == "running":
+                    job["cancel"].set()
+            return not any(j["state"] in ("running", "committing") for j in self.jobs.values())
 
     def api(self, path, body, player, method):
         store = self.store
         if path.startswith("/api/ai"):
             raise UserError("AI is unavailable in this build. No provider is connected or invoked.")
-        if player and path not in ("/api/player", "/api/session/action", "/api/ink", "/api/heartbeat"):
+        if player and path not in ("/api/player", "/api/session/action", "/api/ink", "/api/heartbeat", "/api/client/ping", "/api/client/close"):
             raise PermissionError("This route is DM-only.")
         if path == "/api/heartbeat":
             return {"version": __version__, "ai": {"enabled": False, "available": False}}
+        if path in ("/api/client/ping", "/api/client/close"):
+            client = str(uuid.UUID(body["client"]))
+            with self.lock:
+                self.clients[client] = {"seen": time.monotonic(), "closed": path.endswith("close")}
+            return {"ok": True}
         if path == "/api/bootstrap":
             return {"version": __version__, "workspaces": store.listing(),
                     "ai": {"enabled": False, "available": False}, "player_token": self.player_token}
@@ -69,7 +111,12 @@ class Application:
         if path == "/api/adventure":
             return store.adventure(body["workspace"], body["adventure"])
         if path == "/api/library":
-            return {"adventures": Library(body.get("path", ""), body.get("images")).inventory()}
+            return self.setup.validate(body.get("path", ""), body.get("images"))
+        if path == "/api/library/options":
+            return self.setup.options()
+        if path == "/api/library/install":
+            return self.start_job("install", lambda event, job, progress: self.setup.install(
+                body.get("location", ""), body.get("include_images") is True, event.is_set, progress))
         if path == "/api/import/start":
             return self.start_import(body)
         if path in ("/api/import/status", "/api/import/cancel"):
@@ -79,7 +126,7 @@ class Application:
                     raise UserError("Import job not found. Re-import is safe after a restart.")
                 if path.endswith("cancel") and job["state"] == "running":
                     job["cancel"].set()
-                return {k: v for k, v in job.items() if k != "cancel"}
+                return {k: v for k, v in job.items() if k != "cancel"} | {"cancel_requested": job["cancel"].is_set()}
         if path == "/api/prepare":
             return store.prepare(body["workspace"], body["adventure"], body["entry"], body)
         if path == "/api/media/review":
@@ -130,7 +177,8 @@ class Application:
                 root.withdraw()
                 root.attributes("-topmost", True)
                 try:
-                    return {"path": filedialog.askdirectory(parent=root, title="Select your local source library")}
+                    title = "Choose parent folder for the new local copy" if body.get("purpose") == "install" else "Select your local source library"
+                    return {"path": filedialog.askdirectory(parent=root, title=title)}
                 finally:
                     root.destroy()
         if path == "/api/quit":

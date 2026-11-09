@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from urllib.request import Request, urlopen
 import zipfile
 
@@ -26,7 +27,7 @@ def call(ready, route, data=None, player=False, binary=False):
 
 
 @contextmanager
-def launch(base, exe=None, data=None):
+def launch(base, exe=None, data=None, auto_exit=False):
     base = Path(base)
     base.mkdir(parents=True, exist_ok=True)
     data = data or base / "profile" / "SessionDesk"
@@ -39,6 +40,8 @@ def launch(base, exe=None, data=None):
         env["PATH"] = str(Path(os.environ["SystemRoot"]) / "System32")
     command = [str(Path(exe).resolve())] if exe else [sys.executable,"-m","sessiondesk"]
     command += ["--no-browser","--data-dir",str(data),"--ready-file",str(ready_file)]
+    if auto_exit:
+        command += ["--auto-exit"]
     process = subprocess.Popen(command, cwd=base if exe else ROOT, env=env,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
@@ -99,8 +102,16 @@ def run(exe=None):
             with urlopen(req,timeout=30) as response: restored = json.load(response)
             assert restored["id"] != wid
             assert call(ready,"adventure",{"workspace":restored["id"],"adventure":aid})["maps"][0]["asset"] == media["asset"]
+        with launch(base / "auto-close",exe,data,auto_exit=True) as ready:
+            client=str(uuid.uuid4())
+            call(ready,"client/ping",{"client":client})
+            call(ready,"client/close",{"client":client})
+            deadline=time.monotonic()+15
+            while (base / "auto-close/ready.json").exists() and time.monotonic()<deadline:
+                time.sleep(.1)
+            assert not (base / "auto-close/ready.json").exists(), "Closing the last window did not stop the application"
         # Existing data can also be opened by a replacement app at another install path.
-        print("Core smoke passed: empty profile, import, manual prep, player allowlist, restart and asset-complete restore; AI Off.")
+        print("Core smoke passed: import, prep, player allowlist, restart, restore and last-window shutdown; AI Off.")
 
 
 def run_archive(archive):

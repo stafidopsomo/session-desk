@@ -14,7 +14,7 @@ from tools.smoke_core import call, launch
 def run(exe=None, artifacts=None):
     with tempfile.TemporaryDirectory(prefix="sessiondesk-browser-") as temp:
         base = Path(temp)
-        source = make_library(base / "library")
+        source = make_library(base / "library", wrapped=True)
         with launch(base / "app",exe) as ready, sync_playwright() as p:
             browser = p.chromium.launch()
             context = browser.new_context(viewport={"width":1440,"height":960},device_scale_factor=1)
@@ -34,8 +34,35 @@ def run(exe=None, artifacts=None):
             page.locator('#workspace-name').fill("Browser test table")
             page.get_by_role("button",name="Create workspace",exact=True).click()
             page.get_by_role("button",name="Add adventure",exact=True).click()
-            page.locator('#library-path').fill(str(source))
-            page.get_by_role("button",name="Inspect library").click()
+            # A native picker is stubbed with a synthetic path. This verifies its
+            # button never submits/validates the empty form before choosing.
+            page.route('**/api/pick-folder',lambda route: route.fulfill(json={"path":str(source)}))
+            page.get_by_role("button",name="Choose folder",exact=True).click()
+            expect(page.locator('#source-status')).to_contain_text('Local 5e.tools copy found')
+            if artifacts:page.screenshot(path=str(artifacts/'library-validated.png'))
+            page.get_by_role('button',name='Install local copy',exact=True).click()
+            expect(page.locator('#install-location')).to_be_visible()
+            expect(page.get_by_role('checkbox',name='Include adventure images as needed')).to_be_checked()
+            if artifacts:page.screenshot(path=str(artifacts/'library-install.png'))
+            # Installation failure is synthetic in CI: never download a real source.
+            page.route('**/api/library/install',lambda route:route.fulfill(json={'id':'synthetic-install','kind':'install','state':'running'}))
+            page.route('**/api/import/status',lambda route:route.fulfill(json={'id':'synthetic-install','kind':'install','state':'failed','error':'Synthetic checksum failure','error_code':'INSTALL_CHECKSUM'}))
+            page.locator('#install-location').fill(str(base/'new source location'))
+            page.get_by_role('button',name='Install and validate',exact=True).click()
+            expect(page.locator('#source-status')).to_contain_text('Installation stopped')
+            expect(page.locator('#source-status progress')).to_have_count(0)
+            page.unroute('**/api/library/install');page.unroute('**/api/import/status')
+            page.get_by_role('button',name='Use existing copy',exact=True).click()
+            page.get_by_role('button',name='Choose folder',exact=True).click()
+            expect(page.locator('#source-status')).to_contain_text('Local 5e.tools copy found')
+            source_file=source/'data/adventure/adventure-demo.json'
+            original=source_file.read_bytes()
+            source_file.write_text('{"adventureData": []}',encoding='utf-8')
+            page.get_by_role("button",name="Import adventure",exact=True).click()
+            expect(page.locator('#source-status')).to_contain_text('Import stopped')
+            expect(page.locator('#source-status progress')).to_have_count(0)
+            expect(page.get_by_role('button',name='Cancel import',exact=True)).to_have_count(0)
+            source_file.write_bytes(original)
             page.get_by_role("button",name="Import adventure",exact=True).click()
             page.get_by_role("button",name="Open adventure").click()
             expect(page.get_by_role("heading",name="Observatory floor")).to_be_visible()
@@ -113,7 +140,7 @@ def run(exe=None, artifacts=None):
             assert not errors, errors
             assert not external, external
             context.close();browser.close()
-            print("Browser E2E passed: import, preparation, review, player tabs/fog/notes/drawing/zoom; player reload, Space-pan and Settings; zero external requests.")
+            print("Browser E2E passed: library validation, install/import failure recovery, preparation and player tools; zero external requests.")
 
 
 if __name__ == '__main__':

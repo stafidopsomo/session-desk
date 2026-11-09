@@ -5,7 +5,7 @@ import subprocess
 
 CLEAN_ROOT = '7cecbbc5062a1d7ed6b3b6a8d614352dac716c46'
 ALLOWED_FILES = frozenset({
-    '.gitignore', 'AGENTS.md', 'README.md',
+    '.gitignore', 'README.txt', 'ci.ps1', 'docs/AGENTS.md', 'docs/README.md',
     '.github/workflows/readiness.yml',
     'docs/ARCHITECTURE.md', 'docs/CODEX-PREFLIGHT.md',
     'docs/IMPLEMENTATION-GATES.md', 'docs/PROVIDERS.md',
@@ -15,9 +15,11 @@ ALLOWED_FILES = frozenset({
     'SessionDesk.spec', 'launcher.pyw', 'requirements-build.lock', 'requirements-e2e.lock',
     'sessiondesk/__init__.py', 'sessiondesk/__main__.py', 'sessiondesk/importer.py',
     'sessiondesk/store.py', 'sessiondesk/server.py',
+    'sessiondesk/library_setup.py',
     'sessiondesk/static/index.html', 'sessiondesk/static/app.js',
     'sessiondesk/static/style.css', 'sessiondesk/static/icon.svg',
     'tests/__init__.py', 'tests/fixtures.py', 'tests/test_core.py',
+    'tests/test_setup.py',
     'tools/build_windows.py', 'tools/smoke_core.py', 'tools/e2e_core.py',
     'docs/QUICKSTART.txt', 'docs/BUILD-STATUS.md',
     'tools/release_gate.py', 'release/acceptance.json', 'docs/RELEASE-NOTES.md',
@@ -31,7 +33,7 @@ def inspect_boundary(roots, files):
     if not files:
         errors.append('No product files were found')
     for name, mode, data in files:
-        if name not in ALLOWED_FILES:
+        if name not in ALLOWED_FILES or ('/' not in name and name.lower().endswith('.md')):
             errors.append(f'File is outside the product allowlist: {name}')
         if mode not in ('100644', '100755'):
             errors.append(f'Non-regular file is forbidden: {name}')

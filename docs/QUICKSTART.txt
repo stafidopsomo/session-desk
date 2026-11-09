@@ -2,9 +2,12 @@ SESSION DESK — WINDOWS DEVELOPMENT PREVIEW
 
 1. Extract the entire ZIP into a folder you can keep.
 2. Run SessionDesk.exe. Keep the _internal folder beside it.
-3. Create a workspace. Add adventure, choose your existing local 5e.tools
-   library, inspect it and import an adventure. If the images are separate,
-   select their folder too. No books or pictures are included or downloaded.
+3. Create a workspace and choose Add adventure. Use existing copy validates
+   the folder and shows which adventure files and images were found.
+   Install local copy downloads a verified 2014 source release to a new or
+   empty folder you choose. Optional adventure images download during import
+   for that installed copy; this is not the complete image archive.
+   No books or pictures are bundled in the Session Desk ZIP.
 4. Read import warnings. Review images for secrets before marking them safe
    to share. Verify region boundaries before using region reveal, or use
    the fog brush. Selecting an entry or region never reveals it.
@@ -18,7 +21,11 @@ computers. Restore backup creates a separate workspace with its pictures.
 
 Settings (top right) contains Display and the unavailable AI control.
 AI is Off: there is no provider setup, generation or account connection.
-Use Settings > Quit app to stop the local server when finished.
+Closing the last DM/player tab stops the app after about 8 seconds, allowing
+time for reloads. Keep either window open while playing. Settings > Quit app
+stops it immediately. If a browser crashes without sending a close event,
+the lost-window timeout is about 100 seconds. This releases the EXE so its
+folder can be moved/deleted; workspace data remains outside that folder.
 
 This is an unsigned development preview, not a completed tester alpha.
 Do not disable Windows protections to run it. If the publisher is untrusted

@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import threading
 import time
 import webbrowser
 
@@ -38,6 +39,7 @@ def main():
     parser.add_argument("--data-dir", type=Path, help="External user data directory")
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--no-browser", action="store_true")
+    parser.add_argument("--auto-exit", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--ready-file", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
     root = args.data_dir or Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share")) / "SessionDesk"
@@ -55,6 +57,14 @@ def main():
         raise RuntimeError("Session Desk is still starting. Try its launcher again shortly.")
     app = Application(Store(root))
     server = make_server(app, args.port)
+    if not args.no_browser or args.auto_exit:
+        def monitor():
+            while True:
+                time.sleep(1)
+                if app.should_exit():
+                    server.shutdown()
+                    return
+        threading.Thread(target=monitor, daemon=True).start()
     url = f"http://127.0.0.1:{server.server_port}/"
     ready = {"url": url, "token": app.dm_token, "player_token": app.player_token}
     (root / "instance.json").write_text(json.dumps(ready), encoding="utf-8")

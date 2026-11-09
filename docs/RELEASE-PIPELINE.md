@@ -1,6 +1,6 @@
 # CI and release pipeline design
 
-**Development build pipeline implemented November 9.** The Windows workflow now checks the independent product tree, runs offline unit tests and source-browser E2E, builds/audits a frozen development ZIP, tests extracted-package launch/restart/restore with developer tools hidden, runs frozen-browser E2E and uploads only the ZIP/checksum artifact for 14 days. No provider or real source library is used. Local evidence and CI status are distinguished in BUILD-STATUS.md.
+**Development build pipeline implemented November 9.** The root ci.ps1 job, called by the GitHub-required .github/workflows/readiness.yml wrapper, now checks the independent product tree, runs offline unit tests and source-browser E2E, builds/audits a frozen development ZIP, tests extracted-package launch/restart/restore with developer tools hidden, runs frozen-browser E2E and uploads only the ZIP/checksum artifact for 14 days. No provider or real source library is used. Local evidence and CI status are distinguished in BUILD-STATUS.md.
 
 Actions are pinned by SHA; build Python is 3.12.10 x64, build/browser dependencies have SHA-256 locks, and UI syntax is checked with Node 22. The Windows 2025 runner image and Node patch are not immutable, so byte-identical reproducibility is not claimed. The workflow fetches only the tested commit history, checks the clean root and uses read-only repository permissions for builds.
 
@@ -55,7 +55,7 @@ Code signing is a distribution decision: do not falsely label an unsigned alpha 
 
 ## Alpha release remains blocked until proved
 
-Core source, a package specification, hash locks, explicit manifest/privacy checks and synthetic source/frozen-app evidence now exist. Clean standard-user Windows-account/VM evidence, owned-source import acceptance and laptop compatibility are still missing. Update acceptance evidence only after running those checks; do not change flags merely to bypass publication. The code-tree digest prevents stale acceptance from authorizing changed product code. This record is an engineering validation gate, not another architecture packet for the owner.
+Core source, a package specification, hash locks, explicit manifest/privacy checks and synthetic source/frozen-app evidence now exist. Clean standard-user Windows-account/VM evidence, complete owned-source visual/geometry acceptance and laptop compatibility are still missing. The selected 2014 library now has parsing/import/persistence evidence; see BUILD-STATUS.md. Update acceptance evidence only after running those checks; do not change flags merely to bypass publication. The code-tree digest prevents stale acceptance from authorizing changed product code. This record is an engineering validation gate, not another architecture packet for the owner.
 
 Provider integration is intentionally deferred and does not block the non-AI core. No provider installation, authentication, quota polling, live diagnostic or inference is included in CI or the artifact.
 

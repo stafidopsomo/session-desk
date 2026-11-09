@@ -1,6 +1,6 @@
 # Release development instructions
 
-- This is a campaign-free product worktree. Read README.md and docs/IMPLEMENTATION-GATES.md first.
+- This is a campaign-free product worktree. Read docs/README.md and docs/IMPLEMENTATION-GATES.md from the repository root first. Keep every Markdown document under docs/, never in the repository root. ci.ps1 is the root CI job; GitHub requires its service wrapper under .github/workflows/.
 - November 9 owner decision: ARCHITECTURE.md is approved and Windows x64 is confirmed for the owner's main PC/laptop and a friend's PC. Gate 0 is resolved for the non-AI core; Gate 1 implementation and core packaging/dependency work may proceed. Do not claim a runnable build exists until it is actually built/tested, or publish a tester release before its acceptance checks pass.
 - All AI implementation is deferred: no provider adapters, isolation experiments, provider installation/discovery/sign-in, account/quota polling or live inference in the current workstream. Keep the future interfaces/design documented without treating them as core-build dependencies.
 - Existing diagnostic tools are historical developer material. Their offline fake tests may run; do not rerun live provider diagnostics for the non-AI core. They are not a product adapter or a release build. The live diagnostic must never run in CI.
@@ -15,3 +15,6 @@
 - Never claim a CLI, quota percentage or model name establishes image-generation access. Test capabilities independently and show unavailable states honestly.
 - Keep docs clear about implemented behavior versus planned behavior. The core/packaging spike exists, but Gate 1 clean-standard-user evidence and Gates 3/4 acceptance remain pending. Read docs/BUILD-STATUS.md. Do not equate a fresh app profile/PATH isolation with a clean Windows machine.
 - Run offline unit tests, browser E2E and frozen ZIP smoke checks for core changes. The CI workflow now builds/audits development artifacts. Alpha publication is blocked by release/acceptance.json and tools/release_gate.py until evidence matches the exact product tree. Never mark acceptance complete merely to make publishing pass.
+
+- Explicit local-library installation is authorized: verified 2014 source release, chosen new/empty location, no downloaded code execution and optional adventure images on import. Existing-copy imports stay read-only/offline; no unrequested downloads. Test network behavior with synthetic data/fakes in CI.
+- Normal GUI launch exits after the last DM/player window closes (reload grace); headless tests opt into this lifecycle explicitly. Never terminate the personal campaign server when managing the product EXE.

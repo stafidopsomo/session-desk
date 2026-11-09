@@ -4,7 +4,7 @@ Updated November 9, 2026. These are implementation/acceptance milestones, not a 
 
 ## November 9 implementation status
 
-The initial core, Windows one-folder packaging, isolated-profile smoke test and browser E2E are implemented. This is a development preview. Gate 1 remains partly open because a fresh app-data directory/PATH isolation is not a clean standard-user Windows account. Gate 2 has an initial working vertical slice; broader failure/recovery and source-version coverage remain to expand. Gate 3 owned-source acceptance and Gate 4 tester/machine acceptance are pending. See BUILD-STATUS.md; no completed alpha is claimed.
+The initial core, Windows one-folder packaging, isolated-profile smoke test and browser E2E are implemented. This is a development preview. Gate 1 remains partly open because a fresh app-data directory/PATH isolation is not a clean standard-user Windows account. Gate 2 has an initial working vertical slice; broader failure/recovery and source-version coverage remain to expand. Gate 3 now has real owned-library parsing/import/persistence evidence; full image/geometry review and Gate 4 tester/machine acceptance remain pending. See BUILD-STATUS.md; no completed alpha is claimed.
 
 ## Gate 0 — resolved for the non-AI core
 
@@ -14,7 +14,7 @@ Owner decisions confirmed on November 9:
 - Windows x64 is the first target: the owner's laptop, main PC and a friend's PC. The supported Windows-version floor is established by the packaging spike and recorded machine tests, not another architecture approval.
 - One top-right Settings menu groups Display and the global AI on/off control. Keep Open player screen in its separate existing header position.
 - All proposed AI features and route-isolation work are deferred for now. This includes provider adapters, component installation/discovery, sign-in, account/quota polling, generation, image/mask proposals and live diagnostics. They are not prerequisites for the current core.
-- Existing local 5e.tools adventure/images remain the first import format. PDF/OCR stays deferred.
+- Existing local 5e.tools adventure/images remain the first import format. The later November 9 setup request also authorizes an explicit local 2014 source installer at a chosen location, with optional on-import adventure images. PDF/OCR stays deferred.
 - Preserve the clean product history and the existing personal instance. No campaign data in source/builds; no automatic personal migration.
 
 The safe distribution default is audited ZIP/EXE files shared directly with testers, without giving them access to this private repository. Public source/repository distribution remains a later decision and does not block the core spike.

@@ -19,7 +19,7 @@ def png(width=900, height=600):
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(b"".join(rows))) + chunk(b"IEND", b"")
 
 
-def make_library(root):
+def make_library(root, wrapped=False):
     root = Path(root)
     (root / "data" / "adventure").mkdir(parents=True)
     (root / "img" / "original").mkdir(parents=True)
@@ -41,5 +41,7 @@ def make_library(root):
     (root / "data" / "adventures.json").write_text(json.dumps({"adventure": [
         {"id": "DEMO", "name": "The Glass Observatory"}]}), encoding="utf-8")
     path = root / "data" / "adventure" / "adventure-demo.json"
+    if wrapped:
+        source = {"adventureData": [{"id": "DEMO", "source": "DEMO", "data": source["data"]}]}
     path.write_text(json.dumps(source), encoding="utf-8")
     return root

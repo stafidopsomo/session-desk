@@ -97,7 +97,7 @@ class ProbeTests(unittest.TestCase):
 class BoundaryTests(unittest.TestCase):
     def test_original_text_in_clean_history_passes(self):
         self.assertEqual(inspect_boundary([CLEAN_ROOT], [
-            ('README.md', '100644', b'Synthetic readiness content')]), [])
+            ('README.txt', '100644', b'Synthetic readiness content')]), [])
 
     def test_foreign_root_and_workspace_are_rejected(self):
         errors = inspect_boundary([CLEAN_ROOT, 'synthetic-foreign-root'], [

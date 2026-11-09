@@ -34,26 +34,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
-      - name: Check independent history and product file boundary
-        run: python tools/check_product_boundary.py
-      - name: Install hash-locked build and browser test tools
-        run: |
-          python -m pip install --require-hashes --only-binary=:all: -r requirements-build.lock -r requirements-e2e.lock
-      - name: Test core and historical diagnostics offline with synthetic data
-        run: python -m unittest discover -s tests -v
-      - name: Check UI syntax
-        run: node --check sessiondesk/static/app.js
-      - name: Install isolated test browser
-        run: python -m playwright install chromium
-      - name: Exercise source UI with synthetic library and no external requests
-        run: python tools/e2e_core.py
-      - name: Build explicit Windows package and audit manifest
-        run: python tools/build_windows.py
-      - name: Test extracted ZIP with empty app profile and developer tools hidden
+      - name: Run root Windows CI job
         shell: pwsh
-        run: python tools/smoke_core.py --archive (Get-ChildItem dist/*windows-x64.zip).FullName
-      - name: Exercise frozen DM and player windows
-        run: python tools/e2e_core.py --exe dist/SessionDesk/SessionDesk.exe
+        run: ./ci.ps1
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sessiondesk-windows-x64
