@@ -2,6 +2,10 @@
 
 Updated November 9, 2026. These are implementation/acceptance milestones, not a request for the owner to approve another document packet. The personal campaign remains separate and is not migrated automatically.
 
+## November 9 implementation status
+
+The initial core, Windows one-folder packaging, isolated-profile smoke test and browser E2E are implemented. This is a development preview. Gate 1 remains partly open because a fresh app-data directory/PATH isolation is not a clean standard-user Windows account. Gate 2 has an initial working vertical slice; broader failure/recovery and source-version coverage remain to expand. Gate 3 owned-source acceptance and Gate 4 tester/machine acceptance are pending. See BUILD-STATUS.md; no completed alpha is claimed.
+
 ## Gate 0 — resolved for the non-AI core
 
 Owner decisions confirmed on November 9:

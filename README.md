@@ -1,44 +1,43 @@
-# Session Desk — release development
+# Session Desk — Windows development preview
 
-A local app for preparing and running independent tabletop adventures. Session Desk is a working title.
+A local app for preparing and running independent tabletop adventures. The first **0.1.0-dev.1 Windows x64 EXE** is implemented; this is a development preview, not a completed tester alpha. AI is Off and unavailable.
 
-**Gate 0 is approved for the non-AI core (November 9, 2026).** The owner accepted the architecture and Windows x64 target. Core implementation/packaging can proceed; all AI/provider/isolation work is deferred. This checkout still contains design and offline readiness tools, not a runnable tester EXE.
+## Run on Windows
 
-## First tester workflow
+1. Download the `sessiondesk-windows-x64` artifact from a green release-dev Actions run. Extract the artifact ZIP, then extract the enclosed SessionDesk ZIP completely.
+2. Double-click **SessionDesk.exe**. Keep its `_internal` folder beside it. Python, Git, Node and an AI login are not needed to run the app.
+3. Create a workspace → Add adventure → select your existing local 5e.tools library → import → prepare/review → present.
 
-1. Download/extract the vetted Windows x64 ZIP and run SessionDesk.exe. The core runtime must not require installed Python/Git/Node or a coding editor.
-2. Select an existing local 5e.tools adventure/image library and import an adventure. A fresh profile has no campaign or characters preloaded.
-3. Review maps/regions, enter notes/translations manually and add/import pictures as needed.
-4. Start a session using the DM/player views, explicit fog controls, shared tabs and notes. Save and back up the workspace independently of app upgrades.
+See [the short instructions](docs/QUICKSTART.txt). No books, official art, characters, personal campaigns or provider accounts are included or downloaded. Review maps for spoilers before marking them safe to share; imported region geometry requires review before region reveal.
 
-One top-right **Settings** menu contains **Display** and the global **AI on/off** control. **Open player screen** stays in its separate existing header position. In the first build AI is Off/unavailable; there is no provider setup, account/allowance polling or generation. The non-AI workflow does not depend on a provider login or an ongoing developer chat.
+The default workspace location is `%LOCALAPPDATA%/SessionDesk/workspaces`, outside the installation. Export a workspace backup to move it to another computer; Restore creates a separate workspace including its images. Settings groups Display with the unavailable AI control. Open player screen stays separate.
 
-These are acceptance targets, not instructions for an EXE that already exists. Windows x64 is confirmed for the owner's laptop/main PC and a friend's PC; supported Windows versions and compatibility are established by packaging/machine tests.
+## Current capabilities and limits
 
-## Approved design and implementation milestones
+Local structured adventure/image import, exact source locators in the source reader, manual narration/translations and private DM notes, image library folders, image/geometry review, shared player tabs/notes, additive region and brush fog, pan/zoom, temporary player drawing, SQLite persistence and checksummed workspace backups.
 
-- [Architecture and Settings/AI switch behavior](docs/ARCHITECTURE.md)
-- [Current gates and first non-AI release scope](docs/IMPLEMENTATION-GATES.md)
-- [Readiness assessment and remaining engineering proofs](docs/READINESS.md)
-- [CI, packaging and distribution design](docs/RELEASE-PIPELINE.md)
+Synthetic source and frozen-app tests run on Windows 11 x64 with a fresh app-data directory and developer tools hidden from PATH. This is **not** a clean Windows account/VM test. Laptop/friend-PC compatibility, owned Icewind Dale import and complete alpha acceptance are still pending; [build status](docs/BUILD-STATUS.md) records the distinction. Packages are unsigned. Changed source snapshots require a new workspace to protect existing manual work. PDF/OCR, AI, LAN players and personal-campaign migration remain deferred.
 
-[Provider feasibility](docs/PROVIDERS.md) and [Codex preflight](docs/CODEX-PREFLIGHT.md) are historical references for the deferred AI phase. They are not blockers or setup steps for the core build. ChatGPT through Codex remains the earlier first AI candidate, with no capability or distribution authentication claimed as implemented.
+## Development and packaging
 
-## Existing developer checks
-
-With Python 3.12 and Git already installed:
+Use Windows x64 Python 3.12.10. The core uses the standard library; these locked dependencies are build/browser-test tools only.
 
 ```text
-python tools/check_product_boundary.py
-python -m unittest discover -s tests -v
+python -m venv .venv
+.venv\Scripts\python -m pip install --require-hashes --only-binary=:all: -r requirements-build.lock -r requirements-e2e.lock
+.venv\Scripts\python -m playwright install chromium
+.venv\Scripts\python -m unittest discover -s tests -v
+.venv\Scripts\python tools/check_product_boundary.py
+.venv\Scripts\python tools/e2e_core.py
+.venv\Scripts\python tools/build_windows.py
+.venv\Scripts\python tools/smoke_core.py --archive dist/SessionDesk-0.1.0-dev.1-windows-x64.zip
+.venv\Scripts\python tools/e2e_core.py --exe dist/SessionDesk/SessionDesk.exe
 ```
 
-The readiness workflow runs these offline checks using synthetic data. It does not run a provider, build an application or publish an artifact. Product build/E2E jobs must be added as the core is implemented.
+For source development: `.venv\Scripts\python -m sessiondesk`. All checks use original synthetic data and isolated saves; no provider is launched. Packaging produces an explicit file manifest, SHA-256 checksums, dependency/license notices and a clean development ZIP. See [architecture](docs/ARCHITECTURE.md), [implementation gates](docs/IMPLEMENTATION-GATES.md) and [CI/release pipeline](docs/RELEASE-PIPELINE.md).
 
-## Privacy and distribution
+## Distribution boundary
 
-This branch has parentless, campaign-free history and a separate worktree. Do not copy personal content or merge personal commits into it. All editable user content belongs in external workspaces.
+This branch has independent, campaign-free history. Never merge the personal branch into it. The surrounding private repository has personal content on other refs: share only vetted ZIP/EXE artifacts directly, without granting testers repository access. Private release links require repository permissions. Public source sharing needs a separate clean repository.
 
-The surrounding private GitHub repository contains campaign history on other refs. Testers receive only audited ZIP/EXE files shared directly, without repository access. The owner can download a private build and forward its vetted ZIP; a private release URL is not public distribution. Source sharing requires a separate clean repository.
-
-No source books, official adventure art, character records, workspaces, credentials or personal branding belong in the product build. The owner may migrate the personal campaign later after stability using a separately verified backup/import path.
+Tagged alpha publication fails closed until versioned acceptance evidence covers the exact product tree. The current record deliberately does not authorize an alpha. [Provider feasibility](docs/PROVIDERS.md) and [Codex preflight](docs/CODEX-PREFLIGHT.md) are historical references for a deferred phase, not setup steps or blockers for this core.

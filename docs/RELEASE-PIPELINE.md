@@ -1,8 +1,10 @@
 # CI and release pipeline design
 
-**Application build/release pipeline: design only.** A small readiness workflow now checks the campaign-free history/file boundary and offline diagnostic tests. It does not build, run a provider, upload artifacts or publish a release. Gate 0 was resolved on November 9 for the non-AI core; application/package implementation may proceed, and its build/release jobs must be added as real code and evidence exist. In particular, do not publish the old personal app or notes prototype as a supposed clean alpha.
+**Development build pipeline implemented November 9.** The Windows workflow now checks the independent product tree, runs offline unit tests and source-browser E2E, builds/audits a frozen development ZIP, tests extracted-package launch/restart/restore with developer tools hidden, runs frozen-browser E2E and uploads only the ZIP/checksum artifact for 14 days. No provider or real source library is used. Local evidence and CI status are distinguished in BUILD-STATUS.md.
 
-The implemented readiness workflow uses read-only repository permissions, SHA-pinned checkout/setup-python actions, Windows 2025 and Python 3.12. It fetches only the tested commit's history, not other branch histories. Its exact file allowlist, text-only checks and independent-root check help catch accidental leakage; they do not replace review, secret scanning or a future packaged-artifact privacy audit. The runner image and Python patch version are not locked for reproducible application builds at this stage.
+Actions are pinned by SHA; build Python is 3.12.10 x64, build/browser dependencies have SHA-256 locks, and UI syntax is checked with Node 22. The Windows 2025 runner image and Node patch are not immutable, so byte-identical reproducibility is not claimed. The workflow fetches only the tested commit history, checks the clean root and uses read-only repository permissions for builds.
+
+A separate tag-only publishing job has release-write permission. It first runs tools/release_gate.py; the current release/acceptance.json fails closed. The gate requires an alpha version/tag, evidence for the mandatory checks and a digest matching the exact product tree. Development preview artifacts do not satisfy tester-alpha acceptance and are never published as alpha automatically. Private prerelease links still require repository access; forward vetted ZIPs directly to external testers.
 
 ## Branch and repository policy
 
@@ -51,8 +53,10 @@ Proposed alpha tags: `product-v0.1.0-alpha.1` and later semver alpha tags, from 
 
 Code signing is a distribution decision: do not falsely label an unsigned alpha as signed, and do not instruct testers to disable OS protections. A signing certificate, if chosen, is a protected build secret. No certificate or provider credentials are currently configured here.
 
-## Release is blocked until proved
+## Alpha release remains blocked until proved
 
-There is currently no product application, package specification, dependency lock or clean-profile product build result for this branch. Provider integration is intentionally deferred and does not block the scoped core release. The missing application and build work must not be replaced with placeholder scripts that merely open the old app, install arbitrary tools, or publish a docs-only ZIP as a product.
+Core source, a package specification, hash locks, explicit manifest/privacy checks and synthetic source/frozen-app evidence now exist. Clean standard-user Windows-account/VM evidence, owned-source import acceptance and laptop compatibility are still missing. Update acceptance evidence only after running those checks; do not change flags merely to bypass publication. The code-tree digest prevents stale acceptance from authorizing changed product code. This record is an engineering validation gate, not another architecture packet for the owner.
+
+Provider integration is intentionally deferred and does not block the non-AI core. No provider installation, authentication, quota polling, live diagnostic or inference is included in CI or the artifact.
 
 A source timestamp and dependency lock support reproducible builds, but do not by themselves establish byte-identical EXEs. Claim bit-for-bit reproducibility only after comparing independent builds. Record provenance and hashes from the first real alpha regardless.

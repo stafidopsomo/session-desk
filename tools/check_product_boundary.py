@@ -1,4 +1,4 @@
-"""Accidental-leakage guard for the readiness tree, not a content/privacy audit."""
+"""Explicit product source allowlist, not a substitute for artifact/privacy review."""
 from pathlib import Path
 import subprocess
 
@@ -12,6 +12,15 @@ ALLOWED_FILES = frozenset({
     'docs/READINESS.md', 'docs/RELEASE-PIPELINE.md',
     'tools/check_product_boundary.py', 'tools/probe_codex.py',
     'tests/test_readiness.py',
+    'SessionDesk.spec', 'launcher.pyw', 'requirements-build.lock', 'requirements-e2e.lock',
+    'sessiondesk/__init__.py', 'sessiondesk/__main__.py', 'sessiondesk/importer.py',
+    'sessiondesk/store.py', 'sessiondesk/server.py',
+    'sessiondesk/static/index.html', 'sessiondesk/static/app.js',
+    'sessiondesk/static/style.css', 'sessiondesk/static/icon.svg',
+    'tests/__init__.py', 'tests/fixtures.py', 'tests/test_core.py',
+    'tools/build_windows.py', 'tools/smoke_core.py', 'tools/e2e_core.py',
+    'docs/QUICKSTART.txt', 'docs/BUILD-STATUS.md',
+    'tools/release_gate.py', 'release/acceptance.json', 'docs/RELEASE-NOTES.md',
 })
 
 
@@ -23,7 +32,7 @@ def inspect_boundary(roots, files):
         errors.append('No product files were found')
     for name, mode, data in files:
         if name not in ALLOWED_FILES:
-            errors.append(f'File is outside the readiness allowlist: {name}')
+            errors.append(f'File is outside the product allowlist: {name}')
         if mode not in ('100644', '100755'):
             errors.append(f'Non-regular file is forbidden: {name}')
         if len(data) > 100_000 or b'\x00' in data:
@@ -58,7 +67,7 @@ def main():
     if errors:
         print('\n'.join(errors))
         return 1
-    print(f'Readiness boundary passed: {len(files)} allowlisted text files; independent history')
+    print(f'Product boundary passed: {len(files)} allowlisted text files; independent history')
     return 0
 
 

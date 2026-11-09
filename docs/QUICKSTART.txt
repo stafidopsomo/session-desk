@@ -1,0 +1,34 @@
+SESSION DESK — WINDOWS DEVELOPMENT PREVIEW
+
+1. Extract the entire ZIP into a folder you can keep.
+2. Run SessionDesk.exe. Keep the _internal folder beside it.
+3. Create a workspace. Add adventure, choose your existing local 5e.tools
+   library, inspect it and import an adventure. If the images are separate,
+   select their folder too. No books or pictures are included or downloaded.
+4. Read import warnings. Review images for secrets before marking them safe
+   to share. Verify region boundaries before using region reveal, or use
+   the fog brush. Selecting an entry or region never reveals it.
+5. Prepare / review lets you write narration/translations and private notes.
+   Present sends reviewed media to the player screen. Player tabs, zoom,
+   temporary drawing and shared notes work on the same computer/TV.
+
+Your workspaces are saved in %LOCALAPPDATA%\SessionDesk\workspaces,
+outside this application folder. Export a workspace backup before moving
+computers. Restore backup creates a separate workspace with its pictures.
+
+Settings (top right) contains Display and the unavailable AI control.
+AI is Off: there is no provider setup, generation or account connection.
+Use Settings > Quit app to stop the local server when finished.
+
+This is an unsigned development preview, not a completed tester alpha.
+Do not disable Windows protections to run it. If the publisher is untrusted
+to you, wait for a trusted/signed distribution. Windows 11 x64 is the initial
+validation target; other computers/versions still require compatibility tests.
+No developer tools, Python, Node, Git or AI login are needed to run the EXE.
+
+Limitations: structured local library import only, no PDF/OCR, no automatic
+geometry inference, no remote/LAN mode, no personal-campaign migration.
+Changed source snapshots must be imported into a new workspace to preserve
+existing preparation. Backup ZIPs contain your imported source content;
+keep them private. Temporary drawings are not saved. Native folder selection
+is optional; pasting the folder path works as well.

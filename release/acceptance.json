@@ -1,0 +1,13 @@
+{
+  "version": "0.1.0-dev.1",
+  "alpha_ready": false,
+  "product_digest": null,
+  "checks": {
+    "owned_library_import": {"passed": false, "evidence": null},
+    "clean_standard_user": {"passed": false, "evidence": null},
+    "laptop_compatibility": {"passed": false, "evidence": null},
+    "backup_restore": {"passed": false, "evidence": null},
+    "privacy_audit": {"passed": false, "evidence": null},
+    "frozen_browser_e2e": {"passed": false, "evidence": null}
+  }
+}

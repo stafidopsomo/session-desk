@@ -1,8 +1,9 @@
-name: Product readiness checks
+name: Windows core checks and package
 
 on:
   push:
     branches: [release-dev]
+    tags: ['product-v*']
   pull_request:
     branches: [release-dev]
 
@@ -10,9 +11,9 @@ permissions:
   contents: read
 
 jobs:
-  readiness:
+  core:
     runs-on: windows-2025
-    timeout-minutes: 8
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -29,10 +30,65 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: '3.12'
-      - name: Check independent history and readiness file boundary
+          python-version: '3.12.10'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Check independent history and product file boundary
         run: python tools/check_product_boundary.py
-      - name: Test diagnostics with synthetic messages only
+      - name: Install hash-locked build and browser test tools
+        run: python -m pip install --require-hashes --only-binary=:all: -r requirements-build.lock -r requirements-e2e.lock
+      - name: Test core and historical diagnostics offline with synthetic data
         run: python -m unittest discover -s tests -v
+      - name: Check UI syntax
+        run: node --check sessiondesk/static/app.js
+      - name: Install isolated test browser
+        run: python -m playwright install chromium
+      - name: Exercise source UI with synthetic library and no external requests
+        run: python tools/e2e_core.py
+      - name: Build explicit Windows package and audit manifest
+        run: python tools/build_windows.py
+      - name: Test extracted ZIP with empty app profile and developer tools hidden
+        shell: pwsh
+        run: python tools/smoke_core.py --archive (Get-ChildItem dist/*windows-x64.zip).FullName
+      - name: Exercise frozen DM and player windows
+        run: python tools/e2e_core.py --exe dist/SessionDesk/SessionDesk.exe
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sessiondesk-windows-x64
+          path: |
+            dist/*windows-x64.zip
+            dist/*.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
 
-# Deliberately no live probe, provider login, build, artifacts or release job.
+  publish-accepted-alpha:
+    if: startsWith(github.ref, 'refs/tags/product-v')
+    needs: core
+    runs-on: windows-2025
+    permissions:
+      contents: write
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12.10'
+      - name: Require completed acceptance for this exact product tree
+        run: python tools/release_gate.py --tag $env:GITHUB_REF_NAME
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: sessiondesk-windows-x64
+          path: dist
+      - name: Publish the validated tag as a private prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $taskAssets = @(Get-ChildItem dist/*.zip,dist/*.sha256 | ForEach-Object FullName)
+          gh release create "$env:GITHUB_REF_NAME" @taskAssets --verify-tag --prerelease --title "Session Desk $env:GITHUB_REF_NAME" --notes-file docs/RELEASE-NOTES.md
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# No live provider diagnostics, login, account/quota access or inference.

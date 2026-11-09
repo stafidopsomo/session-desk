@@ -1,6 +1,6 @@
 # Approved architecture
 
-Status: approved by the owner on November 9, 2026, with the Settings/AI-switch changes below. Windows x64 is confirmed. The current implementation scope is the non-AI core; every provider/AI feature and its isolation work is deferred. This is an approved design, not a claim that the application or EXE is already implemented. Working product name: Session Desk.
+Status: approved by the owner on November 9, 2026, with the Settings/AI-switch changes below. Windows x64 is confirmed. The current implementation scope is the non-AI core; every provider/AI feature and its isolation work is deferred. An initial non-AI core and frozen Windows development preview now implement these boundaries; see BUILD-STATUS.md for verified behavior and remaining acceptance. The full architecture is not claimed complete. Working product name: Session Desk.
 
 ## Runtime and deployment
 

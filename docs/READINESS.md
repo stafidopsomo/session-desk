@@ -1,6 +1,6 @@
 # Release-readiness assessment
 
-Initial assessment: November 5, 2026. Scope/owner decisions updated November 9, 2026. This work makes no model calls and imports no real adventure content into this branch.
+Initial assessment: November 5, 2026. Scope/owner decisions updated November 9, 2026. Core implementation now includes synthetic source/frozen-app tests and packaging. No model calls or real adventure content enter this branch.
 
 ## Decision
 
@@ -52,4 +52,4 @@ These are implementation acceptance checks, not more architecture approvals for 
 
 ## Current deliverable
 
-Approved architecture and a scoped non-AI implementation path, clean independent history, offline readiness checks, release design and historical provider/preflight notes. The existing workflow checks readiness only. No product app, installer, provider integration or tester release is claimed as delivered by this scope update.
+An initial non-AI core and Windows x64 development EXE/ZIP, synthetic unit and browser tests, isolated-profile frozen launch/restart/backup checks, explicit package manifest/checksums/notices, build CI and fail-closed alpha publication gate. See BUILD-STATUS.md for exact evidence and remaining gaps. Owned-source import, clean Windows-account/VM tests and named tester-machine compatibility are not completed. AI/provider integration remains deferred. The personal campaign is untouched.
