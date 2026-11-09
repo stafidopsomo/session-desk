@@ -201,12 +201,12 @@ async function sessionAction(action, extra = {}) {
   else { renderTabs($('#dm-tabs'),S.session,false); S.stage?.paint(); }
 }
 function modal(html) { const d = $('#dialog'); d.innerHTML = html; d.showModal(); }
-let sourceJob = null, sourceValidation = null;
+let sourceJob = null, sourceValidation = null, transferJob = null;
 function dismiss() {
-  if (sourceJob) { toast('Cancel the current operation before closing this window.'); return; }
+  if (sourceJob||transferJob) { toast('Cancel the current operation before closing this window.'); return; }
   $('#dialog').close();
 }
-$('#dialog').addEventListener('cancel',e=>{if(sourceJob){e.preventDefault();toast('Cancel the current operation before closing this window.');}});
+$('#dialog').addEventListener('cancel',e=>{if(sourceJob||transferJob){e.preventDefault();toast('Cancel the current operation before closing this window.');}});
 function importDialog() {
   sourceValidation = null;
   modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close Add adventure"')}<h2>Add adventure</h2><p class="muted">Connect a local source library, then choose your adventure.</p>
@@ -275,8 +275,58 @@ async function importAdventure() {
   try {
     const job=await request('import/start',{path:sourceValidation.selectedPath,images:sourceValidation.selectedImages,source});
     const result=await trackSourceJob(job);
-    if(result){dismiss();await openWorkspace(S.wid);toast(result.enriched?'Book formatting added; notes, boundaries and session preserved.':result.unchanged?'Already imported; preparation and session preserved.':'Adventure imported. Review maps and import warnings before sharing.');}
+    if(result){dismiss();await openWorkspace(S.wid);toast(result.repaired_assets?`Repaired ${result.repaired_assets} source image(s); preparation and session preserved.`:result.enriched?'Book formatting added; notes, boundaries and session preserved.':result.unchanged?'Already imported; preparation and session preserved.':'Adventure imported. Review maps and import warnings before sharing.');}
   } catch(error){sourceJob=null;jobStatus({kind:'import',state:'failed',error:error.message});sourceBusy(false);}
+}
+function transferStatus(job) {
+  const root=$('#transfer-status');if(!root)return;
+  const title=job.kind==='export'?'Workspace backup':'Workspace restore';
+  if(['failed','cancelled'].includes(job.state)) {
+    root.innerHTML=`<div class="notice error"><strong>${title} ${job.state==='cancelled'?'cancelled':'stopped'}</strong><p>${esc(job.error||'Operation stopped. Existing workspaces are unchanged.')}</p></div>
+      <p>${job.kind==='export'?button('backup','Retry backup','primary'):''}${button('dismiss','Close','quiet')}</p>`;
+    return;
+  }
+  if(job.state==='complete'&&job.kind==='export'){
+    root.innerHTML=`<div class="notice success"><strong>Backup ready</strong><p>Your workspace, preparation, session and images are included.</p></div>
+      <p><a id="backup-download" class="download-button" href="/download/${job.id}?token=${encodeURIComponent(token)}" download="sessiondesk-workspace.zip">Download backup</a> ${button('dismiss','Close','quiet')}</p>`;
+    return;
+  }
+  const finishing=job.state==='committing';
+  root.innerHTML=`<div class="notice"><strong>${finishing?'Finishing restore':esc(job.message||title)}</strong>
+    <p>${job.total?`${Math.floor(job.done/1024/1024)} / ${Math.ceil(job.total/1024/1024)} MB`:'Preparing workspace files…'}</p>
+    <progress ${job.total?`max="${job.total}" value="${job.done}"`:''}></progress>
+    <p>${button('cancel-transfer',finishing?'Finishing…':job.cancel_requested?'Stopping…':'Cancel','quiet',finishing||job.cancel_requested?'disabled':'')}</p></div>`;
+}
+async function runTransfer(job,file=null) {
+  const controller=new AbortController();transferJob={...job,controller};
+  const restoreForm=file?$('form[data-form="restore"]'):null;
+  if(restoreForm)for(const control of restoreForm.elements)control.disabled=true;
+  let uploadError=null;
+  if(file)fetch('/api/backup/upload/'+job.id,{method:'POST',headers:{'Content-Type':'application/zip',Authorization:'Bearer '+token},body:file,signal:controller.signal})
+    .then(async response=>{const data=await response.json();if(!response.ok)throw Error(data.error||'Upload failed.');})
+    .catch(error=>{uploadError=error;});
+  transferStatus(job);
+  try{
+    while(true){
+      await new Promise(resolve=>setTimeout(resolve,350));
+      const state=await request('job/status',{job:job.id});transferJob={...state,controller};
+      transferStatus(state);
+      if(state.state==='complete')return state.result;
+      if(['failed','cancelled'].includes(state.state))return null;
+      if(uploadError){await request('job/cancel',{job:job.id});controller.abort();uploadError=null;}
+    }
+  }catch(error){
+    controller.abort();await request('job/cancel',{job:job.id}).catch(()=>{});
+    transferStatus({...job,state:'failed',error:'Connection lost. Reopen the app to check saved workspaces before retrying.'});
+    return null;
+  }finally{controller.abort();transferJob=null;if(restoreForm)for(const control of restoreForm.elements)control.disabled=false;}
+}
+async function exportBackup(){
+  if(transferJob)return;
+  const job=await request('backup/export/start');
+  modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close backup window"')}<h2>Export workspace backup</h2><div id="transfer-status" role="status" aria-live="polite"></div>`);
+  const result=await runTransfer(job);
+  if(result)$('#backup-download')?.click();
 }
 async function onAction(b) {
   const a = b.dataset.action, m = selectedMedia();
@@ -338,11 +388,13 @@ async function onAction(b) {
     S.graph = await request('adventure'); S.mode = 'pan';S.boundary=[]; S.stage.media=selectedMedia(); renderInspector(); S.stage.paint(); toast('Room boundary saved.'); return;
   }
   if (a === 'add-picture') return modal(`<h2>Add local picture</h2><form data-form="picture"><label>Display name</label><input name="name" required maxlength="200"><label>PNG, JPEG, WebP or GIF · up to 48 MB</label><input name="file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required><div class="row"><button type="submit" class="primary">Import picture</button>${button('dismiss','Cancel','quiet')}</div></form>`);
-  if (a === 'backup') {
-    const blob = await request('backup/export',{},true), url = URL.createObjectURL(blob), link = document.createElement('a');
-    link.href = url; link.download = 'sessiondesk-workspace.zip'; link.click(); setTimeout(() => URL.revokeObjectURL(url),30000); return;
+  if (a === 'backup') return exportBackup();
+  if (a === 'restore') return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close restore window"')}<h2>Restore workspace backup</h2><p>Creates a separate workspace. Existing workspaces remain untouched. The ZIP must be a Session Desk backup.</p><form data-form="restore"><input name="file" type="file" accept=".zip" required><div class="row"><button type="submit" class="primary">Restore backup</button>${button('dismiss','Cancel','quiet')}</div></form><div id="transfer-status" role="status" aria-live="polite"></div>`);
+  if (a === 'cancel-transfer'&&transferJob){
+    const state=await request('job/cancel',{job:transferJob.id});
+    if(state.state!=='committing')transferJob.controller.abort();
+    transferStatus(state);return;
   }
-  if (a === 'restore') return modal(`<h2>Restore workspace backup</h2><p>Creates a separate workspace. Existing workspaces remain untouched. The ZIP must be a Session Desk backup.</p><form data-form="restore"><input name="file" type="file" accept=".zip" required><div class="row"><button type="submit" class="primary">Restore backup</button>${button('dismiss','Cancel','quiet')}</div></form>`);
   if (a === 'clear-ink') { await request('ink',{media:S.media,action:'clear'}); S.stage.ink=[]; S.stage.paint(); return; }
 }
 document.addEventListener('click', e => { const b = e.target.closest('button[data-action]'); if (b && !b.disabled) onAction(b).catch(error => toast(error.message)); });
@@ -369,8 +421,10 @@ document.addEventListener('submit', async e => {
     }
     if (form.dataset.form === 'picture') { await request('media/add',{name:data.name,data:await fileBytes(data.file)}); dismiss(); S.graph=await request('adventure'); renderAdventure(); toast('Picture imported. Review it before sharing.'); }
     if (form.dataset.form === 'restore') {
-      const r=await fetch('/api/backup/restore',{method:'POST',headers:{'Content-Type':'application/zip',Authorization:'Bearer '+token},body:data.file});
-      const w=await r.json();if(!r.ok)throw Error(w.error);dismiss();await openWorkspace(w.id);toast('Backup restored as a separate workspace.');
+      if(transferJob)return;
+      const job=await request('backup/restore/start',{size:data.file.size});
+      const restored=await runTransfer(job,data.file);
+      if(restored){dismiss();await openWorkspace(restored.id);toast('Backup restored as a separate workspace.');}
     }
   } catch(error) {
     if(form.dataset.form==='install'){sourceJob=null;sourceBusy(false);jobStatus({kind:'install',state:'failed',error:error.message});}
@@ -496,7 +550,7 @@ async function start(){
   });
   document.documentElement.style.setProperty('--scale',(localStorage.getItem('textSize')||100)/100);document.body.classList.toggle('dense',localStorage.getItem('density')==='true');
   if(isPlayer){if(!S.wid||!S.aid)throw Error('Open this player screen from an adventure.');playerShell();S.session=await request('player');updatePlayer();}
-  else{S.boot=await request('bootstrap');home();}
+  else{S.boot=await request('bootstrap');home();if(S.boot.recovered_operations)toast('Discarded an interrupted operation. Saved workspaces were kept.');}
   setInterval(poll,900);
 }
 start().catch(error=>{$('#app').innerHTML=`<main class="home"><h1>Open Session Desk from its launcher</h1><p>${esc(error.message)}</p></main>`;});

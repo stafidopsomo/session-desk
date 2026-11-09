@@ -26,6 +26,16 @@ def call(ready, route, data=None, player=False, binary=False):
         return response.read() if binary else json.load(response)
 
 
+def wait_job(ready, jid):
+    for _ in range(300):
+        status = call(ready, 'job/status', {'job': jid})
+        if status['state'] not in ('uploading', 'running', 'committing'):
+            assert status['state'] == 'complete', status
+            return status['result']
+        time.sleep(.1)
+    raise RuntimeError('Transfer did not complete within 30 seconds.')
+
+
 @contextmanager
 def launch(base, exe=None, data=None, auto_exit=False):
     base = Path(base)
@@ -92,14 +102,19 @@ def run(exe=None):
             assert player["tabs"][0]["id"] == media["id"]
             assert "Private synthetic note" not in json.dumps(player)
             assert "DM_ONLY_SYNTHETIC_SECRET" not in json.dumps(player)
-            backup = call(ready,"backup/export",{"workspace":wid},binary=True)
+            export = call(ready, 'backup/export/start', {'workspace': wid})
+            wait_job(ready, export['id'])
+            with urlopen(ready['url'] + 'download/' + export['id'] + '?token=' + ready['token']) as response:
+                backup = response.read()
         with launch(base / "restart",exe,data) as ready:
             graph = call(ready,"adventure",scope)
             assert graph["preparation"][entry["id"]]["translation"] == "Αρχική δοκιμή"
             assert call(ready,"session",scope)["active"] == media["id"]
-            req = Request(ready["url"]+"api/backup/restore",backup,{
+            job = call(ready, 'backup/restore/start', {'size': len(backup)})
+            req = Request(ready["url"]+"api/backup/upload/"+job['id'],backup,{
                 "Authorization":"Bearer "+ready["token"],"Origin":ready["url"].rstrip("/"),"Content-Type":"application/zip"})
-            with urlopen(req,timeout=30) as response: restored = json.load(response)
+            with urlopen(req,timeout=30) as response: json.load(response)
+            restored = wait_job(ready, job['id'])
             assert restored["id"] != wid
             assert call(ready,"adventure",{"workspace":restored["id"],"adventure":aid})["maps"][0]["asset"] == media["asset"]
         with launch(base / "auto-close",exe,data,auto_exit=True) as ready:

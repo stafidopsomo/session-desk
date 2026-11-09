@@ -27,6 +27,16 @@ custom pictures and the existing session/fog are preserved.
 Your workspaces are saved in %LOCALAPPDATA%\SessionDesk\workspaces,
 outside this application folder. Export a workspace backup before moving
 computers. Restore backup creates a separate workspace with its pictures.
+Export and restore show progress and can be cancelled before the final
+commit. Restores validate their files before the new workspace appears.
+An interrupted transfer can be retried with the original ZIP; saved
+workspaces remain intact. Private transfer cache is cleared at shutdown
+or recovered on the next launch. Backups support up to 1 GB plus metadata
+(metadata maximum 64 MB).
+
+If an imported source image is missing or damaged, re-import that same
+adventure from the complete original library. This repairs source images
+without resetting your notes, pinned resources or session/fog.
 
 Settings (top right) contains Display and the unavailable AI control.
 AI is Off: there is no provider setup, generation or account connection.

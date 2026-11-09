@@ -1,5 +1,6 @@
 """Loopback HTTP with per-instance DM/player capabilities and bounded routes."""
 import base64
+from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
@@ -10,8 +11,9 @@ from urllib.parse import parse_qs, urlsplit
 import uuid
 
 from . import __version__
-from .importer import Library, MAX_IMAGE, MAX_TOTAL, UserError
+from .importer import Library, MAX_IMAGE, UserError
 from .library_setup import LibrarySetup
+from .transfers import ACTIVE, CHUNK, MAX_BACKUP, check_cancel, staging, remove_staging, recover_staging
 
 STATIC = Path(__file__).parent / "static"
 
@@ -27,17 +29,33 @@ class Application:
         self.setup = LibrarySetup(store.root)
         self.lock = threading.RLock()
         self.server = None
+        self.active_downloads = 0
+        self.recovered = 0
+        self.transfer_root = store.root / 'transfers'
 
-    def start_job(self, kind, operation):
+    def _new_job(self, kind, state='running'):
         with self.lock:
-            if any(x["state"] in ("running", "committing") for x in self.jobs.values()):
-                raise UserError("A source operation is running. Wait or cancel it first.")
+            if any(x['state'] in ACTIVE for x in self.jobs.values()):
+                raise UserError('Another operation is running. Wait or cancel it first.')
             jid = str(uuid.uuid4())
             event = threading.Event()
-            job = {"id": jid, "kind": kind, "state": "running", "cancel": event,
+            job = {"id": jid, "kind": kind, "state": state, "cancel": event,
                    "message": "Starting " + kind, "done": 0, "total": 0}
             self.jobs[jid] = job
+            return job
 
+    def public_job(self, job):
+        keys = ('id', 'kind', 'state', 'message', 'done', 'total', 'result', 'error', 'error_code')
+        return {k: job[k] for k in keys if k in job} | {'cancel_requested': job['cancel'].is_set()}
+
+    def _clean_job(self, job):
+        with self.lock:
+            folder = job.pop('folder', None)
+        if folder is not None:
+            remove_staging(self.transfer_root, folder, '_transfer-')
+
+    def _run_job(self, job, operation):
+        event, kind = job['cancel'], job['kind']
         def progress(message, done=0, total=0):
             with self.lock:
                 job.update(message=message, done=done, total=total)
@@ -45,16 +63,126 @@ class Application:
         def run():
             try:
                 result = operation(event, job, progress)
+                if kind != 'export':
+                    self._clean_job(job)
                 with self.lock:
                     job.update(state="complete", result=result)
             except Exception as exc:
+                self._clean_job(job)
                 with self.lock:
                     job.update(state="cancelled" if event.is_set() else "failed",
                                error=str(exc) if isinstance(exc, UserError) else
                                "Operation stopped. Check source files, folder permissions and available space.",
                                error_code=kind.upper() + "_" + type(exc).__name__.upper())
         threading.Thread(target=run, daemon=True).start()
-        return {"id": jid, "kind": kind, "state": "running"}
+        return self.public_job(job)
+
+    def start_job(self, kind, operation):
+        return self._run_job(self._new_job(kind), operation)
+
+    def _commit_job(self, event, job):
+        with self.lock:
+            check_cancel(event.is_set)
+            job['state'] = 'committing'
+
+    def cancel_job(self, job):
+        with self.lock:
+            if job['state'] in ('running', 'uploading'):
+                job['cancel'].set()
+                if job['state'] == 'uploading' and not job.get('upload_claimed'):
+                    self._clean_job(job)
+                    job['state'] = 'cancelled'
+                    job['error'] = 'Backup upload cancelled.'
+        return self.public_job(job)
+
+    def start_export(self, wid):
+        self.store.folder(wid)
+        with self.lock:
+            ready = [j for j in self.jobs.values() if j['kind'] == 'export' and j['state'] == 'complete'
+                     and 'folder' in j and not j.get('downloads')]
+            for old in ready[:-1]:
+                self._clean_job(old)
+        def operation(event, job, progress):
+            job['folder'] = staging(self.transfer_root, '_transfer-')
+            destination = job['folder'] / 'workspace.zip'
+            self.store.backup_file(wid, destination, event.is_set, progress)
+            check_cancel(event.is_set)
+            return {'download': job['id'], 'filename': 'sessiondesk-workspace.zip', 'size': destination.stat().st_size}
+        return self.start_job('export', operation)
+
+    def prepare_restore(self, size):
+        if type(size) is not int or not 0 < size <= MAX_BACKUP:
+            raise UserError('Choose a workspace ZIP up to 1 GB plus metadata.')
+        job = self._new_job('restore', 'uploading')
+        try:
+            job['folder'] = staging(self.transfer_root, '_transfer-')
+            job.update(total=size, message='Uploading workspace backup')
+            return self.public_job(job)
+        except Exception:
+            job['state'] = 'failed'
+            raise
+
+    def receive_restore(self, jid, input_stream, length):
+        with self.lock:
+            job = self.jobs.get(jid)
+            if not job or job['kind'] != 'restore' or job['state'] != 'uploading' or job.get('upload_claimed'):
+                raise UserError('Restore upload is not available. Start a new restore.')
+            if length != job['total']:
+                self.cancel_job(job)
+                raise UserError('Backup upload size does not match the selected file.')
+            job['upload_claimed'] = True
+        try:
+            path = job['folder'] / 'upload.zip'
+            received = 0
+            with path.open('xb') as output:
+                while received < length:
+                    check_cancel(job['cancel'].is_set)
+                    chunk = input_stream.read(min(CHUNK, length - received))
+                    if not chunk:
+                        raise UserError('Backup upload was interrupted. Retry with the same ZIP.')
+                    output.write(chunk)
+                    received += len(chunk)
+                    with self.lock:
+                        job['done'] = received
+            check_cancel(job['cancel'].is_set)
+            with self.lock:
+                job.update(state='running', message='Validating workspace backup', done=0)
+            return self._run_job(job, lambda event, current, progress: self.store.restore_file(
+                path, event.is_set, progress, lambda: self._commit_job(event, current)))
+        except Exception as exc:
+            self._clean_job(job)
+            with self.lock:
+                job.update(state='cancelled' if job['cancel'].is_set() else 'failed',
+                           error=str(exc) if isinstance(exc, UserError) else 'Backup upload stopped. Retry the file.')
+            raise
+
+    @contextmanager
+    def download(self, jid):
+        with self.lock:
+            job = self.jobs.get(jid)
+            if not job or job['kind'] != 'export' or job['state'] != 'complete' or 'folder' not in job:
+                raise UserError('Backup is no longer cached. Export it again.')
+            job['downloads'] = job.get('downloads', 0) + 1
+            self.active_downloads += 1
+            file = job['folder'] / 'workspace.zip'
+        try:
+            yield file
+        finally:
+            with self.lock:
+                self.active_downloads -= 1
+                job['downloads'] -= 1
+                if job.get('discard') and not job['downloads']:
+                    self._clean_job(job)
+
+    def recover(self):
+        self.recovered = self.store.recover_interrupted_restores() + recover_staging(self.transfer_root, '_transfer-')
+
+    def close(self):
+        for job in list(self.jobs.values()):
+            if job['state'] in ACTIVE:
+                self.cancel_job(job)
+            elif not job.get('downloads'):
+                self._clean_job(job)
 
     def start_import(self, payload):
         library = Library(payload.get("path", ""), payload.get("images"))
@@ -63,10 +191,7 @@ class Application:
             fetcher = self.setup.fetcher(library)
             progress("Reading chapters and downloading missing adventure images" if fetcher else "Reading chapters and local images")
             graph, blobs = library.load(payload["source"], event.is_set, fetcher)
-            with self.lock:
-                if event.is_set():
-                    raise UserError("Import cancelled; workspace unchanged.")
-                job["state"] = "committing"
+            self._commit_job(event, job)
             progress("Saving imported adventure")
             return self.store.import_graph(payload["workspace"], graph, blobs)
         return self.start_job("import", operation)
@@ -84,9 +209,8 @@ class Application:
             if now - self.no_clients_since < 8:
                 return False
             for job in self.jobs.values():
-                if job["state"] == "running":
-                    job["cancel"].set()
-            return not any(j["state"] in ("running", "committing") for j in self.jobs.values())
+                self.cancel_job(job)
+            return not self.active_downloads and not any(j['state'] in ACTIVE for j in self.jobs.values())
 
     def api(self, path, body, player, method):
         store = self.store
@@ -103,7 +227,7 @@ class Application:
             return {"ok": True}
         if path == "/api/bootstrap":
             return {"version": __version__, "workspaces": store.listing(),
-                    "ai": {"enabled": False, "available": False}, "player_token": self.player_token}
+                    "ai": {"enabled": False, "available": False}, "player_token": self.player_token, 'recovered_operations': self.recovered}
         if path == "/api/workspace/create":
             return store.create(body.get("name", ""), body.get("language", "English"), body.get("rules", "Unspecified"))
         if path == "/api/workspace":
@@ -116,17 +240,30 @@ class Application:
             return self.setup.options()
         if path == "/api/library/install":
             return self.start_job("install", lambda event, job, progress: self.setup.install(
-                body.get("location", ""), body.get("include_images") is True, event.is_set, progress))
+                body.get("location", ""), body.get("include_images") is True, event.is_set, progress,
+                on_commit=lambda: self._commit_job(event, job)))
         if path == "/api/import/start":
             return self.start_import(body)
-        if path in ("/api/import/status", "/api/import/cancel"):
+        if path == '/api/backup/export/start':
+            return self.start_export(body['workspace'])
+        if path == '/api/backup/restore/start':
+            return self.prepare_restore(body.get('size'))
+        if path == '/api/job/discard':
+            with self.lock:
+                job = self.jobs.get(body.get('job'))
+                if job and job['state'] not in ACTIVE:
+                    job['discard'] = True
+                    if not job.get('downloads'):
+                        self._clean_job(job)
+            return {'ok': True}
+        if path in ("/api/import/status", "/api/import/cancel", '/api/job/status', '/api/job/cancel'):
             with self.lock:
                 job = self.jobs.get(body.get("job"))
                 if not job:
                     raise UserError("Import job not found. Re-import is safe after a restart.")
-                if path.endswith("cancel") and job["state"] == "running":
-                    job["cancel"].set()
-                return {k: v for k, v in job.items() if k != "cancel"} | {"cancel_requested": job["cancel"].is_set()}
+                if path.endswith('cancel'):
+                    return self.cancel_job(job)
+                return self.public_job(job)
         if path == "/api/prepare":
             return store.prepare(body["workspace"], body["adventure"], body["entry"], body)
         if path == "/api/pin":
@@ -185,8 +322,8 @@ class Application:
                     root.destroy()
         if path == "/api/quit":
             with self.lock:
-                if any(j["state"] in ("running", "committing") for j in self.jobs.values()):
-                    raise UserError("Wait for the current import to finish, or cancel it before quitting.")
+                if self.active_downloads or any(j['state'] in ACTIVE for j in self.jobs.values()):
+                    raise UserError('Wait for the current operation/download to finish, or cancel it before quitting.')
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return {"closed": True}
         raise UserError("Unknown API route.")
@@ -202,19 +339,22 @@ def make_server(app, port=0):
         def send(self, code, data, mime="application/json", attachment=False):
             # Drain small rejected POSTs before closing: Windows can otherwise reset
             # the socket before the client receives the authentication error.
-            if code >= 400 and self.command == "POST" and not getattr(self, "body_consumed", False):
+            if code >= 400 and self.command == "POST":
                 try:
-                    length = int(self.headers.get("Content-Length", "0"))
+                    length = getattr(self, 'body_remaining', None)
+                    if length is None:
+                        length = 0 if getattr(self, 'body_consumed', False) else int(self.headers.get('Content-Length', '0'))
                     if 0 < length <= 65536:
                         self.connection.settimeout(2)
                         self.rfile.read(length)
                 except (OSError, ValueError):
                     pass
-            if not isinstance(data, bytes):
+            file = data if isinstance(data, Path) else None
+            if file is None and not isinstance(data, bytes):
                 data = json.dumps(data, ensure_ascii=False, allow_nan=False).encode()
             self.send_response(code)
             self.send_header("Content-Type", mime + ("; charset=utf-8" if mime.startswith(("text/", "application/json")) else ""))
-            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Content-Length", str(file.stat().st_size if file is not None else len(data)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Referrer-Policy", "no-referrer")
@@ -223,12 +363,18 @@ def make_server(app, port=0):
                 self.send_header("Content-Disposition", 'attachment; filename="workspace-backup.zip"')
             self.end_headers()
             try:
-                self.wfile.write(data)
+                if file is None:
+                    self.wfile.write(data)
+                else:
+                    with file.open('rb') as source:
+                        while chunk := source.read(CHUNK):
+                            self.wfile.write(chunk)
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
         def dispatch(self):
             self.body_consumed = False
+            self.body_remaining = None
             try:
                 origin = f"http://127.0.0.1:{self.server.server_port}"
                 if self.headers.get("Host") != origin.removeprefix("http://"):
@@ -240,12 +386,18 @@ def make_server(app, port=0):
                     mime = {"index.html": "text/html", "app.js": "text/javascript", "book.js": "text/javascript", "style.css": "text/css", "icon.svg": "image/svg+xml"}[filename]
                     return self.send(200, (STATIC / filename).read_bytes(), mime)
                 token = self.headers.get("Authorization", "").removeprefix("Bearer ")
-                if path.startswith("/asset/"):
+                if path.startswith(("/asset/", '/download/')):
                     token = query.get("token", [token])[0]
                 dm = secrets.compare_digest(token, app.dm_token)
                 player = secrets.compare_digest(token, app.player_token)
                 if not dm and not player:
                     return self.send(401, {"error": "Open this window from the application launcher."})
+                if self.command == 'GET' and path.startswith('/download/'):
+                    if not dm:
+                        raise PermissionError('Workspace backup downloads are DM-only.')
+                    jid = str(uuid.UUID(path.removeprefix('/download/')))
+                    with app.download(jid) as file:
+                        return self.send(200, file, 'application/zip', attachment=True)
                 if self.command == "GET" and path.startswith("/asset/"):
                     parts = path.split("/")
                     if len(parts) != 4:
@@ -257,24 +409,32 @@ def make_server(app, port=0):
                         if digest not in {x["asset"] for x in visible["tabs"]}:
                             raise PermissionError("Image is not presented.")
                     file, mime = app.store.asset(wid, digest)
-                    return self.send(200, file.read_bytes(), mime)
+                    return self.send(200, file, mime)
                 if self.command != "POST" or not path.startswith("/api/"):
                     return self.send(404, {"error": "Not found."})
                 if self.headers.get("Origin") != origin:
                     return self.send(403, {"error": "Same-origin requests only."})
-                if path == "/api/backup/restore":
+                if path.startswith('/api/backup/upload/'):
                     if not dm:
                         raise PermissionError("DM-only restore.")
                     length = int(self.headers.get("Content-Length", "0"))
-                    if self.headers.get_content_type() != "application/zip" or not 0 < length <= MAX_TOTAL + 64 * 1024 * 1024:
+                    if self.headers.get_content_type() != "application/zip" or not 0 < length <= MAX_BACKUP:
                         return self.send(413, {"error": "Expected a workspace ZIP up to 1 GB plus metadata."})
-                    self.connection.settimeout(120)
+                    jid = str(uuid.UUID(path.removeprefix('/api/backup/upload/')))
+                    self.connection.settimeout(15)
                     self.body_consumed = True
-                    return self.send(200, app.store.restore(self.rfile.read(length)))
+                    self.body_remaining = length
+                    handler = self
+                    class BodyReader:
+                        def read(self, count):
+                            chunk = handler.rfile.read(count)
+                            handler.body_remaining -= len(chunk)
+                            return chunk
+                    return self.send(200, app.receive_restore(jid, BodyReader(), length))
                 if self.headers.get_content_type() != "application/json":
                     raise UserError("Expected JSON.")
                 length = int(self.headers.get("Content-Length", "0"))
-                limit = 96 * 1024 * 1024 if path in ("/api/media/add", "/api/backup/restore") else 2 * 1024 * 1024
+                limit = 96 * 1024 * 1024 if path == "/api/media/add" else 2 * 1024 * 1024
                 if not 0 < length <= limit:
                     return self.send(413, {"error": "Request exceeds size limit."})
                 self.connection.settimeout(30)
@@ -282,10 +442,6 @@ def make_server(app, port=0):
                 body = json.loads(self.rfile.read(length), parse_constant=lambda _: (_ for _ in ()).throw(ValueError("Non-finite number")))
                 if not isinstance(body, dict):
                     raise UserError("Expected a JSON object.")
-                if path == "/api/backup/export":
-                    if not dm:
-                        raise PermissionError("DM-only backup.")
-                    return self.send(200, app.store.backup(body["workspace"]), "application/zip", attachment=True)
                 result = app.api(path, body, not dm, self.command)
                 self.send(200, result)
             except PermissionError as exc:

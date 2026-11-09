@@ -10,7 +10,8 @@ import threading
 import uuid
 import zipfile
 
-from .importer import MAX_TOTAL, UserError, image_size, polygon
+from .importer import MAX_IMAGE, UserError, image_size, polygon
+from .transfers import CHUNK, MAX_BACKUP, MAX_METADATA, check_cancel, staging, remove_staging, recover_staging
 
 SCHEMA = 1
 ID = re.compile(r"^[a-f0-9-]{36}$")
@@ -61,25 +62,40 @@ class Store:
             conn.close()
 
     def create(self, name, language="English", rules="Unspecified"):
+        meta = self._metadata(name, language, rules)
+        folder = staging(self.workspaces, '_restore-')
+        try:
+            (folder / 'assets').mkdir()
+            self._initialize(folder, meta, {}, {})
+            folder.replace(self.workspaces / meta['id'])
+        finally:
+            remove_staging(self.workspaces, folder, '_restore-')
+        return meta
+
+    @staticmethod
+    def _metadata(name, language, rules):
         name = string(name, 100).strip()
         if not name:
             raise UserError("Enter a workspace name.")
         wid = str(uuid.uuid4())
-        folder = self.workspaces / wid
-        folder.mkdir()
-        (folder / "assets").mkdir()
-        meta = {"id": wid, "name": name, "schema": SCHEMA,
+        return {"id": wid, "name": name, "schema": SCHEMA,
                 "language": string(language, 80), "rules": string(rules, 80)}
+
+    def _initialize(self, folder, meta, documents, assets):
         conn = sqlite3.connect(folder / "workspace.sqlite3")
         try:
             with conn:
                 conn.execute("CREATE TABLE documents (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
                 conn.execute("CREATE TABLE assets (hash TEXT PRIMARY KEY, mime TEXT NOT NULL, size INTEGER NOT NULL)")
                 conn.execute(f"PRAGMA user_version={SCHEMA}")
+                for key, value in documents.items():
+                    if key != 'meta':
+                        self.put(conn, key, value)
                 self.put(conn, "meta", meta)
+                for digest, record in assets.items():
+                    conn.execute('INSERT INTO assets VALUES (?,?,?)', (digest, record['mime'], record['size']))
         finally:
             conn.close()
-        return meta
 
     @staticmethod
     def put(conn, key, value):
@@ -121,13 +137,43 @@ class Store:
             graph["pins"] = self.get(conn, "pins:" + aid, {"items": []})["items"]
             return graph
 
+    def _write_assets(self, conn, wid, blobs):
+        repaired = 0
+        for digest, (mime, data) in blobs.items():
+            if hashlib.sha256(data).hexdigest() != digest:
+                raise UserError("Image checksum mismatch.")
+            target = self.folder(wid) / "assets" / digest
+            if target.is_symlink():
+                raise UserError("Asset cannot be a symlink.")
+            correct = False
+            if target.is_file() and target.stat().st_size == len(data):
+                with target.open('rb') as source:
+                    checksum = hashlib.file_digest(source, 'sha256').hexdigest()
+                correct = checksum == digest
+            if not correct:
+                temp = target.with_suffix('.tmp')
+                if temp.is_symlink():
+                    raise UserError('Asset temporary file cannot be a symlink.')
+                try:
+                    temp.write_bytes(data)
+                    temp.replace(target)
+                finally:
+                    temp.unlink(missing_ok=True)
+                repaired += 1
+            conn.execute("INSERT OR REPLACE INTO assets VALUES (?,?,?)", (digest, mime, len(data)))
+        return repaired
+
     def import_graph(self, wid, graph, blobs):
         with self.lock, self.db(wid) as conn:
             old = self.get(conn, "adventure:" + graph["id"])
             if old:
                 if old["fingerprint"] == graph["fingerprint"]:
+                    repaired = self._write_assets(conn, wid, blobs)
                     if old.get("book_schema", 0) >= graph.get("book_schema", 0):
-                        return {"id": graph["id"], "unchanged": True}
+                        if old.get('source_schema') != graph.get('source_schema'):
+                            old['source_schema'] = graph.get('source_schema')
+                            self.put(conn, 'adventure:' + graph['id'], old)
+                        return {"id": graph["id"], "unchanged": True, "repaired_assets": repaired}
                     # Enrich the same snapshot without resetting manual material or session state.
                     previous = {m["id"]: m for m in old["maps"] + old["pictures"]}
                     for item in graph["maps"] + graph["pictures"]:
@@ -141,19 +187,9 @@ class Store:
                                         region[field] = regions[region["id"]][field]
                     graph["pictures"] += [m for m in old["pictures"] if m.get("origin") == "manual"]
                     self.put(conn, "adventure:" + graph["id"], graph)
-                    return {"id": graph["id"], "unchanged": False, "enriched": True}
+                    return {"id": graph["id"], "unchanged": False, "enriched": True, "repaired_assets": repaired}
                 raise UserError("This source changed. Import into a new workspace to preserve existing preparation/session state.")
-            for digest, (mime, data) in blobs.items():
-                if hashlib.sha256(data).hexdigest() != digest:
-                    raise UserError("Image checksum mismatch.")
-                target = self.folder(wid) / "assets" / digest
-                if target.is_symlink():
-                    raise UserError("Asset cannot be a symlink.")
-                if not target.exists():
-                    temp = target.with_suffix(".tmp")
-                    temp.write_bytes(data)
-                    temp.replace(target)
-                conn.execute("INSERT OR IGNORE INTO assets VALUES (?,?,?)", (digest, mime, len(data)))
+            self._write_assets(conn, wid, blobs)
             self.put(conn, "adventure:" + graph["id"], graph)
         return {"id": graph["id"], "unchanged": False}
 
@@ -354,20 +390,62 @@ class Store:
         return target, row[0]
 
     def backup(self, wid):
+        """Byte-oriented compatibility helper for small tests; UI uses backup_file."""
+        out = io.BytesIO()
+        self.backup_file(wid, out)
+        return out.getvalue()
+
+    def backup_file(self, wid, destination, cancelled=lambda: False, progress=lambda *_: None):
+        if not isinstance(destination, (str, Path)):
+            return self._backup_archive(wid, destination, cancelled, progress)
+        destination = Path(destination)
+        partial = destination.with_name(destination.name + '.partial')
+        if destination.is_symlink() or partial.is_symlink():
+            raise UserError('Backup destination cannot be a symlink.')
+        try:
+            self._backup_archive(wid, partial, cancelled, progress)
+            check_cancel(cancelled)
+            partial.replace(destination)
+        finally:
+            partial.unlink(missing_ok=True)
+
+    def _backup_archive(self, wid, destination, cancelled, progress):
+        # Snapshot metadata briefly; immutable hashed assets can be read without
+        # holding the write lock, so a backup doesn't freeze live fog/notes.
         with self.lock, self.db(wid) as conn:
+            raw_size = conn.execute('SELECT COALESCE(SUM(length(CAST(value AS BLOB))),0) FROM documents').fetchone()[0]
+            if raw_size > MAX_METADATA:
+                raise UserError('Workspace metadata exceeds the supported backup size (64 MB).')
             documents = {k: json.loads(v) for k, v in conn.execute("SELECT key,value FROM documents")}
             assets = {h: {"mime": m, "size": s} for h, m, s in conn.execute("SELECT * FROM assets")}
-            out = io.BytesIO()
-            with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
-                archive.writestr("workspace.json", json.dumps({"format": "sessiondesk-workspace", "version": SCHEMA,
-                    "documents": documents, "assets": assets}, ensure_ascii=False))
-                for digest in assets:
-                    target, _ = self.asset(wid, digest)
-                    data = target.read_bytes()
-                    if hashlib.sha256(data).hexdigest() != digest:
-                        raise UserError("Asset checksum failed; backup was not created.")
-                    archive.writestr("assets/" + digest, data)
-            return out.getvalue()
+        metadata = json.dumps({"format": "sessiondesk-workspace", "version": SCHEMA,
+            "documents": documents, "assets": assets}, ensure_ascii=False).encode('utf-8')
+        total = sum(x['size'] for x in assets.values()) + len(metadata)
+        if total > MAX_BACKUP or len(metadata) > MAX_METADATA:
+            raise UserError('Workspace exceeds the supported backup size (1 GB of images plus metadata).')
+        check_cancel(cancelled)
+        done = len(metadata)
+        with zipfile.ZipFile(destination, 'w', zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr('workspace.json', metadata)
+            progress('Backing up workspace', done, total)
+            for digest in assets:
+                check_cancel(cancelled)
+                target, _ = self.asset(wid, digest)
+                checksum, count = hashlib.sha256(), 0
+                with target.open('rb') as source, archive.open('assets/' + digest, 'w') as output:
+                    while chunk := source.read(CHUNK):
+                        check_cancel(cancelled)
+                        checksum.update(chunk)
+                        output.write(chunk)
+                        done += len(chunk)
+                        count += len(chunk)
+                        progress('Backing up images', done, total)
+                if checksum.hexdigest() != digest or count != assets[digest]['size']:
+                    raise UserError('An image is missing or damaged. Re-import its original adventure to repair it, then retry the backup.')
+            check_cancel(cancelled)
+
+    def recover_interrupted_restores(self):
+        return recover_staging(self.workspaces, '_restore-')
 
     @staticmethod
     def validate_backup(documents, assets):
@@ -479,18 +557,26 @@ class Store:
                                 raise UserError("Fog point outside map.")
 
     def restore(self, data):
+        """Byte-oriented compatibility helper; normal restore uses a staged file."""
+        return self.restore_file(io.BytesIO(data))
+
+    def restore_file(self, source, cancelled=lambda: False, progress=lambda *_: None, on_commit=lambda: None):
+        folder = None
         try:
-            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            check_cancel(cancelled)
+            with zipfile.ZipFile(source) as archive:
                 files = archive.infolist()
                 names = [x.filename for x in files]
                 if (len(files) > 20000 or len(names) != len(set(names))
-                        or sum(x.file_size for x in files) > MAX_TOTAL + 64 * 1024 * 1024
-                        or any(x.flag_bits & 1 for x in files)):
+                        or sum(x.file_size for x in files) > MAX_BACKUP
+                        or any(x.flag_bits & 1 or (x.external_attr >> 16) & 0o170000 == 0o120000 for x in files)):
                     raise UserError("Backup exceeds limits or has duplicate/encrypted entries.")
                 info = archive.getinfo("workspace.json")
-                if info.file_size > 64 * 1024 * 1024:
+                if info.file_size > MAX_METADATA:
                     raise UserError("Backup metadata exceeds limits.")
-                payload = json.loads(archive.read(info))
+                def invalid_constant(_):
+                    raise UserError('Backup contains an invalid JSON number.')
+                payload = json.loads(archive.read(info), parse_constant=invalid_constant)
                 if payload.get("format") != "sessiondesk-workspace" or payload.get("version") != SCHEMA:
                     raise UserError("Unsupported backup version.")
                 documents, assets = payload["documents"], payload["assets"]
@@ -501,26 +587,50 @@ class Store:
                 # Restore declarative JSON, never an untrusted SQLite schema, trigger or extension.
                 meta = documents["meta"]
                 self.validate_backup(documents, assets)
-                checked = {}
+                new = self._metadata(string(meta['name'], 100)[:89] + ' (restored)',
+                                     meta.get('language', 'English'), meta.get('rules', 'Unspecified'))
+                check_cancel(cancelled)
+                folder = staging(self.workspaces, '_restore-')
+                (folder / 'assets').mkdir()
+                total = sum(x['size'] for x in assets.values())
+                done = 0
+                media = [m for key, doc in documents.items() if key.startswith('adventure:')
+                         for m in doc['maps'] + doc['pictures']]
                 for digest, details in assets.items():
-                    if archive.getinfo("assets/" + digest).file_size > 48 * 1024 * 1024:
+                    check_cancel(cancelled)
+                    asset_info = archive.getinfo('assets/' + digest)
+                    if asset_info.file_size > MAX_IMAGE or asset_info.file_size != details['size']:
                         raise UserError("Backup image exceeds 48 MB.")
-                    blob = archive.read("assets/" + digest)
-                    if hashlib.sha256(blob).hexdigest() != digest or len(blob) != details["size"]:
+                    target = folder / 'assets' / digest
+                    checksum, count = hashlib.sha256(), 0
+                    with archive.open(asset_info) as input_file, target.open('xb') as output:
+                        while chunk := input_file.read(CHUNK):
+                            check_cancel(cancelled)
+                            checksum.update(chunk)
+                            output.write(chunk)
+                            count += len(chunk)
+                            done += len(chunk)
+                            progress('Checking and restoring images', done, total)
+                    if checksum.hexdigest() != digest or count != details['size']:
                         raise UserError("Backup image checksum mismatch.")
-                    _, mime = image_size(blob)
+                    # At most one bounded image is in memory, never the whole ZIP.
+                    dimensions, mime = image_size(target.read_bytes())
                     if mime != details["mime"]:
                         raise UserError("Backup image type mismatch.")
-                    checked[digest] = (mime, blob)
-        except (zipfile.BadZipFile, KeyError, TypeError, AttributeError, IndexError, json.JSONDecodeError, UnicodeError, OSError) as exc:
+                    if any(m['asset'] == digest and (m['width'], m['height']) != dimensions for m in media):
+                        raise UserError('Backup image dimensions do not match the map/picture metadata.')
+                check_cancel(cancelled)
+                progress('Saving restored workspace', total, total)
+                self._initialize(folder, new, documents, assets)
+                check_cancel(cancelled)
+                on_commit()
+                # Publishing is one same-volume rename, after all files and the
+                # closed SQLite transaction are valid. Existing folders never move.
+                folder.replace(self.workspaces / new['id'])
+                return new
+        except (zipfile.BadZipFile, KeyError, TypeError, AttributeError, IndexError, RecursionError,
+                json.JSONDecodeError, UnicodeError, OSError) as exc:
             raise UserError("Invalid or incomplete workspace backup.") from exc
-        # All validation completes before a new workspace appears. Existing workspaces are untouched.
-        new = self.create(string(meta["name"], 100)[:89] + " (restored)", meta.get("language", "English"), meta.get("rules", "Unspecified"))
-        with self.lock, self.db(new["id"]) as conn:
-            for key, value in documents.items():
-                if key != "meta":
-                    self.put(conn, key, value)
-            for digest, (mime, blob) in checked.items():
-                (self.folder(new["id"]) / "assets" / digest).write_bytes(blob)
-                conn.execute("INSERT INTO assets VALUES (?,?,?)", (digest, mime, len(blob)))
-        return new
+        finally:
+            if folder is not None:
+                remove_staging(self.workspaces, folder, '_restore-')

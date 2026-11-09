@@ -111,7 +111,7 @@ class LibrarySetup:
         except (OSError, ValueError):
             return {}
 
-    def install(self, location, include_images, cancelled, progress, fetch=download, release=RELEASE):
+    def install(self, location, include_images, cancelled, progress, fetch=download, release=RELEASE, on_commit=lambda: None):
         if not isinstance(location, str) or not location.strip():
             raise UserError("Choose an installation folder.")
         destination = Path(location).expanduser().absolute()
@@ -137,6 +137,7 @@ class LibrarySetup:
             Library(content).validate()
             if cancelled():
                 raise UserError("Installation cancelled; destination unchanged.")
+            on_commit()
             # Do not replace a folder that became non-empty while downloading.
             if destination.exists():
                 if any(destination.iterdir()):

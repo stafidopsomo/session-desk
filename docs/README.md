@@ -1,6 +1,6 @@
 # Session Desk — Windows development preview
 
-A local app for preparing and running independent tabletop adventures. The first **0.1.0-dev.3 Windows x64 EXE** is implemented; this is a development preview, not a completed tester alpha. AI is Off and unavailable.
+A local app for preparing and running independent tabletop adventures. The first **0.1.0-dev.4 Windows x64 EXE** is implemented; this is a development preview, not a completed tester alpha. AI is Off and unavailable.
 
 ## Run on Windows
 
@@ -16,7 +16,7 @@ The default workspace location is `%LOCALAPPDATA%/SessionDesk/workspaces`, outsi
 
 Validated local-copy selection/installation, structured adventure import, book-order chapters/sections, original read-aloud boxes/lists/tables, persistent pins above search and room preparation beside the map. DM navigation omits player variants; supported player assets stay behind their DM map. Freehand boundary correction, explicit shared tabs/notes, additive fog, pan/zoom, temporary drawing and image-complete backups support the session workflow.
 
-Synthetic source and frozen-app tests run on Windows 11 x64 with a fresh app-data directory and developer tools hidden from PATH. This is **not** a clean Windows account/VM test. Owned 2014 Icewind Dale import now succeeds in an isolated workspace. Visual/geometry acceptance, laptop/friend-PC compatibility and complete alpha acceptance are still pending; [build status](BUILD-STATUS.md) records the distinction. Packages are unsigned. Changed source snapshots require a new workspace to protect existing manual work. PDF/OCR, AI, LAN players and personal-campaign migration remain deferred.
+Synthetic source and frozen-app tests run on Windows 11 x64 with a fresh app-data directory and developer tools hidden from PATH. Those automated checks are **not** a clean Windows account/VM test. The owner separately confirmed Gate 1 complete on November 9. Owned 2014 Icewind Dale import now succeeds in an isolated workspace. Visual/geometry acceptance, laptop/friend-PC compatibility and complete alpha acceptance are still pending; [build status](BUILD-STATUS.md) records the distinction. Packages are unsigned. Changed source snapshots require a new workspace to protect existing manual work. PDF/OCR, AI, LAN players and personal-campaign migration remain deferred.
 
 ## Development and packaging
 
@@ -30,7 +30,7 @@ python -m venv .venv
 .venv\Scripts\python tools/check_product_boundary.py
 .venv\Scripts\python tools/e2e_core.py
 .venv\Scripts\python tools/build_windows.py
-.venv\Scripts\python tools/smoke_core.py --archive dist/SessionDesk-0.1.0-dev.3-windows-x64.zip
+.venv\Scripts\python tools/smoke_core.py --archive dist/SessionDesk-0.1.0-dev.4-windows-x64.zip
 .venv\Scripts\python tools/e2e_core.py --exe dist/SessionDesk/SessionDesk.exe
 ```
 
@@ -43,3 +43,5 @@ This branch has independent, campaign-free history. Never merge the personal bra
 Tagged alpha publication fails closed until versioned acceptance evidence covers the exact product tree. The current record deliberately does not authorize an alpha. [Provider feasibility](PROVIDERS.md) and [Codex preflight](CODEX-PREFLIGHT.md) are historical references for a deferred phase, not setup steps or blockers for this core.
 
 Older imports: re-import the same adventure once to add original book formatting and player-map metadata. The same-snapshot upgrade preserves notes, pins, custom pictures, drawn edges and session/fog.
+
+Gate 2 reliability: backups/restores have progress and cancellation, stream through private temporary files, and publish a restored workspace only after validation. Re-importing the same source repairs missing/damaged source images while keeping prep and session state. No partial workspace is exposed after a failed/cancelled restore.

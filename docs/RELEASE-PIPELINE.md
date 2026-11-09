@@ -55,7 +55,7 @@ Code signing is a distribution decision: do not falsely label an unsigned alpha 
 
 ## Alpha release remains blocked until proved
 
-Core source, a package specification, hash locks, explicit manifest/privacy checks and synthetic source/frozen-app evidence now exist. Clean standard-user Windows-account/VM evidence, complete owned-source visual/geometry acceptance and laptop compatibility are still missing. The selected 2014 library now has parsing/import/persistence evidence; see BUILD-STATUS.md. Update acceptance evidence only after running those checks; do not change flags merely to bypass publication. The code-tree digest prevents stale acceptance from authorizing changed product code. This record is an engineering validation gate, not another architecture packet for the owner.
+Core source, a package specification, hash locks, explicit manifest/privacy checks and synthetic source/frozen-app evidence now exist. The owner confirmed Gate 1 complete. Complete owned-source visual/geometry and final tester/artifact acceptance are still pending; no unreported OS/device result is inferred from that confirmation. The selected 2014 library now has parsing/import/persistence evidence; see BUILD-STATUS.md. Update acceptance evidence only after running those checks; do not change flags merely to bypass publication. The code-tree digest prevents stale acceptance from authorizing changed product code. This record is an engineering validation gate, not another architecture packet for the owner.
 
 Provider integration is intentionally deferred and does not block the non-AI core. No provider installation, authentication, quota polling, live diagnostic or inference is included in CI or the artifact.
 

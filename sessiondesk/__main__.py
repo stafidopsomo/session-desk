@@ -56,6 +56,7 @@ def main():
                 time.sleep(.1)
         raise RuntimeError("Session Desk is still starting. Try its launcher again shortly.")
     app = Application(Store(root))
+    app.recover()
     server = make_server(app, args.port)
     if not args.no_browser or args.auto_exit:
         def monitor():
@@ -80,6 +81,7 @@ def main():
         pass
     finally:
         server.server_close()
+        app.close()
         (root / "instance.json").unlink(missing_ok=True)
         lock.close()
         if args.ready_file:

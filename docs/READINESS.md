@@ -4,9 +4,9 @@ Initial assessment: November 5, 2026. Scope/owner decisions updated November 9, 
 
 ## Decision
 
-**Proceed to Gate 1 implementation of the non-AI core.** The owner accepted ARCHITECTURE.md and Windows x64, with one top-right Settings menu containing Display and the global AI switch, and Open player screen kept separate. All provider/AI features and route-isolation work are deferred, so the earlier Codex preflight gap does not block the core build.
+**Gate 1 is complete by explicit owner confirmation; continue the non-AI workflow.** The owner accepted ARCHITECTURE.md and Windows x64, with one top-right Settings menu containing Display and the global AI switch, and Open player screen kept separate. All provider/AI features and route-isolation work are deferred, so the earlier Codex preflight gap does not block the core build.
 
-This resolves design approval; it does not establish a built/tested EXE. The first release still needs deterministic import, manual preparation/review, isolated persistent workspaces, maps/fog/notes/player presentation and clean-machine packaging evidence. See IMPLEMENTATION-GATES.md.
+The core EXE and Gate 2 flow are implemented and tested. Broader real-library visual and tester/artifact acceptance remain in Gates 3/4. Owner confirmation and agent-generated test evidence are recorded separately; no OS details are invented. See IMPLEMENTATION-GATES.md.
 
 ## Historical starting-point assessment (November 5)
 

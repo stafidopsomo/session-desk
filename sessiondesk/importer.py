@@ -168,6 +168,10 @@ class Library:
 
     def validate(self):
         items = self.inventory()
+        if not items:
+            raise UserError('The source index contains no adventures.')
+        if not any(x['available'] for x in items):
+            raise UserError('Adventure index found, but adventure data files are missing. Select the complete library containing data/adventure/.')
         version = None
         package = self.root / "package.json"
         if package.is_file() and not package.is_symlink():
@@ -190,20 +194,25 @@ class Library:
         source = meta["id"]
         raw = read_json(self.source_path(source))
         chapters = raw.get("data") if isinstance(raw, dict) else None
+        schema = 'data-list'
         if not isinstance(chapters, list):
             wrapper = raw.get("adventureData") if isinstance(raw, dict) else None
+            schema = 'adventureData-object'
             if isinstance(wrapper, list):
+                schema = 'adventureData-list'
                 matching = [x for x in wrapper if isinstance(x, dict) and
                             str(x.get("id", x.get("source", ""))).lower() == source.lower()]
                 if len(matching) != 1:
                     raise UserError("Adventure wrapper must contain one matching source ID.")
                 wrapper = matching[0]
+            if isinstance(wrapper, dict) and str(wrapper.get('id', wrapper.get('source', source))).lower() != source.lower():
+                raise UserError('Adventure wrapper source ID does not match the selected adventure.')
             chapters = wrapper.get("data") if isinstance(wrapper, dict) else None
-        if not isinstance(chapters, list) or not chapters:
+        if not isinstance(chapters, list) or not chapters or any(not isinstance(chapter, dict) for chapter in chapters):
             raise UserError("Unsupported adventure schema: expected data chapters.")
         aid = stable("5etools", source.lower())
         graph = {"id": aid, "name": meta["name"], "source": source,
-                 "adapter": "5etools-local-v2", "book_schema": 1, "book": chapters,
+                 "adapter": "5etools-local-v2", "source_schema": schema, "book_schema": 1, "book": chapters,
                  "entries": [], "maps": [], "pictures": [],
                  "warnings": [], "source_fingerprint": hashlib.sha256(
                      json.dumps(raw, sort_keys=True, ensure_ascii=False).encode()).hexdigest()}

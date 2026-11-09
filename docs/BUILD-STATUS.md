@@ -1,6 +1,6 @@
 # Windows core build status
 
-Updated November 9, 2026. Version: **0.1.0-dev.3**. This is an unsigned development preview; no alpha tag/release has been published.
+Updated November 9, 2026. Version: **0.1.0-dev.4**. This is an unsigned development preview; no alpha tag/release has been published.
 
 ## Implemented
 
@@ -18,7 +18,7 @@ Updated November 9, 2026. Version: **0.1.0-dev.3**. This is an unsigned developm
 
 Host: **Windows 11 Pro x64, build 26300**, Python **3.12.10**. Automated unit/CI content is original synthetic data, generated outside the repository. Unit/CI fixtures never use a personal campaign/save or source book. Separate owned-library and upstream setup checks below run only in temporary folders outside Git; no source content or images are stored in reports/releases.
 
-- 45 offline unit/contract tests: importer identities/locators, ambiguous dimensions, workspace isolation, additive reveal, private/player separation, player tabs, backup relocation/corruption/path/identity rejection, unsupported schema, same-origin/auth checks, AI rejection, ephemeral drawing and publication gating; historical diagnostics use only fakes.
+- 63 offline unit/contract tests: importer identities/locators, ambiguous dimensions, workspace isolation, additive reveal, private/player separation, player tabs, backup relocation/corruption/path/identity rejection, unsupported schema, same-origin/auth checks, AI rejection, ephemeral drawing and publication gating; historical diagnostics use only fakes.
 - Real Chromium source and frozen-browser E2E: create workspace, inspect/import, save Greek preparation, draw/save a complete boundary, explicit presentation, player reload, brush reveal, Space-pan after outside focus, shared notes, player drawing/zoom/tab activation/close-all, Settings layout and disabled AI. External browser requests are blocked and asserted absent.
 - Frozen lifecycle smoke: fresh application-data directory with Python/Git/Node hidden from PATH; import, manual preparation, player-safe serialization, restart persistence, asset-complete backup and restore. Extracted-ZIP verification also checks entry/ZIP hashes, Unicode relocation and unchanged install files.
 - Product source boundary and JavaScript syntax checks. Explicit package content audit scans developer path/name markers and excludes tests, personal data, provider tools and arbitrary source-tree directories.
@@ -27,8 +27,8 @@ Local test results are recorded here; the GitHub Actions run for the exact commi
 
 ## Remaining acceptance and limits
 
-- **Gate 1:** executable spike works with synthetic data. A fresh app profile and hidden PATH are not a fresh standard-user Windows account/clean VM. That OS-profile test remains pending; minimum supported Windows version is not yet established. Only the named host is validated.
-- **Gate 2:** initial manual vertical slice works. Broader source-version fixtures and failure/recovery coverage remain to expand. Export/restore currently operate as bounded, in-memory transactions rather than resumable/cancellable jobs; imports can be cancelled before commit. Source schema/asset size limits produce errors, not fabricated geometry.
+- **Gate 1:** complete by the owner's explicit November 9 confirmation. Automated profile/PATH checks remain accurately described as such; no additional Windows build or compatibility range is inferred from the confirmation.
+- **Gate 2:** implemented non-AI vertical slice, including cancellable export/restore, streamed file transfer, atomic staged restore/create, safe restart recovery and same-source image repair. Backup metadata is capped at 64 MB; transfers are bounded to 1 GB plus metadata. Interrupted transfers restart from the original ZIP rather than resuming arbitrary partial bytes. Source schema/asset limits produce errors, not invented content.
 - **Gate 3:** The explicitly selected 2014 library now passes list-wrapper parsing and temporary background import/persistence. Icewind Dale: 2108 entries, 81 map images (42 DM + 39 player), 136 pictures, zero warnings. Sunless Citadel: 506 entries, 4 map images, 10 pictures, zero warnings. Full visual/geometry acceptance is still pending. Parent-map transforms are not inferred; mismatched geometry remains unverified. Existing-copy imports remain read-only/offline. App-installed copies may explicitly opt into missing-image downloads during import; external image references remain unsupported. Valid image formats: PNG, JPEG, WebP, GIF, up to 48 MB/image and 100 million pixels.
 - **Gate 4:** laptop/friend-machine and clean-account tests, full artifact/dependency/privacy acceptance and alpha evidence remain pending. The automated audit is an accidental-leakage check, not a proof that every binary is free of secrets. Packages are unsigned. There is no code-signing certificate or published alpha.
 - AI/provider integration and isolation, PDF/OCR, remote/LAN players, character tooling and personal-campaign migration are deferred. No personal branch was merged or campaign content copied.
@@ -54,4 +54,15 @@ The default data folder is `%LOCALAPPDATA%/SessionDesk/`. Closing the last DM/pl
 - Add adventure has an accessible top-right close control. Existing imports can gain the richer book snapshot by re-importing the identical source once; regression tests preserve notes, fog/tabs, pins, manual images and drawn boundaries.
 - 45 Python tests and 2 Node renderer tests cover persistence/enrichment, player-asset projection, source HTML escaping, nested typography and area links. Browser E2E also covers book boxes/tables, stable pins across search/backspace, inline room editing, hidden player variants, freehand boundary save/reveal and the close control.
 - Selected owned-source inspection: Sunless Citadel has 2 DM maps + 2 hidden player variants, and Icewind Dale 42 DM maps + 39 hidden player variants. All of these parent links use supported matching dimensions/autoScale metadata. No owned source text, artwork or screenshots are committed or uploaded in CI.
-- Gate 0 remains resolved. Gate 1 checks 2-5 have supporting evidence; check 1 still needs a genuine clean Windows standard-user account/VM and a recorded OS floor. Fresh app-data/PATH isolation is not substituted for that test.
+- Historical preview 3 status was superseded by the owner's explicit Gate 1 completion confirmation. No new OS test details were invented; Gate 0/1 are closed.
+
+## Development preview 4 - Gate 2 reliability
+
+- The owner confirmed Gate 1 complete; the record is an owner confirmation, not a fabricated automated clean-machine test. Gate 0 remains closed; AI stays unavailable.
+- Export/restore use background jobs with progress and cancellation. ZIP upload, download and asset copying stream in chunks. Native browser backup downloads avoid buffering the entire ZIP in the server/UI JavaScript. Metadata has a 64 MB bound and image validation holds at most one bounded image in memory.
+- Export captures a short metadata snapshot, then releases the session write lock while copying immutable images. Existing backup destinations are replaced only after success. Corrupt assets fail with a repair hint; re-importing the identical source repairs missing/damaged source images without resetting prep, pins, custom data or fog.
+- Restore and new-workspace creation publish by same-volume rename only after all validation and closed SQLite transactions complete. Failed/cancelled uploads, bad ZIPs, disk/rename failures and cancellation before commit leave no visible partial workspace. Commit completion is explicit and is not falsely reported as cancelled.
+- On restart, only app-marked staging is recovered; unmarked folders/user data are left alone. Cached exports are limited, private, DM-only, cleared on normal shutdown and recovered after interruption. Ready downloads are protected from cleanup while in flight.
+- Supported import shapes (data list, adventureData object/list) are recorded; mismatched source IDs, empty/incomplete libraries and malformed chapter arrays produce useful errors. Missing geometry is not fabricated.
+- Added storage/HTTP tests for export cancellation, restore rollback, concurrent session edits during a backup, interrupted upload/retry, repair, cache recovery, DM-only downloads and image geometry validation. Browser E2E covers native download, invalid restore then retry, restored notes/pins/fog/images and cancellation. Frozen smoke uses the same transfer endpoints and restart path.
+- Gate 2's defined core workflow is implemented. Gate 3 remains the owned-library/visual check, and Gate 4 still needs full tester/artifact acceptance. This is an unsigned development preview, not a public alpha or an AI integration.

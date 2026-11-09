@@ -4,7 +4,9 @@ Updated November 9, 2026. These are implementation/acceptance milestones, not a 
 
 ## November 9 implementation status
 
-The initial core, Windows one-folder packaging, isolated-profile smoke test and browser E2E are implemented. This is a development preview. Gate 1 remains partly open because a fresh app-data directory/PATH isolation is not a clean standard-user Windows account. Gate 2 has an initial working vertical slice; broader failure/recovery and source-version coverage remain to expand. Gate 3 now has real owned-library parsing/import/persistence evidence; full image/geometry review and Gate 4 tester/machine acceptance remain pending. See BUILD-STATUS.md; no completed alpha is claimed.
+Gate 0 is complete. The owner explicitly confirmed **Gate 1 complete** in the conversation on November 9; that is the recorded basis for closure. No specific Windows build or new compatibility range was supplied, so none is invented. Do not reopen Gate 1 or ask for its approval packet again.
+
+Development preview 4 completes the defined non-AI Gate 2 slice with cancellable backup/restore, atomic workspace publication, interruption recovery, source-image repair and expanded schema/failure coverage. This remains a development preview. Gate 3 visual/owned-library acceptance and Gate 4 tester/artifact acceptance remain separate; no alpha is published automatically.
 
 ## Gate 0 — resolved for the non-AI core
 
@@ -21,32 +23,15 @@ The safe distribution default is audited ZIP/EXE files shared directly with test
 
 **Gate 1 core implementation and core dependency/packaging work may proceed.** No provider tooling or live AI work is authorized by this scope change. Gate 0 is a design approval, not proof that an app, installer or alpha already exists.
 
-## Gate 1 — executable core architecture spike
+## Gate 1 - complete by owner confirmation
 
-Current proof status after development preview 3:
+Owner confirmation: November 9, 2026, conversation message: "gate 1 is omplete lets continue". This closes the executable core/Windows x64 spike. Automated evidence also covers isolated workspaces, generic source identities/regions, Settings/player workflow, bundled-runtime startup with developer PATH hidden, and AI rejection.
 
-| Gate 1 check | Status |
-|---|---|
-| 1. Bundled EXE on a genuinely clean standard-user Windows account, OS floor recorded | Partial: packaged startup, hidden developer PATH, fresh app-data profile and Windows CI pass. A real clean account/VM and OS-floor evidence remain pending. |
-| 2. External isolated workspaces and replacement-safe data | Passed synthetic isolation, restart, relocation and asset-complete backup/restore checks. |
-| 3. Generic source graph, repeated keys and feature regions | Passed synthetic cases and the selected local 2014 source import. |
-| 4. Settings, separate player control and useful non-AI flow | Passed source/frozen-browser checks; book hierarchy, pins, inline room prep and drawing corrections are usability improvements within this flow. |
-| 5. AI unavailable and no provider activity | Passed backend rejection and offline/fake-provider tests. |
-
-Gate 0 stays closed. These UI corrections do not reopen architecture approval, and no new owner document approval is needed. The next Gate 1 acceptance action is the genuine clean-standard-user Windows test, then recording the actual supported version. Gate 2 usability work can continue while that evidence is collected.
-
-
-Prove with original synthetic data:
-
-1. A frozen Windows x64 app starts under a fresh standard-user profile with no installed Python/Git/Node dependency for its core runtime. Record the tested Windows versions and derive the supported OS floor.
-2. Workspaces store state/assets outside the installation. Two separate workspaces cannot see or modify each other's records, and replacing the app does not overwrite them.
-3. The source adapter imports a small synthetic adventure/map graph, including repeated keys and a region representing a feature rather than a whole room.
-4. The header has one Settings menu with Display and AI. Open player screen remains outside that menu. AI is Off/unavailable in this build; import, manual editing and presentation remain usable.
-5. There is no provider installation, account access, quota polling or inference. Prove that AI enable/submit attempts cannot bypass the unavailable state. Existing historical diagnostic tools are not bundled as product features.
-
-This spike is not a tester release. Use its results to lock the runtime/packaging dependencies and schema/API contracts. Expand the current readiness-tree allowlist deliberately when actual product source/build specifications are added; preserve the campaign-free boundary.
+The agent's automated tests are not relabeled as clean-VM tests. Exact additional OS/account details were not supplied with the owner's confirmation; this does not block Gate 2 or create another approval request. Broader version/device compatibility remains part of release acceptance.
 
 ## Gate 2 — useful non-AI vertical slice
+
+Status: implemented and covered by synthetic storage/HTTP/browser/frozen-package checks in development preview 4. Scope includes the failure and cancellation paths below. Real-library visual/geometry verification belongs to Gate 3.
 
 `New workspace → select local library → select adventure → import inventory/maps/known regions → manually prepare/edit or import materials → review → present → save/restart/export/import`
 

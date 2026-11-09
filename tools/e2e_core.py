@@ -179,10 +179,55 @@ def run(exe=None, artifacts=None):
                 player.screenshot(path=str(artifacts / 'player.png'))
             player.get_by_role("button",name="Close all",exact=True).click()
             expect(player.locator('#player-tabs .tab')).to_have_count(0)
+            page.get_by_role('button',name='Workspace',exact=True).click()
+            with page.expect_download() as download_info:
+                page.get_by_role('button',name='Export backup',exact=True).click()
+            backup_path=base/'workspace-backup.zip'
+            download_info.value.save_as(backup_path)
+            expect(page.locator('#transfer-status')).to_contain_text('Backup ready')
+            expect(page.locator('#transfer-status progress')).to_have_count(0)
+            page.locator('#dialog').get_by_role('button',name='Close',exact=True).click()
+            page.get_by_role('button',name='Workspaces',exact=True).click()
+            page.get_by_role('button',name='Restore backup',exact=True).click()
+            invalid=base/'invalid.zip';invalid.write_bytes(b'Original synthetic invalid ZIP')
+            page.locator('#dialog input[type=file]').set_input_files(str(invalid))
+            page.locator('#dialog').get_by_role('button',name='Restore backup',exact=True).click()
+            expect(page.locator('#transfer-status')).to_contain_text('stopped')
+            expect(page.locator('#transfer-status progress')).to_have_count(0)
+            page.locator('#dialog input[type=file]').set_input_files(str(backup_path))
+            page.locator('#dialog').get_by_role('button',name='Restore backup',exact=True).click()
+            expect(page.get_by_role('heading',name='Browser test table (restored)',exact=True)).to_be_visible()
+            workspaces=call(ready,'bootstrap')['workspaces']
+            assert len(workspaces)==2
+            restored_id=next(w['id'] for w in workspaces if w['id']!=wid)
+            restored=call(ready,'adventure',{'workspace':restored_id,'adventure':aid})
+            assert restored['pins'] and any(p['notes']=='Private browser note' for p in restored['preparation'].values())
+            assert call(ready,'session',{'workspace':restored_id,'adventure':aid})['fog']
+            # Keep the cancellation UI deterministic; the real worker/streaming
+            # cancellation paths are separately exercised by HTTP/storage tests.
+            page.get_by_role('button',name='Workspaces',exact=True).click()
+            page.get_by_role('button',name='Restore backup',exact=True).click()
+            cancelled={'value':False}
+            fake={'id':'synthetic-transfer','kind':'restore','state':'uploading','done':0,'total':100}
+            page.route('**/api/backup/restore/start',lambda route:route.fulfill(json=fake))
+            page.route('**/api/backup/upload/synthetic-transfer',lambda route:route.fulfill(json=fake))
+            page.route('**/api/job/status',lambda route:route.fulfill(json={**fake,'state':'cancelled' if cancelled['value'] else 'running','error':'Synthetic cancellation'}))
+            def cancel_route(route):
+                cancelled['value']=True
+                route.fulfill(json={**fake,'state':'cancelled','cancel_requested':True,'error':'Synthetic cancellation'})
+            page.route('**/api/job/cancel',cancel_route)
+            page.locator('#dialog input[type=file]').set_input_files(str(backup_path))
+            page.locator('#dialog').get_by_role('button',name='Restore backup',exact=True).click()
+            page.locator('#transfer-status [data-action=cancel-transfer]').click()
+            expect(page.locator('#transfer-status')).to_contain_text('cancelled')
+            expect(page.locator('#transfer-status progress')).to_have_count(0)
+            for route in ('**/api/backup/restore/start','**/api/backup/upload/synthetic-transfer','**/api/job/status','**/api/job/cancel'):
+                page.unroute(route)
+            page.locator('#dialog').get_by_role('button',name='Close',exact=True).click()
             assert not errors, errors
             assert not external, external
             context.close();browser.close()
-            print("Browser E2E passed: library validation, install/import failure recovery, preparation and player tools; zero external requests.")
+            print("Browser E2E passed: preparation/player tools, native backup download, failed restore/retry and cancellation; zero external requests.")
 
 
 if __name__ == '__main__':
