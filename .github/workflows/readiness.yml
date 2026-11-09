@@ -37,7 +37,8 @@ jobs:
       - name: Check independent history and product file boundary
         run: python tools/check_product_boundary.py
       - name: Install hash-locked build and browser test tools
-        run: python -m pip install --require-hashes --only-binary=:all: -r requirements-build.lock -r requirements-e2e.lock
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r requirements-build.lock -r requirements-e2e.lock
       - name: Test core and historical diagnostics offline with synthetic data
         run: python -m unittest discover -s tests -v
       - name: Check UI syntax
