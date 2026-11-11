@@ -7,7 +7,7 @@ from pathlib import Path
 import secrets
 import threading
 import time
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlsplit, unquote
 import uuid
 
 from . import __version__
@@ -32,6 +32,7 @@ class Application:
         self.active_downloads = 0
         self.recovered = 0
         self.transfer_root = store.root / 'transfers'
+        self.prepared_cache = {}
 
     def _new_job(self, kind, state='running'):
         with self.lock:
@@ -196,6 +197,47 @@ class Application:
             return self.store.import_graph(payload["workspace"], graph, blobs)
         return self.start_job("import", operation)
 
+    def prepared(self, wid):
+        from .prepared import Prepared
+        settings = self.source_settings()
+        path = settings.get(wid)
+        with self.store.lock:
+            cached = self.prepared_cache.get(wid)
+            if cached is None or cached[0] != path:
+                cached = (path, Prepared(self.store, wid, path))
+                self.prepared_cache[wid] = cached
+            return cached[1]
+
+    def source_settings(self):
+        file = self.store.root / 'local-sources.json'
+        if file.is_symlink():
+            raise UserError('Source preferences cannot be linked.')
+        return json.loads(file.read_text(encoding='utf-8')) if file.is_file() else {}
+
+    def connect_source(self, wid, path):
+        self.store.folder(wid)
+        library = Library(path)
+        if library.root.name == 'data' and (library.root.parent / 'package.json').is_file():
+            library = Library(library.root.parent)
+        info = library.validate()
+        if not (library.data / 'book/book-phb.json').is_file():
+            raise UserError('Choose a complete local 2014 library with the Player’s Handbook data.')
+        if info['version'] and not str(info['version']).startswith('1.'):
+            raise UserError('Choose the 2014 source copy for this campaign’s rules profile.')
+        with self.store.lock:
+            settings = self.source_settings()
+            settings[wid] = str(library.root)
+            file = self.store.root / 'local-sources.json'
+            temp = file.with_suffix('.tmp')
+            if temp.is_symlink():
+                raise UserError('Source preference staging cannot be linked.')
+            temp.write_text(json.dumps(settings), encoding='utf-8')
+            temp.replace(file)
+            self.prepared_cache.pop(wid, None)
+            from .prepared_rules import database
+            database.cache_clear()
+        return {'connected': True, 'version': info['version']}
+
     def should_exit(self, now=None):
         now = time.monotonic() if now is None else now
         with self.lock:
@@ -231,7 +273,21 @@ class Application:
         if path == "/api/workspace/create":
             return store.create(body.get("name", ""), body.get("language", "English"), body.get("rules", "Unspecified"))
         if path == "/api/workspace":
-            return store.overview(body["workspace"])
+            return store.overview(body["workspace"]) | {'rules_connected': body['workspace'] in self.source_settings()}
+        if path == '/api/campaign/open':
+            self.prepared(body['workspace'])
+            return {'url': f"/campaign/{body['workspace']}/{self.dm_token}/"}
+        if path == '/api/campaign/source':
+            return self.connect_source(body['workspace'], body.get('path', ''))
+        if path == '/api/module/files':
+            from .workspace_modules import MODULE_ID, sync
+            with store.lock, store.db(body['workspace']) as conn:
+                sync(store, body['workspace'], conn)
+                module = store.get(conn, 'module:' + MODULE_ID)
+            if not module:
+                raise UserError('No prepared files in this workspace.')
+            return {'files': [{'path': name, **record} for name, record in module['files'].items()],
+                    'original': module.get('original')}
         if path == "/api/adventure":
             return store.adventure(body["workspace"], body["adventure"])
         if path == "/api/library":
@@ -336,7 +392,7 @@ def make_server(app, port=0):
         def log_message(self, *_):
             pass  # Never log URLs, tokens, private source text or local paths.
 
-        def send(self, code, data, mime="application/json", attachment=False):
+        def send(self, code, data, mime="application/json", attachment=False, csp=None, filename=None):
             # Drain small rejected POSTs before closing: Windows can otherwise reset
             # the socket before the client receives the authentication error.
             if code >= 400 and self.command == "POST":
@@ -358,9 +414,10 @@ def make_server(app, port=0):
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Referrer-Policy", "no-referrer")
-            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
+            self.send_header("Content-Security-Policy", csp or "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
             if attachment:
-                self.send_header("Content-Disposition", 'attachment; filename="workspace-backup.zip"')
+                safe_name = ''.join(c for c in (filename or 'workspace-backup.zip') if c.isascii() and c.isalnum() or c in '.-_')[:100] or 'attachment.bin'
+                self.send_header("Content-Disposition", f'attachment; filename="{safe_name}"')
             self.end_headers()
             try:
                 if file is None:
@@ -381,6 +438,8 @@ def make_server(app, port=0):
                     return self.send(403, {"error": "Invalid host."})
                 parsed = urlsplit(self.path)
                 path, query = parsed.path, parse_qs(parsed.query)
+                if path.startswith('/campaign/'):
+                    return self.prepared_dispatch(path, query, origin)
                 if self.command == "GET" and path in ("/", "/app.js", "/book.js", "/style.css", "/icon.svg"):
                     filename = "index.html" if path == "/" else path[1:]
                     mime = {"index.html": "text/html", "app.js": "text/javascript", "book.js": "text/javascript", "style.css": "text/css", "icon.svg": "image/svg+xml"}[filename]
@@ -409,7 +468,11 @@ def make_server(app, port=0):
                         if digest not in {x["asset"] for x in visible["tabs"]}:
                             raise PermissionError("Image is not presented.")
                     file, mime = app.store.asset(wid, digest)
-                    return self.send(200, file, mime)
+                    attachment = mime not in ('image/png','image/jpeg','image/webp','image/gif')
+                    if attachment and not dm:
+                        raise PermissionError('Workspace attachments are DM-only.')
+                    return self.send(200, file, mime, attachment=attachment,
+                                     filename=query.get('name',['attachment.bin'])[0])
                 if self.command != "POST" or not path.startswith("/api/"):
                     return self.send(404, {"error": "Not found."})
                 if self.headers.get("Origin") != origin:
@@ -450,6 +513,57 @@ def make_server(app, port=0):
                 self.send(400, {"error": str(exc) if isinstance(exc, UserError) else "Invalid request."})
             except Exception:
                 self.send(500, {"error": "Operation failed. Check available disk space and source/workspace files. Existing data was not reset."})
+
+        def prepared_dispatch(self, path, query, origin):
+            from .prepared import static, rewrite, unmount
+            parts = path.split('/', 4)
+            if len(parts) != 5:
+                raise UserError('Invalid prepared-campaign URL.')
+            _, _, wid, token, tail = parts
+            dm = secrets.compare_digest(token, app.dm_token)
+            player = secrets.compare_digest(token, app.player_token)
+            if not dm and not player:
+                return self.send(401, {'error': 'Open this workspace from Session Desk.'})
+            base = f'/campaign/{wid}/{token}'
+            player_base = f'/campaign/{wid}/{app.player_token}'
+            route = '/' + tail
+            mount = app.prepared(wid)
+            if self.command == 'POST':
+                if self.headers.get('Origin') != origin or self.headers.get_content_type() != 'application/json':
+                    raise PermissionError('Same-origin JSON requests only.')
+                length = int(self.headers.get('Content-Length','0'))
+                if not 0 < length <= 2 * 1024 * 1024:
+                    raise UserError('Invalid campaign action size.')
+                self.connection.settimeout(30)
+                self.body_consumed = True
+                body = json.loads(self.rfile.read(length), parse_constant=lambda _: (_ for _ in ()).throw(UserError('Invalid number.')))
+                if not isinstance(body, dict):
+                    raise UserError('Expected a campaign action object.')
+                result = mount.api(route, 'POST', unmount(body, base), query, not dm)
+                return self.send(200, rewrite(result, base))
+            if self.command != 'GET':
+                raise PermissionError('Unsupported campaign request method.')
+            if route.startswith('/api/'):
+                return self.send(200, rewrite(mount.api(route,'GET',{},query,not dm),base))
+            if route.startswith('/assets/'):
+                file, mime, attachment = mount.file(route, not dm)
+                return self.send(200,file,mime,attachment=attachment,filename=file.name)
+            if route.startswith('/reference/'):
+                file, mime = mount.reference(route, not dm)
+                csp = "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; frame-ancestors 'self'"
+                return self.send(200,file,mime,csp=csp)
+            pages = {'/':'index.html','/dm':'index.html','/player':'player.html','/shop':'shop.html'}
+            if route in pages:
+                if not dm and route in ('/','/dm'):
+                    raise PermissionError('The campaign desk is DM-only.')
+                name = pages[route]
+            elif route.startswith('/static/'):
+                name = unquote(route[len('/static/'):])
+            else:
+                raise UserError('Campaign page not found.')
+            data, mime = static(name,base,player_base,wid,not dm)
+            csp = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'"
+            return self.send(200,data,mime,csp=csp)
 
         do_GET = dispatch
         do_POST = dispatch

@@ -83,10 +83,11 @@ async function openWorkspace(wid) {
   $('#app').innerHTML = header() + `<main class="home"><p class="eyebrow">Workspace</p><h1>${esc(S.overview.meta.name)}</h1>
     <p>${esc(S.overview.meta.rules)} · Preparation language: ${esc(S.overview.meta.language)}</p>
     <div class="row">${button('import','Add adventure','primary')}${button('backup','Export backup','quiet')}</div>
+    ${(S.overview.modules||[]).filter(m=>m.enabled&&m.kind==='campaign-desk-v1'&&m.schema===1).map(m=>`<section class="card prepared-workspace"><h2>${esc(m.title)}</h2><p>Prepared campaign · ${m.summary?.maps||0} maps · ${m.summary?.characters||0} characters · authored scenes, resources and saved table state.</p><p>${S.overview.rules_connected?'2014 rules library connected.':'Connect your local 2014 library to use source links and character rules. Your campaign files are already imported.'}</p><div class="row">${button('prepared','Open prepared campaign','primary')}${button('connect-rules',S.overview.rules_connected?'Change rules library':'Connect 2014 library','quiet')}${button('workspace-files','Browse files','quiet')}</div></section>`).join('')}
     <div class="cards">${S.overview.adventures.map(a => `<article class="card"><h2>${esc(a.name)}</h2>
       <p class="count">${a.maps} maps · ${a.pictures} pictures${a.warnings ? ` · ${a.warnings} import warnings` : ''}</p>
       ${button('adventure','Open adventure','',`data-id="${a.id}"`)}</article>`).join('')}</div>
-    ${!S.overview.adventures.length ? '<div class="empty"><h2>Add your first adventure</h2><p>Use your existing local 5e.tools copy, or install one at a location you choose.</p></div>' : ''}</main>`;
+    ${!S.overview.adventures.length&&!S.overview.modules?.length ? '<div class="empty"><h2>Add your first adventure</h2><p>Use your existing local 5e.tools copy, or install one at a location you choose.</p></div>' : ''}</main>`;
 }
 async function openAdventure(aid) {
   S.aid = aid; S.graph = await request('adventure'); S.session = await request('session');
@@ -362,6 +363,14 @@ async function onAction(b) {
   if (a === 'quit') { await request('quit'); $('#app').innerHTML = '<main class="home"><h1>Session Desk closed.</h1><p>Your workspace is saved. You can close this tab.</p></main>'; return; }
   if (a === 'home') { S.boot = await request('bootstrap'); return home(); }
   if (a === 'workspace') return openWorkspace(b.dataset.id);
+  if (a === 'prepared') {const result=await request('campaign/open');location.assign(result.url);return;}
+  if (a === 'connect-rules') {const result=await request('pick-folder');if(result.path){await request('campaign/source',{path:result.path});await openWorkspace(S.wid);toast('2014 rules library connected.');}return;}
+  if (a === 'workspace-files') {
+    const result=await request('module/files');
+    const link=(record,name)=>`<a href="/asset/${S.wid}/${record.asset}?token=${encodeURIComponent(token)}&name=${encodeURIComponent(name.split('/').at(-1))}" target="_blank" rel="noopener">${esc(name)}</a>`;
+    const groups=new Map();for(const file of result.files){const parent=file.path.includes('/')?file.path.split('/')[0]:'Campaign files';if(!groups.has(parent))groups.set(parent,[]);groups.get(parent).push(file);}
+    return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close workspace files"')}<h2>Workspace files</h2><p>Private campaign files. Source and preparation scripts are preserved as downloads; they are never executed.</p>${result.original?`<p>${link(result.original,'original-recovery.zip')}</p>`:''}${[...groups].map(([name,files])=>`<details><summary>${esc(name)} (${files.length})</summary><ul>${files.map(f=>`<li>${link(f,f.path)}</li>`).join('')}</ul></details>`).join('')}`);
+  }
   if (a === 'adventure') return openAdventure(b.dataset.id);
   if (a === 'dismiss') return dismiss();
   if (a === 'new-workspace') return modal(`<h2>New workspace</h2><form data-form="workspace"><label for="workspace-name">Name</label><input name="name" id="workspace-name" required maxlength="100" autofocus>
@@ -418,7 +427,7 @@ async function onAction(b) {
   }
   if (a === 'add-picture') return modal(`<h2>Add local picture</h2><form data-form="picture"><label>Display name</label><input name="name" required maxlength="200"><label>PNG, JPEG, WebP or GIF · up to 48 MB</label><input name="file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required><div class="row"><button type="submit" class="primary">Import picture</button>${button('dismiss','Cancel','quiet')}</div></form>`);
   if (a === 'backup') return exportBackup();
-  if (a === 'restore') return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close restore window"')}<h2>Restore workspace backup</h2><p>Creates a separate workspace. Existing workspaces remain untouched. The ZIP must be a Session Desk backup.</p><form data-form="restore"><input name="file" type="file" accept=".zip" required><div class="row"><button type="submit" class="primary">Restore backup</button>${button('dismiss','Cancel','quiet')}</div></form><div id="transfer-status" role="status" aria-live="polite"></div>`);
+  if (a === 'restore') return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close restore window"')}<h2>Restore workspace backup</h2><p>Choose a Session Desk workspace backup or a prepared-campaign recovery ZIP. Restore creates a separate workspace with its files and saved state.</p><form data-form="restore"><input name="file" type="file" accept=".zip" required><div class="row"><button type="submit" class="primary">Restore backup</button>${button('dismiss','Cancel','quiet')}</div></form><div id="transfer-status" role="status" aria-live="polite"></div>`);
   if (a === 'cancel-transfer'&&transferJob){
     const state=await request('job/cancel',{job:transferJob.id});
     if(state.state!=='committing')transferJob.controller.abort();
@@ -592,7 +601,7 @@ async function start(){
   });
   document.documentElement.style.setProperty('--scale',(localStorage.getItem('textSize')||100)/100);document.body.classList.toggle('dense',localStorage.getItem('density')==='true');
   if(isPlayer){if(!S.wid||!S.aid)throw Error('Open this player screen from an adventure.');playerShell();S.session=await request('player');updatePlayer();}
-  else{S.boot=await request('bootstrap');home();if(S.boot.recovered_operations)toast('Discarded an interrupted operation. Saved workspaces were kept.');}
+  else{S.boot=await request('bootstrap');if(S.wid)await openWorkspace(S.wid);else home();if(S.boot.recovered_operations)toast('Discarded an interrupted operation. Saved workspaces were kept.');}
   setInterval(poll,900);
 }
 start().catch(error=>{$('#app').innerHTML=`<main class="home"><h1>Open Session Desk from its launcher</h1><p>${esc(error.message)}</p></main>`;});

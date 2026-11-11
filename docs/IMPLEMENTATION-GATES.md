@@ -19,7 +19,7 @@ Owner decisions confirmed on November 9:
 - Existing local 5e.tools adventure/images remain the first import format. The later November 9 setup request also authorizes an explicit local 2014 source installer at a chosen location, with optional on-import adventure images. PDF/OCR stays deferred.
 - Preserve the clean product history and the existing personal instance. No campaign data in source/builds; no automatic personal migration.
 
-The safe distribution default is audited ZIP/EXE files shared directly with testers, without giving them access to this private repository. Public source/repository distribution remains a later decision and does not block the core spike.
+November 11 distribution choice: public product source in the independent session-desk repository; the original campaign repository stays private. Vetted release ZIPs follow the existing acceptance gate.
 
 **Gate 1 core implementation and core dependency/packaging work may proceed.** No provider tooling or live AI work is authorized by this scope change. Gate 0 is a design approval, not proof that an app, installer or alpha already exists.
 
@@ -74,4 +74,4 @@ Use capability-specific validation and human review for uncertain geometry. Do n
 
 ## Personal migration and later platforms
 
-After product stability, prepare personal-campaign migration with backup, dry run, compatibility report and rollback. Do not rewrite the live personal app or merge its history. PDF/OCR, other operating systems, additional providers, native shells and remote player devices remain later scope.
+Preview 6 implements supported prepared-campaign recovery import with private backup, dry run, exact file/fog comparison and portable roundtrip. Optional content uses the same EXE; fresh workspaces remain simple. Do not rewrite the live personal app or merge its history. PDF/OCR, other operating systems, additional providers, native shells and remote player devices remain later scope.

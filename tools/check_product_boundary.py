@@ -27,6 +27,22 @@ ALLOWED_FILES = frozenset({
     'tools/build_windows.py', 'tools/smoke_core.py', 'tools/e2e_core.py',
     'docs/QUICKSTART.txt', 'docs/BUILD-STATUS.md',
     'tools/release_gate.py', 'release/acceptance.json', 'docs/RELEASE-NOTES.md',
+    'sessiondesk/workspace_modules.py', 'sessiondesk/prepared.py',
+    'sessiondesk/prepared_engine.py', 'sessiondesk/prepared_characters.py',
+    'sessiondesk/prepared_rules.py', 'sessiondesk/prepared_tokens.py',
+    'sessiondesk/static/prepared/index.html', 'sessiondesk/static/prepared/player.html',
+    'sessiondesk/static/prepared/shop.html', 'sessiondesk/static/prepared/app.js',
+    'sessiondesk/static/prepared/player.js', 'sessiondesk/static/prepared/shop.js',
+    'sessiondesk/static/prepared/after-citadel.js', 'sessiondesk/static/prepared/map.js',
+    'sessiondesk/static/prepared/tokens.js', 'sessiondesk/static/prepared/characters.js',
+    'sessiondesk/static/prepared/layout.js', 'sessiondesk/static/prepared/appearance.js',
+    'sessiondesk/static/prepared/reference-storage.js', 'sessiondesk/static/prepared/bootstrap.js',
+    'sessiondesk/static/prepared/style.css', 'sessiondesk/static/prepared/refinements.css',
+    'sessiondesk/static/prepared/opening.css', 'sessiondesk/static/prepared/desk.css',
+    'sessiondesk/static/prepared/slate.css', 'sessiondesk/static/prepared/player.css',
+    'sessiondesk/static/prepared/shop.css', 'sessiondesk/static/prepared/tokens.css',
+    'tests/prepared_fixture.py', 'tests/test_prepared.py', 'tools/e2e_prepared.py',
+    'tools/verify_library.py',
 })
 
 

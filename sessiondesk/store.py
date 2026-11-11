@@ -13,7 +13,7 @@ import zipfile
 from .importer import MAX_IMAGE, UserError, image_size, polygon
 from .transfers import CHUNK, MAX_BACKUP, MAX_METADATA, check_cancel, staging, remove_staging, recover_staging
 
-SCHEMA = 1
+SCHEMA = 2
 ID = re.compile(r"^[a-f0-9-]{36}$")
 HASH = re.compile(r"^[a-f0-9]{64}$")
 
@@ -54,7 +54,26 @@ class Store:
             raise UserError("Workspace database cannot be a symlink.")
         conn = sqlite3.connect(folder / "workspace.sqlite3", timeout=15)
         try:
-            if conn.execute("PRAGMA user_version").fetchone()[0] != SCHEMA:
+            version = conn.execute("PRAGMA user_version").fetchone()[0]
+            if version == 1:
+                with self.lock:
+                    recovery = folder / 'workspace-schema-1.sqlite3.bak'
+                    if recovery.is_symlink():
+                        raise UserError('Workspace recovery file cannot be linked.')
+                    if not recovery.exists():
+                        old = sqlite3.connect(recovery)
+                        try:
+                            conn.backup(old)
+                        finally:
+                            old.close()
+                    conn.execute('BEGIN IMMEDIATE')
+                    conn.execute(f'PRAGMA user_version={SCHEMA}')
+                    meta = self.get(conn, 'meta', {})
+                    meta['schema'] = SCHEMA
+                    self.put(conn, 'meta', meta)
+                    conn.commit()
+                version = SCHEMA
+            if version != SCHEMA:
                 raise UserError("Unsupported workspace version. Use its compatible app; data was not modified.")
             with conn:
                 yield conn
@@ -123,7 +142,11 @@ class Store:
         with self.db(wid) as conn:
             adventures = [json.loads(row[0]) for row in conn.execute(
                 "SELECT value FROM documents WHERE key LIKE 'adventure:%'")]
-            return {"meta": self.get(conn, "meta"), "adventures": [
+            modules = [{"id": key.split(':', 1)[1], **{k: value.get(k) for k in
+                        ('kind', 'schema', 'enabled', 'title', 'summary')}}
+                       for key, raw in conn.execute("SELECT key,value FROM documents WHERE key LIKE 'module:%'")
+                       for value in [json.loads(raw)]]
+            return {"meta": self.get(conn, "meta"), "modules": modules, "adventures": [
                 {k: a[k] for k in ("id", "name", "source", "fingerprint")} |
                 {"maps": sum(x.get("image_type") != "mapPlayer" for x in a["maps"]), "pictures": len(a["pictures"]), "warnings": len(a["warnings"])}
                 for a in adventures]}
@@ -413,6 +436,8 @@ class Store:
         # Snapshot metadata briefly; immutable hashed assets can be read without
         # holding the write lock, so a backup doesn't freeze live fog/notes.
         with self.lock, self.db(wid) as conn:
+            from .workspace_modules import sync
+            sync(self, wid, conn)
             raw_size = conn.execute('SELECT COALESCE(SUM(length(CAST(value AS BLOB))),0) FROM documents').fetchone()[0]
             if raw_size > MAX_METADATA:
                 raise UserError('Workspace metadata exceeds the supported backup size (64 MB).')
@@ -459,6 +484,10 @@ class Store:
                 continue
             prefix, _, suffix = key.partition(":")
             identifier(suffix)
+            if prefix == 'module':
+                from .workspace_modules import validate
+                validate(value, assets)
+                continue
             if prefix not in ("adventure", "prep", "session", "pins") or not isinstance(value, dict):
                 raise UserError("Unknown backup document.")
             if prefix != "adventure":
@@ -567,6 +596,9 @@ class Store:
             with zipfile.ZipFile(source) as archive:
                 files = archive.infolist()
                 names = [x.filename for x in files]
+                if 'workspace.json' not in names:
+                    from .workspace_modules import import_campaign
+                    return import_campaign(self, source, cancelled, progress, on_commit)
                 if (len(files) > 20000 or len(names) != len(set(names))
                         or sum(x.file_size for x in files) > MAX_BACKUP
                         or any(x.flag_bits & 1 or (x.external_attr >> 16) & 0o170000 == 0o120000 for x in files)):
@@ -577,7 +609,8 @@ class Store:
                 def invalid_constant(_):
                     raise UserError('Backup contains an invalid JSON number.')
                 payload = json.loads(archive.read(info), parse_constant=invalid_constant)
-                if payload.get("format") != "sessiondesk-workspace" or payload.get("version") != SCHEMA:
+                if (payload.get("format") != "sessiondesk-workspace" or type(payload.get('version')) is not int
+                        or payload['version'] not in (1, SCHEMA)):
                     raise UserError("Unsupported backup version.")
                 documents, assets = payload["documents"], payload["assets"]
                 if not isinstance(documents, dict) or not isinstance(assets, dict):
@@ -596,11 +629,15 @@ class Store:
                 done = 0
                 media = [m for key, doc in documents.items() if key.startswith('adventure:')
                          for m in doc['maps'] + doc['pictures']]
+                raster_assets = {m['asset'] for m in media}
                 for digest, details in assets.items():
                     check_cancel(cancelled)
                     asset_info = archive.getinfo('assets/' + digest)
-                    if asset_info.file_size > MAX_IMAGE or asset_info.file_size != details['size']:
-                        raise UserError("Backup image exceeds 48 MB.")
+                    from .workspace_modules import MAX_ATTACHMENT
+                    if (not HASH.fullmatch(digest) or type(details.get('size')) is not int
+                            or details['size'] < 0 or asset_info.file_size != details['size']
+                            or asset_info.file_size > (MAX_IMAGE if digest in raster_assets else MAX_ATTACHMENT)):
+                        raise UserError('Backup asset exceeds its supported size or has invalid metadata.')
                     target = folder / 'assets' / digest
                     checksum, count = hashlib.sha256(), 0
                     with archive.open(asset_info) as input_file, target.open('xb') as output:
@@ -614,14 +651,22 @@ class Store:
                     if checksum.hexdigest() != digest or count != details['size']:
                         raise UserError("Backup image checksum mismatch.")
                     # At most one bounded image is in memory, never the whole ZIP.
-                    dimensions, mime = image_size(target.read_bytes())
-                    if mime != details["mime"]:
-                        raise UserError("Backup image type mismatch.")
-                    if any(m['asset'] == digest and (m['width'], m['height']) != dimensions for m in media):
-                        raise UserError('Backup image dimensions do not match the map/picture metadata.')
+                    if digest in raster_assets or details['mime'].startswith('image/'):
+                        if asset_info.file_size > MAX_IMAGE:
+                            raise UserError('Backup image exceeds 48 MB.')
+                        dimensions, mime = image_size(target.read_bytes())
+                        if mime != details["mime"]:
+                            raise UserError("Backup image type mismatch.")
+                        if any(m['asset'] == digest and (m['width'], m['height']) != dimensions for m in media):
+                            raise UserError('Backup image dimensions do not match the map/picture metadata.')
+                    elif details['mime'] not in ('application/octet-stream', 'application/json',
+                                                 'application/pdf', 'application/zip', 'text/plain', 'text/markdown'):
+                        raise UserError('Unsupported attachment type in workspace backup.')
                 check_cancel(cancelled)
                 progress('Saving restored workspace', total, total)
                 self._initialize(folder, new, documents, assets)
+                from .workspace_modules import materialize_all
+                materialize_all(folder, documents)
                 check_cancel(cancelled)
                 on_commit()
                 # Publishing is one same-volume rename, after all files and the

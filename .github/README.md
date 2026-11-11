@@ -4,7 +4,7 @@ A local Windows app for preparing a tabletop adventure and showing maps, picture
 
 [![Windows checks](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml/badge.svg?branch=main)](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml)
 
-**Status:** Windows x64 development preview, 0.1.0-dev.5. A first tester prerelease is being prepared; no GitHub release has been published yet. AI is Off and unavailable.
+**Status:** Windows x64 development preview, 0.1.0-dev.6. A first tester prerelease is being prepared; no GitHub release has been published yet. AI is Off and unavailable.
 
 ## Run a packaged build
 
@@ -22,11 +22,11 @@ No Python, Git, Node or AI account is required to run the EXE. Current developme
 - **On player screen:** select/close shared tabs. Players can zoom and make temporary drawings. Shared notes stay separate from private DM preparation.
 - **Workspaces:** keep independent adventures together and move a workspace between computers using Export backup / Restore backup.
 
-Books, official artwork, campaigns, characters, provider accounts and credentials are not bundled. You select your own source files. AI generation, character sheets, shopping/scene-guide modules and a legacy-campaign converter are not implemented in this preview; no empty panels advertise them.
+Books, official artwork, campaigns, characters, provider accounts and credentials are not bundled. You select your own source files. Restore backup also imports supported prepared campaigns, enabling their character sheets, scene guides and shops in the same EXE. Fresh workspaces have no empty optional panels. AI generation remains deferred.
 
 ## Saves and updates
 
-Workspaces live in `%LOCALAPPDATA%\SessionDesk\workspaces`, outside the app folder. Before moving computers or upgrading, **Export backup**. Restore creates a separate workspace with its pictures. A backup from a different campaign app needs conversion first; it cannot be restored directly.
+Workspaces live in `%LOCALAPPDATA%\SessionDesk\workspaces`, outside the app folder. Before moving computers or upgrading, **Export backup**. Restore creates a separate workspace with its pictures. Supported prepared-campaign recovery ZIPs convert during Restore. Other applications/formats need a compatible converter; arbitrary saves are not accepted.
 
 Close both DM and player windows, wait about ten seconds for the local server to exit, then replace the extracted app folder. Your workspace data remains in its separate location. Never overwrite workspace data with files from a release ZIP.
 

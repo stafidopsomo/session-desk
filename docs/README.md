@@ -2,7 +2,7 @@
 
 [User-facing GitHub overview](../.github/README.md) · [Migration and optional features](MIGRATION.md). This page contains the development/build details.
 
-A local app for preparing and running independent tabletop adventures. **0.1.0-dev.5 Windows x64 EXE** is a development preview, not a completed tester alpha. AI is Off and unavailable.
+A local app for preparing and running independent tabletop adventures. **0.1.0-dev.6 Windows x64 EXE** is a development preview, not a completed tester alpha. AI is Off and unavailable.
 
 ## Run on Windows
 
@@ -18,7 +18,7 @@ The default workspace location is `%LOCALAPPDATA%/SessionDesk/workspaces`, outsi
 
 Validated local-copy selection/installation, structured adventure import, book-order chapters/sections, original read-aloud boxes/lists/tables, persistent pins above search and room preparation beside the map. One Resources browser opens text in the reader and images/maps in the preview; search has Text/Images/Maps filters. Collapse all returns to closed chapters. Selection keeps sidebar scroll/folds, and tool changes retain map pan/zoom. On player screen lists shared tabs. Reveal/Hide show a radius cursor that follows brush size and zoom. DM navigation omits player variants; supported player assets stay behind their DM map. Freehand boundary correction, explicit shared notes, additive fog, temporary drawing and image-complete backups support the session workflow.
 
-Synthetic source and frozen-app tests run on Windows 11 x64 with a fresh app-data directory and developer tools hidden from PATH. Those automated checks are **not** a clean Windows account/VM test. The owner separately confirmed Gate 1 complete on November 9. Owned 2014 Icewind Dale import now succeeds in an isolated workspace. Visual/geometry acceptance, laptop/friend-PC compatibility and complete alpha acceptance are still pending; [build status](BUILD-STATUS.md) records the distinction. Packages are unsigned. Changed source snapshots require a new workspace to protect existing manual work. PDF/OCR, AI, LAN players and personal-campaign migration remain deferred.
+Synthetic source and frozen-app tests run on Windows 11 x64 with a fresh app-data directory and developer tools hidden from PATH. Those automated checks are **not** a clean Windows account/VM test. The owner separately confirmed Gate 1 complete on November 9. All 80 available adventures in the selected local 2014 library passed isolated import/persistence checks, including Sunless Citadel, Forge of Fury and Waterdeep. Visual/geometry acceptance, laptop/friend-PC compatibility and complete alpha acceptance are still pending; [build status](BUILD-STATUS.md) records the distinction. Packages are unsigned. Changed source snapshots require a new workspace to protect existing manual work. PDF/OCR, AI and LAN players remain deferred. Restore now imports supported prepared campaigns with all authored files and optional character/story/shop controls; see MIGRATION.md.
 
 ## Development and packaging
 
@@ -31,9 +31,11 @@ python -m venv .venv
 .venv\Scripts\python -m unittest discover -s tests -v
 .venv\Scripts\python tools/check_product_boundary.py
 .venv\Scripts\python tools/e2e_core.py
+.venv\Scripts\python tools/e2e_prepared.py
 .venv\Scripts\python tools/build_windows.py
-.venv\Scripts\python tools/smoke_core.py --archive dist/SessionDesk-0.1.0-dev.5-windows-x64.zip
+.venv\Scripts\python tools/smoke_core.py --archive dist/SessionDesk-0.1.0-dev.6-windows-x64.zip
 .venv\Scripts\python tools/e2e_core.py --exe dist/SessionDesk/SessionDesk.exe
+.venv\Scripts\python tools/e2e_prepared.py --exe dist/SessionDesk/SessionDesk.exe
 ```
 
 For source development: `.venv\Scripts\python -m sessiondesk`. All checks use original synthetic data and isolated saves; no provider is launched. Packaging produces an explicit file manifest, SHA-256 checksums, dependency/license notices and a clean development ZIP. See [architecture](ARCHITECTURE.md), [implementation gates](IMPLEMENTATION-GATES.md) and [CI/release pipeline](RELEASE-PIPELINE.md).

@@ -1,50 +1,35 @@
 # Campaign migration and optional features
 
-Updated November 11, 2026. This page distinguishes the implemented core from planned migration/module work. It contains no personal campaign data.
+Updated November 11, 2026. Implemented in development preview 6. No personal campaign data is distributed.
 
-## What Restore backup accepts today
+## One application, two starting points
 
-Restore accepts a Session Desk workspace ZIP with a supported `workspace.json` manifest and hash-addressed images. It validates typed adventure/preparation/session/pin documents, identity references, geometry and assets, then publishes a new workspace atomically. It does not accept a folder archive, a different app's JSON save, an executable add-on or a raw Git repository.
+New users create a workspace and use Add adventure. They see Resources, preparation and presentation, with no empty Characters, shops or story panels.
 
-Add adventure imports the selected source adventure. It does not discover campaign authoring folders, backstories, generated illustrations, custom map crops, house maps, encounter adjustments or live fog from a different app.
+Existing users choose Restore backup. It accepts native Session Desk workspace ZIPs (schema 1 and 2) and prepared-campaign data ZIPs with a supported campaign.json. A complete campaign-desk-full-snapshot recovery ZIP is also accepted when it contains exactly one campaign. Restore creates a new workspace; it never changes the original campaign or replaces an existing workspace.
 
-There is no legacy campaign converter or Characters module in preview 5. Do not describe a full-file recovery ZIP as an importable workspace or turn character records into generic notes while claiming sheet/thread support has migrated.
+A supported, enabled campaign-desk-v1 module with content adds **Open prepared campaign** to that workspace. The same application contains its trusted renderer: editable characters/sheets/backstories/threads, ordered scene and session guides, shops, point-location maps, exact calibrated map/fog behavior, shared room notes, temporary tokens/camera controls and player drawing. Optional navigation depends on usable imported content.
 
-## Migration requirements
+Connect the explicitly selected local 2014 source library once for rules and book links. This machine-local folder setting is excluded from portable backups; reconnect it on another computer. The library itself is never bundled or downloaded implicitly during restoration. A different edition is not silently substituted.
 
-Before adopting a converted campaign:
+## Preservation contract
 
-1. Make a complete private recovery backup, including the matching old app, local edits, assets and live saved state. Keep external source-library requirements explicit. This recovery backup stays outside product source and release artifacts.
-2. Inventory from the snapshot. Classify each item as preserved directly, converted with equivalent behavior, retained as read-only material, or unsupported. Report every unsupported field/module before writing a new workspace.
-3. Use stable scoped IDs. Preserve custom/cropped DM/player image dimensions, multi-section room references, chronology of fog changes, initial visibility, reviewed/held image flags, narration, private notes and source provenance. Re-importing a source book alone is not campaign migration.
-4. Compare rendered fog/room boundaries against the old runtime. A calibrated wall collar or neighboring-room exclusion is not equivalent to a plain source polygon. Reject mismatched coordinates instead of silently rescaling or revealing nearby secrets.
-5. Restore only into a new isolated workspace. Verify source/player payload separation, persistence, packaged-runtime behavior and backup/restore into another root. Leave the original playable instance untouched until the owner adopts the copy.
+The supported prepared format preserves every authored file, custom/cropped DM/player map and its original dimensions, section polygons, wall padding, initial visibility, fog chronology, narration, encounter notes, image review flags, character records, PDFs, Markdown and authoring files. Download individual files through Browse campaign files. The complete original recovery ZIP is retained as an opaque attachment when importing a file-based recovery archive.
 
-Characters, ordered scene guides, point-location maps, shops, per-room player notes, token/camera/undo controls and generation tools need explicit preservation decisions where the target core lacks their behavior. Source texts can often be retained as private reference entries, but that does not reproduce specialized controls or calculations. Managed assets are currently validated raster images; retaining original PDFs, Markdown documents, ZIP prompt packs and authoring files requires an explicit non-executable attachment/authoring-data contract, not a claim that image import already covers arbitrary files.
+Original scripts, HTML and JavaScript carried by a backup are **attachments only**. They are never executed, imported as Python or served as application templates. AI/provider tools are absent from the active renderer. AI stays Off. Generation/quota/provider workflows are deferred; their authoring files can be retained without enabling those tools.
 
-## Optional workspace features: planned contract
+Temporary drawing, token positions, camera/ping and browser display preferences retain their temporary behavior. Restore cannot recover ephemeral state which the original app never saved. Export captures persisted edits, not unsaved typing. Retaining an authoring script does not promise that its old developer environment is installed.
 
-The existing code/content boundary supports this direction, but a general module registry, module storage/API and module-aware backup format are **not implemented**. Storage currently rejects unknown document types rather than silently dropping them. No executable plug-in loading is authorized by restoring a workspace.
+Export backup snapshots edited module files and includes their immutable hashed attachments, generic adventure documents and the original recovery archive. Restore validates paths, hashes, image dimensions, typed references and saved fog before atomic publication. Failed/cancelled imports expose no partial workspace. Backups are private content, not release assets. Total content remains bounded to 1 GB plus metadata; one attachment is limited to 512 MB, one image to 48 MB.
 
-For a future Characters module, navigation requires all three conditions:
+Native workspace schema 1 upgrades to schema 2 with a local workspace-schema-1.sqlite3.bak recovery copy. Schema 1 ZIP backups remain importable. Preview 5 cannot open schema 2; keep the original ZIP for rollback. Unsupported module kinds/versions remain unavailable and roundtrip unchanged instead of being discarded or executed. Unsupported future core formats fail before publication.
 
-`module present in this build/install AND enabled for this workspace AND usable content exists`
+## Adoption checks
 
-Fresh workspaces remain a simple adventure/resources/session workflow, with no blank Characters, shop or scene-guide panels. Character data belongs to its workspace and DM-only routes; it never enters a player response, a default demo or a public release artifact. Rules references remain tied to the workspace's selected rules edition; do not substitute newer rules silently.
+Make a complete private recovery snapshot first, including local edits and the matching old app. Import into an isolated workspace, compare all file hashes, map coordinates and rendered fog with the previous renderer, then export/restore into a different data root. Check source/player separation and the frozen Windows build. Only then adopt the imported workspace. The original app remains a rollback path.
 
-Distinguish optional UI from code distribution:
+The generic adventure importer is separate from prepared-campaign conversion: Add adventure loads the chosen source book, while Restore carries authored campaign work. Importing a book alone does not recreate a previous campaign's notes, art, characters or saved session.
 
-- A finished public module can be included in the common app while disabled/absent from navigation in a workspace that does not use it.
-- An unreleased private module must be excluded from the public package by the explicit source/static/dependency allowlist. Hiding a button does not remove its implementation from an EXE or public source tree. A separately packaged owner module/build should share the core contract rather than fork campaign-specific application code.
+## Distribution boundary
 
-Define module/schema versions, backup coverage and supported core versions before enabling it. A build without a module must preserve its stored data with clear read-only/unavailable behavior, or reject the workspace before changing it. Never save a reduced backup that silently discards an unknown module. Unsupported executable files are not imported or launched from backups.
-
-The first simple release can omit these modules entirely. Personal migration is a separate compatibility exercise, not a reason to bundle the owner's data or unfinished features for testers.
-
-## GitHub distribution boundary
-
-The original private campaign repository also has an independent product branch. Publishing a release there does not make downloads available without repository read access; giving that access exposes other branches/history. A clean product branch is not a per-branch permission boundary.
-
-The owner selected a separate public product-source repository on November 11: https://github.com/stafidopsomo/session-desk. Publish only the audited independent product history there. The original campaign repository remains private; do not change its visibility or mirror all its refs. A downloads-only repository was considered but was not the owner's choice.
-
-These choices do not change workspace privacy: no personal campaign, source library, migration report or recovery backup belongs in either distribution repository. See [release process](RELEASE-PIPELINE.md) for actual publication gates and [build status](BUILD-STATUS.md) for remaining acceptance.
+Public product source: https://github.com/stafidopsomo/session-desk. It contains only the independent product history, generic renderer and original synthetic tests. The original campaign repository stays private. No personal backup, source library, migration report, private characters or campaign artwork belongs in source/CI/releases. See [build status](BUILD-STATUS.md) for evidence and [release process](RELEASE-PIPELINE.md) for the unchanged alpha gate.

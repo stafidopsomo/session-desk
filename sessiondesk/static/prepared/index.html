@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prepared Campaign · Session Desk</title>
+  <script src="/static/appearance.js"></script>
+  
+  
+  
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/refinements.css">
+  <link rel="stylesheet" href="/static/opening.css">
+  <link rel="stylesheet" href="/static/desk.css">
+  <link rel="stylesheet" href="/static/slate.css">
+<link rel="stylesheet" href="/static/tokens.css"><link rel="icon" href="/icon.svg"><script src="/static/bootstrap.js" data-player="__PLAYER__"></script></head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="Campaign desk home"><img class="brand-logo" src="/icon.svg" alt=""><span>SESSION<br><strong>DESK</strong></span></a>
+      <div class="campaign-label">YOUR CAMPAIGN</div>
+      <button class="nav-item active" id="atlasNav"><span class="nav-icon">◈</span> Campaign atlas <span class="nav-count" id="mapCount"></span></button>
+      <button class="nav-item" id="libraryNav"><span class="nav-icon">▧</span> Image library <span class="nav-count" id="assetCount"></span></button>
+      <button class="nav-item" id="charactersNav"><span class="nav-icon">♙</span> Characters</button>
+      <button class="nav-item" id="aftermathNav"><span class="nav-icon">▷</span> After the Citadel</button>
+      <button class="nav-item" id="sessionsNav"><span class="nav-icon">▤</span> Session decks <span class="nav-count">2</span></button>
+      <details class="nav-group archive-group"><summary>Archive</summary><button class="nav-item" id="openingNav"><span class="nav-icon">▷</span> Start the adventure</button></details>
+      <button class="nav-item" id="shoppingNav"><span class="nav-icon">◇</span> Shops & supplies</button>
+      
+      <div class="nav-divider"></div>
+      <div class="campaign-label">PLACES TO EXPLORE</div>
+      <nav id="mapNav" aria-label="Campaign maps"></nav>
+      <div class="sidebar-bottom"><span class="tiny-compass">✧</span><p>Campaign maps and notes.</p><div class="local-badge"><span class="status-dot"></span> LOCAL CAMPAIGN</div><small>Saved on this computer</small></div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar"><div class="breadcrumb">CAMPAIGN DESK <span>/</span> <span id="breadcrumb">ATLAS</span></div><div class="top-actions"><a class="button small" href="__WORKSPACE_URL__">Workspace</a><details class="display-settings"><summary>Settings ▾</summary><div class="display-popover"><label for="dmTextSize">DM text size <output id="dmTextSizeValue">100%</output></label><input id="dmTextSize" type="range" min="80" max="160" step="10" value="100" aria-label="DM text size"><label for="placesDensity">Places list</label><select id="placesDensity"><option value="comfortable">Comfortable · names and status</option><option value="compact">Compact · more rooms</option></select><p>Text size and list density are saved in this browser. Drag the divider to adjust panel width.</p><hr><label><input type="checkbox" disabled> AI Off · unavailable</label><button id="preparedQuit" class="button small">Quit app</button><button id="resetDisplay" class="button small">Reset display</button></div></details><span id="connection" class="connection"><span class="status-dot"></span> All changes saved</span><button id="returnPlayerMap" class="button small" hidden>↶ Return TV to map</button><a id="openRules" class="button small" href="/reference/index.html" target="_blank" rel="noopener">↗ Open 5e.tools · 2014</a><button id="blackout" class="icon-button" title="Black out the player screen" aria-label="Black out the player screen">◐</button><button id="openPlayer" class="button gold small">↗ &nbsp; Open player screen</button></div></header>
+      <section class="presentation-bar" aria-label="Player screen tabs"><span>ON THE TV</span><div id="presentationTabs" class="presentation-tabs"></div><button id="closeAllTabs" class="button small" disabled>Close all tabs</button></section>
+      <main id="atlasView" class="atlas-view">
+        <div class="page-heading"><div><div class="eyebrow" id="mapEyebrow">THE FORGOTTEN REALMS</div><h1 id="mapTitle">Campaign atlas</h1><p id="mapSubtitle">Loading your campaign…</p></div><div class="heading-meta"><span class="live-badge"><span></span> PLAYER MAP</span><small id="mapMeta"></small></div></div>
+        <details id="levelNotes" class="level-notes" hidden><summary>Run this level · DM notes</summary><div id="levelNotesText"></div></details>
+        <div class="atlas-grid">
+          <section class="map-panel" aria-label="Interactive map">
+            <div class="map-toolbar"><div id="worldTools"><span class="toolbar-label">EXPLORE</span><span class="toolbar-hint">Choose a place on the map</span></div><div id="dungeonTools" hidden><button data-tool="rooms" class="tool active" title="Select a room for DM notes; revealing uses the explicit controls">Rooms</button><button data-tool="reveal" class="tool">Reveal brush</button><button data-tool="hide" class="tool">Hide brush</button><label class="brush-size" title="Brush size in map pixels">Size <input id="brushSize" type="range" min="8" max="240" value="48" aria-label="Erase brush size"><output id="brushSizeValue">48</output></label></div><div class="toolbar-end"><button id="undoFog" class="icon-button dungeon-only" title="Undo last fog change" aria-label="Undo last fog change">↶</button><button id="resetFog" class="text-button dungeon-only">Reset fog</button><button id="fitMap" class="icon-button" title="Fit whole map" aria-label="Fit whole map">⛶</button></div></div>
+            <div class="map-viewport" id="mapViewport"><div id="tokenTools" class="dungeon-only" hidden></div><canvas id="mapCanvas" tabindex="0" aria-label="Pan and zoom map; use the location list to select a place"></canvas><div id="mapLoading" class="map-loading">Opening the atlas…</div><div class="map-corner-label"><span id="mapCorner">THE SWORD COAST</span><small id="mapCornerSub">A campaign in the Forgotten Realms</small></div><div class="map-zoom"><button id="zoomIn" aria-label="Zoom in">+</button><span id="zoomLabel">100%</span><button id="zoomOut" aria-label="Zoom out">−</button></div><div class="map-help" id="mapHelp">Scroll to zoom · drag to pan · click a marker</div></div>
+            <div class="map-footer"><span id="mapFooter">BOOK MAP · LOCAL COPY</span><span id="fogStatus">Click a place to discover more</span></div>
+          </section>
+          <div id="atlasSplitter" class="atlas-splitter" title="Drag to resize · arrow keys to adjust · double-click to reset"><button id="widenDetails" aria-label="Widen details panel" title="Widen details">←</button><span id="atlasGrip" role="separator" tabindex="0" aria-label="Resize map and details panels" aria-orientation="vertical" aria-valuemin="220" aria-valuenow="320">⋮</span><button id="widenMap" aria-label="Widen map panel" title="Widen map">→</button></div>
+          <aside class="detail-panel"><div class="detail-tabs"><button id="placesTab" class="active">Places <span id="locationCount"></span></button><button id="detailsTab">Details</button></div><div class="place-search"><span>⌕</span><input id="placeSearch" placeholder="Find a place…" aria-label="Find a place"></div><div id="locationList" class="location-list"></div><section id="locationDetail" class="location-detail" hidden></section><div class="source-card" id="sourceCard"></div></aside>
+        </div>
+      </main>
+      <main id="libraryView" class="library-view" hidden><div class="page-heading"><div><div class="eyebrow">EVERYTHING WITHIN REACH</div><h1>Image library</h1><p>Pictures grouped by the place or session you are running.</p></div><span class="outline-badge" id="libraryTotal"></span></div><div id="collectionTabs" class="collection-tabs" aria-label="Image collections"></div><div class="library-toolbar"><input id="assetSearch" class="search-input" placeholder="Search this collection…" aria-label="Search assets"><div class="filter-tabs" id="assetFilters"><button data-filter="all" class="active">All types</button><button data-filter="session">Sessions</button><button data-filter="map">Maps</button><button data-filter="illustration">Art & portraits</button><button data-filter="reference">DM resources</button></div></div><div id="assetGrid" class="asset-grid"></div></main>
+      <main id="sessionsView" class="sessions-view" hidden><div class="page-heading"><div><div class="eyebrow">READY FOR THE TABLE</div><h1>Session decks</h1><p>World references and session pictures.</p></div><button class="button gold" id="startAfterCreation">Characters ready? Start the adventure →</button></div><div id="sessionDecks"></div></main>
+      <main id="openingView" class="opening-view" hidden><div class="page-heading"><div><div class="eyebrow">AFTER CHARACTER CREATION</div><h1>Start the adventure</h1><p>Yawning Portal → Kerowyn's offer → Oakhurst → the Sunless Citadel.</p></div><span class="outline-badge" id="openingProgress"></span></div><div class="opening-layout"><nav id="openingOutline" class="opening-outline" aria-label="Opening scenes"></nav><article id="openingScene" class="opening-scene"></article></div></main>
+      <main id="charactersView" class="opening-view" hidden><div class="page-heading"><div><div class="eyebrow">DM ONLY · CHARACTER RECORDS</div><h1>Characters</h1><p>Who they are, what is in play, and their rules sheets.</p></div></div><div id="characterCards"></div></main>
+      <main id="shoppingView" class="shopping-view" hidden><div class="page-heading"><div><div class="eyebrow">LISTED SUPPLIES</div><h1>Shops & supplies</h1><p>Equipment and healing at the listed 2014 book prices.</p></div></div><div class="scene-actions"><button class="button gold" id="presentShop">Show price list to players</button><button class="button" id="shopMap">Show shop location</button><a class="button" href="/shop" target="_blank" rel="noopener">Open full price list ↗</a></div><iframe class="shopping-frame" src="/shop" title="Castle Ward shop catalog" loading="lazy"></iframe></main>
+      <main id="aftermathView" class="opening-view" hidden></main>
+      <footer class="app-footer"><span>TALES FROM PREPARED CAMPAIGN</span><span></span></footer>
+    </div>
+  </div>
+  <div id="toast" role="status" class="toast"></div>
+  <dialog id="roomSceneDialog" class="room-scene-dialog" aria-labelledby="roomSceneDialogTitle"><button id="closeRoomSceneDialog" class="dialog-close" aria-label="Close room scenes">×</button><h2 id="roomSceneDialogTitle">Room scenes</h2><div id="roomSceneDialogBody"></div></dialog>
+  <dialog id="assetDialog"><button id="closeDialog" class="dialog-close" aria-label="Close preview">×</button><div id="assetPreview"></div><div class="dialog-info" id="assetInfo"></div></dialog>
+  <dialog id="resetDialog" class="reset-dialog"><div class="dialog-info"><div class="detail-kicker">RESET THIS LEVEL</div><h2>Start the map again?</h2><p id="resetExplanation"></p><div class="detail-actions"><button id="cancelReset" class="button">Keep current fog</button><button id="confirmReset" class="button gold">Reset fog</button></div></div></dialog>
+  <script type="module" src="/static/app.js"></script>
+</body></html>

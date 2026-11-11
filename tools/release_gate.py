@@ -15,7 +15,7 @@ REQUIRED = {"owned_library_import", "clean_standard_user", "laptop_compatibility
 
 def product_digest(root=ROOT):
     paths = [*sorted((root / "sessiondesk").rglob("*.py")),
-             *sorted((root / "sessiondesk/static").iterdir()),
+             *sorted(p for p in (root / "sessiondesk/static").rglob('*') if p.is_file()),
              *(root / x for x in ("SessionDesk.spec", "launcher.pyw", "requirements-build.lock", "docs/QUICKSTART.txt"))]
     digest = hashlib.sha256()
     for path in sorted(paths):
