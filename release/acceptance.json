@@ -1,12 +1,12 @@
 {
   "version": "0.1.0-preview.1",
   "alpha_ready": false,
-  "product_digest": null,
+  "product_digest": "8fe918d9de1351f7fa7d044ef1a8bd429fe52cfc5ada026e32f46a96ee67296a",
   "checks": {
     "owned_library_import": {
       "passed": true,
       "basis": "local_owned_library_acceptance",
-      "evidence": "2026-11-11: all 80 available adventures in selected 2014 library imported and completed export/restore across isolated acceptance runs; 7 representative adventures also passed on the downloaded Windows CI artifact from run 43047995272. Zero importer warnings. This does not certify every source polygon visually."
+      "evidence": "All 80 available local 2014 sources completed import/portable roundtrip checks in prior isolated runs. Preview candidate 93d17de additionally passed seven real adventures through frozen import/export/restore, with zero importer warnings. Full source-map visual acceptance remains deferred."
     },
     "clean_standard_user": {
       "passed": true,
@@ -21,15 +21,15 @@
     "backup_restore": {
       "passed": true,
       "basis": "synthetic_ci_and_private_local_acceptance",
-      "evidence": "Run 43047995272: source/frozen core and prepared-campaign E2E. Owner-only recovery conversion and native portable roundtrip verified all files, character data, calibrated maps and pixel-identical saved fog under that downloaded EXE. Private inputs/reports are excluded from Git/CI."
+      "evidence": "Preview candidate 93d17de: full private campaign file/hash and rendered-fog comparison, frozen browser controls, export and restore into a separate data root passed. GitHub run 43102202769 independently passed synthetic source/frozen backup/browser checks. No private inputs/reports are distributed."
     },
     "privacy_audit": {
       "passed": true,
-      "evidence": "Run 43047995272: 81-file text-only source allowlist and independent product history; explicit frozen static allowlist, 1036 packaged-file hashes, developer-path scan, dependency notices, no default campaign/library/provider. Downloaded artifact SHA-256 and inner ZIP manifest/checksums independently verified."
+      "evidence": "Candidate 93d17de and GitHub run 43102202769: 82 allowlisted source text files with independent history, explicit frozen asset allowlist, 1036 packaged-file hashes, license/dependency notices and developer-path scan; no bundled campaigns/books/credentials/providers. Clean archive provenance and checksums independently verified before tagging."
     },
     "frozen_browser_e2e": {
       "passed": true,
-      "evidence": "Run 43047995272: core and prepared browser E2E on frozen Windows x64; original synthetic fixtures, isolated profiles, developer tools hidden from PATH, AI Off and external requests blocked/asserted absent."
+      "evidence": "GitHub run 43102202769 and local root ci.ps1: 84 Python tests, Node renderer tests, core/prepared browser E2E from source and frozen EXE, extracted-ZIP relocation/restart/shutdown checks, isolated profiles with developer tools hidden, AI Off and external browser requests blocked/asserted absent."
     }
   },
   "milestones": {
@@ -44,7 +44,7 @@
     "gate_3": "pending_visual_acceptance",
     "gate_4": "pending"
   },
-  "preview_ready": false,
+  "preview_ready": true,
   "publication": {
     "channel": "preview",
     "kind": "prerelease",
