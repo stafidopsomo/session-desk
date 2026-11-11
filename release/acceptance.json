@@ -1,7 +1,7 @@
 {
-  "version": "0.1.0-dev.6",
+  "version": "0.1.0-preview.1",
   "alpha_ready": false,
-  "product_digest": "4676ead823a11a168099c7b0ee214c4b65d824e89bfd27532105d53c49415502",
+  "product_digest": null,
   "checks": {
     "owned_library_import": {
       "passed": true,
@@ -15,7 +15,8 @@
     },
     "laptop_compatibility": {
       "passed": false,
-      "evidence": null
+      "evidence": null,
+      "status": "deferred"
     },
     "backup_restore": {
       "passed": true,
@@ -42,5 +43,18 @@
     "gate_2": "implemented",
     "gate_3": "pending_visual_acceptance",
     "gate_4": "pending"
+  },
+  "preview_ready": false,
+  "publication": {
+    "channel": "preview",
+    "kind": "prerelease",
+    "basis": "owner_request",
+    "scope": "first_windows_preview",
+    "date": "2026-11-11",
+    "reason": "Owner requested automated tests and the first GitHub release while unable to access the laptop.",
+    "deferred": {
+      "laptop_compatibility": "Physical laptop/friend-PC access is unavailable; no hardware result is claimed.",
+      "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
+    }
   }
 }

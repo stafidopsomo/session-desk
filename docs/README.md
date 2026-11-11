@@ -1,12 +1,12 @@
-# Session Desk — Windows development preview
+# Session Desk — Windows preview prerelease
 
 [User-facing GitHub overview](../.github/README.md) · [Migration and optional features](MIGRATION.md). This page contains the development/build details.
 
-A local app for preparing and running independent tabletop adventures. **0.1.0-dev.6 Windows x64 EXE** is a development preview, not a completed tester alpha. AI is Off and unavailable.
+A local app for preparing and running independent tabletop adventures. **0.1.0-preview.1 Windows x64 EXE** is the first public preview prerelease, not a completed alpha. AI is Off and unavailable.
 
 ## Run on Windows
 
-1. Download the `sessiondesk-windows-x64` artifact from a green release-dev Actions run. Extract the artifact ZIP, then extract the enclosed SessionDesk ZIP completely.
+1. Download the Windows x64 application ZIP from [the first preview release](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.1.0-preview.1). Extract it completely.
 2. Double-click **SessionDesk.exe**. Keep its `_internal` folder beside it. Python, Git, Node and an AI login are not needed to run the app.
 3. Create a workspace → Add adventure → select your existing local 5e.tools library → import → prepare/review → present.
 
@@ -33,7 +33,7 @@ python -m venv .venv
 .venv\Scripts\python tools/e2e_core.py
 .venv\Scripts\python tools/e2e_prepared.py
 .venv\Scripts\python tools/build_windows.py
-.venv\Scripts\python tools/smoke_core.py --archive dist/SessionDesk-0.1.0-dev.6-windows-x64.zip
+.venv\Scripts\python tools/smoke_core.py --archive dist/SessionDesk-0.1.0-preview.1-windows-x64.zip
 .venv\Scripts\python tools/e2e_core.py --exe dist/SessionDesk/SessionDesk.exe
 .venv\Scripts\python tools/e2e_prepared.py --exe dist/SessionDesk/SessionDesk.exe
 ```
@@ -44,7 +44,7 @@ For source development: `.venv\Scripts\python -m sessiondesk`. All checks use or
 
 Public product source: https://github.com/stafidopsomo/session-desk, selected by the owner on November 11. Its main/release-dev branches descend only from the independent, campaign-free product root. The original campaign repository stays private. Never merge its personal branch or mirror all its refs/objects into the product repository. Workspace backups and case-specific migration reports stay outside both product source and application packages.
 
-Tagged alpha publication fails closed until versioned acceptance evidence covers the exact product tree. The current record deliberately does not authorize an alpha. [Provider feasibility](PROVIDERS.md) and [Codex preflight](CODEX-PREFLIGHT.md) are historical references for a deferred phase, not setup steps or blockers for this core.
+Tagged alpha publication fails closed until versioned acceptance evidence covers the exact product tree. The first preview is separately authorized by the owner’s request for automated tests and publication while laptop access is unavailable. Its exact-tree/package checks must pass; laptop and full visual acceptance remain deferred. This scoped decision does not authorize an alpha or future preview tags. [Provider feasibility](PROVIDERS.md) and [Codex preflight](CODEX-PREFLIGHT.md) are historical references for a deferred phase, not setup steps or blockers for this core.
 
 Older imports: re-import the same adventure once to add original book formatting and player-map metadata. The same-snapshot upgrade preserves notes, pins, custom pictures, drawn edges and session/fog.
 

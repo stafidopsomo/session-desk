@@ -43,6 +43,7 @@ ALLOWED_FILES = frozenset({
     'sessiondesk/static/prepared/shop.css', 'sessiondesk/static/prepared/tokens.css',
     'tests/prepared_fixture.py', 'tests/test_prepared.py', 'tools/e2e_prepared.py',
     'tools/verify_library.py',
+    'tests/test_release_gate.py',
 })
 
 

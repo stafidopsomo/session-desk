@@ -8,6 +8,8 @@ Gate 0 is complete. The owner explicitly confirmed **Gate 1 complete** in the co
 
 Development preview 4 completes the defined non-AI Gate 2 slice with cancellable backup/restore, atomic workspace publication, interruption recovery, source-image repair and expanded schema/failure coverage. This remains a development preview. Gate 3 visual/owned-library acceptance and Gate 4 tester/artifact acceptance remain separate; no alpha is published automatically.
 
+November 11 first-preview decision: the owner requested automated tests and a first GitHub release while away from the laptop. The scoped product-v0.1.0-preview.1 prerelease may publish after its exact-tree automated/import/backup/privacy/package checks pass. Laptop compatibility and complete visual/geometry review remain deferred; alpha acceptance is not marked complete. Subsequent versions retain their normal gates.
+
 ## Gate 0 — resolved for the non-AI core
 
 Owner decisions confirmed on November 9:

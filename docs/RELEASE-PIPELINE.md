@@ -4,7 +4,7 @@
 
 Actions are pinned by SHA; build Python is 3.12.10 x64, build/browser dependencies have SHA-256 locks, and UI syntax is checked with Node 22. The Windows 2025 runner image and Node patch are not immutable, so byte-identical reproducibility is not claimed. The workflow fetches only the tested commit history, checks the clean root and uses read-only repository permissions for builds.
 
-A separate tag-only publishing job has release-write permission. It first runs tools/release_gate.py; the current release/acceptance.json fails closed. The gate requires an alpha version/tag, evidence for the mandatory checks and a digest matching the exact product tree. Development preview artifacts do not satisfy tester-alpha acceptance and are never published as alpha automatically. Private prerelease links still require repository access; forward vetted ZIPs directly until a separate download destination is established.
+A separate tag-only publishing job has release-write permission. It first runs tools/release_gate.py against release/acceptance.json; unaccepted trees fail closed. The gate normally requires an alpha version/tag, evidence for every mandatory check and an exact product/distribution-tree digest. The explicitly requested first preview is separately scoped below. Development preview artifacts never establish alpha acceptance. Releases publish only to the independent public product repository.
 
 ## November 11 GitHub distribution preparation
 
@@ -70,3 +70,13 @@ Core source, a package specification, hash locks, explicit manifest/privacy chec
 Provider integration is intentionally deferred and does not block the non-AI core. No provider installation, authentication, quota polling, live diagnostic or inference is included in CI or the artifact.
 
 A source timestamp and dependency lock support reproducible builds, but do not by themselves establish byte-identical EXEs. Claim bit-for-bit reproducibility only after comparing independent builds. Record provenance and hashes from the first real alpha regardless.
+
+## First public preview: owner-requested scope
+
+On November 11 the owner requested automated tests and the first GitHub release because laptop access is unavailable. Only product-v0.1.0-preview.1 may use this decision. It is published with GitHub’s prerelease flag; alpha_ready remains false and laptop_compatibility remains passed=false/status=deferred. Complete visual/geometry review is also listed as deferred in the release notes.
+
+All other import, storage/backup, privacy, frozen-browser and package checks remain mandatory for that exact product/distribution-tree digest. preview_ready stays false until those checks complete. Tests reject missing/unscoped decisions, another tag/version, changed trees, missing evidence or applying this decision to an alpha. This is an explicit owner-requested preview, not a fabricated hardware result or a reusable skip switch.
+
+After the build job succeeds, the publishing job downloads only its same-run ZIP/checksum. It verifies version, clean source, exact commit/tree, Windows x64 target, AI Off, archive paths and every file hash before release creation. The checksum and application ZIP are the only binary assets; private migration backups/reports never enter the repository or release.
+
+After publication, independently download the public asset without GitHub credentials, verify its checksum/provenance and smoke-test the extracted EXE. The README links directly to the versioned application ZIP, not an expiring Actions artifact or GitHub’s source-code ZIP. Later alphas still require the complete normal hardware/acceptance record.

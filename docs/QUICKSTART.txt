@@ -1,4 +1,4 @@
-SESSION DESK — WINDOWS DEVELOPMENT PREVIEW
+SESSION DESK 0.1.0-preview.1 — WINDOWS X64 PREVIEW
 
 Have a supported prepared-campaign or Session Desk backup? Choose Restore
 backup on the home screen. A new workspace is created; your original stays
@@ -59,10 +59,11 @@ stops it immediately. If a browser crashes without sending a close event,
 the lost-window timeout is about 100 seconds. This releases the EXE so its
 folder can be moved/deleted; workspace data remains outside that folder.
 
-This is an unsigned development preview, not a completed tester alpha.
+This is an unsigned public preview prerelease, not a completed alpha.
 Do not disable Windows protections to run it. If the publisher is untrusted
 to you, wait for a trusted/signed distribution. Windows 11 x64 is the initial
-validation target; other computers/versions still require compatibility tests.
+validation target. Laptop/friend-PC compatibility and full visual review of
+every source map remain pending. Automated tests do not establish those results.
 No developer tools, Python, Node, Git or AI login are needed to run the EXE.
 
 Limitations: structured local library import only, no PDF/OCR, no automatic

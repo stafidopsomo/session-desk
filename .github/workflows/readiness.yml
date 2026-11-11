@@ -47,7 +47,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  publish-accepted-alpha:
+  publish-accepted-prerelease:
     if: startsWith(github.ref, 'refs/tags/product-v')
     needs: core
     runs-on: windows-2025
@@ -67,13 +67,21 @@ jobs:
         with:
           name: sessiondesk-windows-x64
           path: dist
+      - name: Verify downloaded package provenance and checksums
+        shell: pwsh
+        run: |
+          $taskArchive = @(Get-ChildItem -LiteralPath dist -Filter '*windows-x64.zip')
+          if ($taskArchive.Count -ne 1) { throw 'Expected exactly one application ZIP' }
+          python tools/release_gate.py --tag $env:GITHUB_REF_NAME --archive $taskArchive[0].FullName --commit $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Publish the validated tag as a prerelease
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $taskAssets = @(Get-ChildItem dist/*.zip,dist/*.sha256 | ForEach-Object FullName)
-          gh release create "$env:GITHUB_REF_NAME" @taskAssets --verify-tag --prerelease --title "Session Desk $env:GITHUB_REF_NAME" --notes-file docs/RELEASE-NOTES.md
+          $taskVersion = $env:GITHUB_REF_NAME -replace '^product-v',''
+          gh release create "$env:GITHUB_REF_NAME" @taskAssets --verify-tag --prerelease --title "Session Desk $taskVersion — Windows preview" --notes-file docs/RELEASE-NOTES.md
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 # No live provider diagnostics, login, account/quota access or inference.
