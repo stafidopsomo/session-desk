@@ -13,12 +13,17 @@ SESSION DESK — WINDOWS DEVELOPMENT PREVIEW
    select the room, choose Draw boundary, drag around its complete edge and
    Save boundary. There are no coordinate fields or verification steps.
    Selecting or reading an entry/room never reveals it.
-5. Prepare / review lets you write narration/translations and private notes.
-   Present sends reviewed media to the player screen. Player tabs, zoom,
-   temporary drawing and shared notes work on the same computer/TV.
-   The sidebar follows the book's chapter/section order. Pin resources to
-   keep them above search. Room source and preparation open beside the map;
-   Book / resources gives you a full reader with boxes, lists and tables.
+5. Resources is the single adventure browser. Expand chapter arrows or
+   search; filter by Text, Images or Maps. Collapse all clears filters and
+   returns to closed chapters. Pin resources to keep them above search.
+   Choosing text opens its book reader and narration/private-notes form;
+   choosing an image/map opens its preview. Room source/preparation stays
+   beside the map. Selecting resources does not share them automatically.
+   Present sends reviewed media to the player screen. On player screen
+   lists the shared tabs, which either window can select or close. Player
+   zoom, temporary drawing and shared notes work on the same computer/TV.
+   Reveal/Hide have a brush circle matching the size slider and map zoom.
+   Space temporarily switches to pan; the circle disappears while panning.
 
 If upgrading an older imported adventure, import that same adventure once
 more to add its original book structure. Notes, pins, manually drawn edges,

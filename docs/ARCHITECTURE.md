@@ -89,9 +89,9 @@ The following accepted boundaries remain design constraints for later AI work. P
 
 ## UI surface
 
-The home screen lists workspaces and **Add adventure**. An adventure has Library/Maps, Preparation and Session views. The current **Prepare/review** workflow handles manual/imported resources and geometry correction. **Start session** opens the DM/player workflow. One top-right Settings menu groups Display and AI, with Open player screen kept separate. Automatic preparation and provider setup enter this surface only in the later AI phase.
+The home screen lists workspaces and **Add adventure**. An adventure has one **Resources** browser, with collapsible book chapters, pins and Text/Images/Maps search filters. Text opens its book reader and preparation form; media opens the image/map preview and contextual preparation. The persistent **On player screen** strip controls shared tabs, so separate Library, Book/resources and Session modes are unnecessary. Browsing and preparation do not present resources automatically. One top-right Settings menu groups Display and AI, with Open player screen kept separate. Automatic preparation and provider setup enter this surface only in the later AI phase.
 
-Room actions are contextual: read/edit preparation, review available scene, reveal/hide and shared notes. Advanced generation controls stay in the preparation view. Unavailable features explain their missing capability; no button claims a provider can generate images merely because it can generate text.
+Room actions are contextual: read/edit preparation, review available scene, reveal/hide and shared notes. The radius cursor matches the reveal/hide brush at the current zoom. Sidebar selection and tool changes keep existing navigation/viewport DOM rather than rebuilding the whole page. Future generation controls belong beside the selected resource's preparation; unavailable generation actions are hidden. No button claims a provider can generate images merely because it can generate text.
 
 Local HTTP access is loopback-only with instance/session protection, same-origin write checks and tightly bounded asset routes. A separate device/LAN player mode, hosted accounts and remote access are deferred; a local TV window is not a security boundary against an adversarial user on the same computer.
 

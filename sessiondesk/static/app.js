@@ -10,9 +10,9 @@ if (token) sessionStorage.setItem(tokenKey, token);
 if (isPlayer) { sessionStorage.removeItem('dmToken'); window.opener = null; }
 history.replaceState(null, '', location.pathname + location.search);
 const S = {wid:params.get('workspace'), aid:params.get('adventure'), boot:null, overview:null,
-  graph:null, media:null, entry:null, region:null, view:'library', mode:'pan', radius:60,
+  graph:null, media:null, entry:null, region:null, view:'media', mode:'pan', radius:60,
   color:'#f3c76a', session:null, stage:null, search:'', pollBusy:false, boundary:[],
-  sourceOpen:false, drafts:{}, navOpen:new Set()};
+  sourceOpen:false, drafts:{}, navOpen:new Set(), resourceType:'all'};
 let toastTimer;
 function toast(text) {
   $('#toast').textContent = text; $('#toast').style.display = 'block';
@@ -37,7 +37,8 @@ function sourceContext() { if(S.bookCtx?.graph!==S.graph)S.bookCtx=bookContext(S
 function bookUpgradeHint(){return S.graph.book?'':'<p class="notice">Re-import this same adventure once to add the original book layout. Existing notes, boundaries and session are kept.</p>';}
 function breadcrumbs(entry) {
   const chain=[],seen=new Set();let current=entry;
-  while(current&&!seen.has(current.id)){seen.add(current.id);chain.unshift(current.name);current=S.graph.entries.find(e=>e.id===current.parent);}
+  const entries=navigationIndex().entries;
+  while(current&&!seen.has(current.id)){seen.add(current.id);chain.unshift(current.name);current=entries.get(current.parent);}
   return chain;
 }
 function pinned(kind,id) { return (S.graph.pins||[]).some(p=>p.kind===kind&&p.id===id); }
@@ -90,29 +91,44 @@ async function openWorkspace(wid) {
 async function openAdventure(aid) {
   S.aid = aid; S.graph = await request('adventure'); S.session = await request('session');
   S.media = dmMedia()[0]?.id || null;
-  S.entry = S.graph.entries[0]?.id || null; S.region = null; S.view = 'library'; S.search = '';S.sourceOpen=false;S.drafts={};S.navOpen=new Set();
+  S.entry = S.graph.entries[0]?.id || null; S.region = null; S.view = S.media?'media':'text'; S.search = '';S.sourceOpen=false;S.drafts={};S.navOpen=new Set();S.resourceType='all';
   renderAdventure();
+}
+function navigationIndex() {
+  if(S.navigation?.graph===S.graph)return S.navigation;
+  const entries=new Map(S.graph.entries.map(e=>[e.id,e]));
+  const visible=S.graph.entries.filter(e=>e.has_heading===true||(e.has_heading===undefined&&e.name!==e.key)),ids=new Set(visible.map(e=>e.id));
+  const parent=id=>{const seen=new Set();while(id&&!ids.has(id)&&!seen.has(id)){seen.add(id);id=entries.get(id)?.parent;}return id||null;};
+  const nodes=visible.map((e,i)=>({id:e.id,parent:parent(e.parent),name:e.name,kind:'entry',order:e.order??i*2}));
+  nodes.push(...dmMedia().map((m,i)=>({id:m.id,parent:parent(m.entry),name:m.name,kind:'media',mediaKind:m.kind,order:m.order??100000+i})));
+  const children=new Map();
+  for(const n of nodes){if(!children.has(n.parent))children.set(n.parent,[]);children.get(n.parent).push(n);}
+  for(const siblings of children.values())siblings.sort((a,b)=>a.order-b.order);
+  return S.navigation={graph:S.graph,entries,children};
+}
+function resourceActive(kind,id) {return kind==='entry'?S.entry===id&&(S.view==='text'||S.sourceOpen):S.media===id&&S.view==='media';}
+function navigationChildren(parent=null) {
+  const {children}=navigationIndex();
+  return (children.get(parent)||[]).map(n=>{
+    const nested=children.has(n.id),open=S.navOpen.has(n.id);
+    const toggle=nested?button('toggle-group',open?'▾':'▸','group-toggle',`data-id="${n.id}" aria-expanded="${open}" aria-label="${open?'Collapse':'Expand'} ${esc(n.name)}"`):'<span class="group-spacer"></span>';
+    const label=button(n.kind,`${esc(n.name)}${n.kind==='media'?`<span class="badge" aria-hidden="true">${n.mediaKind==='map'?'map':'image'}</span>`:''}`,'item'+(resourceActive(n.kind,n.id)?' active':''),`data-id="${n.id}" ${resourceActive(n.kind,n.id)?'aria-current="true"':''}`);
+    return `<div class="nav-node" data-node="${n.id}"><div class="nav-row">${toggle}${label}</div>${nested?`<div class="book-children" ${open?'':'hidden'}>${open?navigationChildren(n.id):''}</div>`:''}</div>`;
+  }).join('');
 }
 function library() {
   const q=S.search.trim().toLowerCase(),entries=S.graph.entries,media=dmMedia();
   const pins=(S.graph.pins||[]).map(p=>({pin:p,item:(p.kind==='entry'?entries:media).find(x=>x.id===p.id)})).filter(x=>x.item);
   const pinnedHTML=pins.length?`<section class="pinned-resources"><h3>Pinned</h3>${pins.map(({pin:p,item})=>`<div class="pinned-row">${button(p.kind==='entry'?'entry':'media',esc(item.name),'item',`data-id="${item.id}"`)}${button('pin','×','quiet',`data-kind="${p.kind}" data-id="${p.id}" aria-label="Unpin ${esc(item.name)}"`)}</div>`).join('')}</section>`:'';
-  const search=`<input id="search" placeholder="Find a source entry" value="${esc(S.search)}" aria-label="Find source entry">`;
-  if(q){
-    const matches=[...entries.filter(e=>`${e.name} ${e.text}`.toLowerCase().includes(q)).map(e=>({kind:'entry',...e})),
-      ...media.filter(m=>m.name.toLowerCase().includes(q)).map(m=>({...m,mediaKind:m.kind,kind:'media'}))].slice(0,200);
-    return pinnedHTML+search+`<div class="search-results">${matches.map(r=>button(r.kind,`${esc(r.name)}<small>${esc(r.kind==='entry'?breadcrumbs(r).slice(0,-1).join(' › '):r.mediaKind==='map'?'Map':'Image')}</small>`,'item',`data-id="${r.id}"`)).join('')||'<p class="muted">No matches.</p>'}</div>`;
+  const filtered=q||S.resourceType!=='all';
+  const search=`<div class="resource-heading"><h2>Resources</h2>${button('collapse-all','Collapse all','quiet','title="Clear search filters and return to collapsed chapters"')}</div>${pinnedHTML}<input id="search" placeholder="Search adventure resources" value="${esc(S.search)}" aria-label="Search adventure resources">
+    <label class="sr-only" for="resource-type">Resource type</label><select id="resource-type">${[['all','All types'],['text','Text'],['image','Images'],['map','Maps']].map(([value,label])=>`<option value="${value}" ${S.resourceType===value?'selected':''}>${label}</option>`).join('')}</select>`;
+  if(filtered){
+    const matches=[...entries.filter(e=>(S.resourceType==='all'||S.resourceType==='text')&&`${e.name} ${e.text}`.toLowerCase().includes(q)).map(e=>({kind:'entry',...e})),
+      ...media.filter(m=>(S.resourceType==='all'||S.resourceType===(m.kind==='map'?'map':'image'))&&m.name.toLowerCase().includes(q)).map(m=>({...m,mediaKind:m.kind,kind:'media'}))].slice(0,200);
+    return search+`<div class="search-results">${matches.map(r=>button(r.kind,`${esc(r.name)}<small>${esc(r.kind==='entry'?['Text',...breadcrumbs(r).slice(0,-1)].join(' · '):[r.mediaKind==='map'?'Map':'Image',...breadcrumbs(navigationIndex().entries.get(r.entry))].join(' · '))}</small>`,'item'+(resourceActive(r.kind,r.id)?' active':''),`data-id="${r.id}"`)).join('')||'<p class="muted">No matches.</p>'}</div>`;
   }
-  const visible=entries.filter(e=>e.has_heading===true||(e.has_heading===undefined&&e.name!==e.key)),ids=new Set(visible.map(e=>e.id));
-  const parent=id=>{const seen=new Set();while(id&&!ids.has(id)&&!seen.has(id)){seen.add(id);id=entries.find(e=>e.id===id)?.parent;}return id||null;};
-  const nodes=visible.map((e,i)=>({id:e.id,parent:parent(e.parent),name:e.name,kind:'entry',order:e.order??i*2}));
-  nodes.push(...media.map((m,i)=>({id:m.id,parent:parent(m.entry),name:m.name,kind:'media',mediaKind:m.kind,order:m.order??100000+i})));
-  const tree=(pid,depth=0)=>nodes.filter(n=>n.parent===pid).sort((a,b)=>a.order-b.order).map(n=>{
-    const children=nodes.some(x=>x.parent===n.id),active=n.kind==='entry'?S.entry===n.id&&S.sourceOpen:S.media===n.id;
-    const label=button(n.kind,`${esc(n.name)}${n.kind==='media'?`<span class="badge" aria-hidden="true">${n.mediaKind==='map'?'map':'image'}</span>`:''}`,'item'+(active?' active':''),`data-id="${n.id}"`);
-    return children?`<details data-nav="${n.id}" ${depth===0||S.navOpen.has(n.id)?'open':''}><summary>${label}</summary><div class="book-children">${tree(n.id,depth+1)}</div></details>`:label;
-  }).join('');
-  return pinnedHTML+search+`<nav class="book-navigation" aria-label="Adventure contents">${tree(null)}</nav><p>${button('add-picture','Add picture','quiet')}</p>`;
+  return search+`<nav class="book-navigation" aria-label="Adventure contents">${navigationChildren()}</nav><p>${button('add-picture','Add picture','quiet')}</p>`;
 }
 function toolbar() {
   const m = selectedMedia();
@@ -126,29 +142,41 @@ function renderAdventure() {
   capturePreparation();
   disposeStage();
   $('#app').innerHTML = header() + `<nav class="sectionnav"><strong>${esc(S.graph.name)}</strong><span class="spacer"></span>
-    ${['library','prepare','session'].map(v => button('view',v === 'prepare' ? 'Book / resources' : v[0].toUpperCase() + v.slice(1), S.view === v ? 'active' : '', `data-view="${v}"`)).join('')}
     ${button('workspace','Workspace','quiet',`data-id="${S.wid}"`)}</nav><main class="workspace"><aside class="library">${library()}</aside>
-    <section class="center">${S.view === 'prepare' ? `<article class="sourceview book-content">${bookUpgradeHint()}${renderSource(selectedEntry(),sourceContext())}</article>` : `${S.view === 'session' ? '<div id="dm-tabs" class="tabs"></div>' : ''}${toolbar()}<div class="stage" id="stage"><canvas aria-label="Adventure map preview"></canvas></div>`}</section>
+    <section class="center"><div class="presentation"><span>On player screen</span><div id="dm-tabs" class="tabs"></div></div><div id="resource-content"></div></section>
     <aside class="inspector" id="inspector"></aside></main>`;
-  renderInspector(); bindSearch();
-  if (S.view !== 'prepare') { S.stage = new Stage($('#stage'), false); S.stage.load(selectedMedia()); }
-  if (S.view === 'session') renderTabs($('#dm-tabs'), S.session, false);
-  const brush = $('#brush'); if (brush) brush.oninput = e => S.radius = +e.target.value;
+  bindSearch();renderContent();renderTabs($('#dm-tabs'),S.session,false);
+}
+function renderContent() {
+  disposeStage();
+  $('#resource-content').innerHTML=S.view==='text'?`<article class="sourceview book-content">${bookUpgradeHint()}${renderSource(selectedEntry(),sourceContext())}</article>`:`${toolbar()}<div class="stage" id="stage"><canvas aria-label="Adventure map preview"></canvas></div>`;
+  if(S.view==='media'){S.stage=new Stage($('#stage'),false);S.stage.load(selectedMedia());}
+  const brush=$('#brush');if(brush)brush.oninput=e=>{S.radius=+e.target.value;S.stage?.updateCursor();};
+  renderInspector();updateSidebarSelection();
 }
 function bindSearch() {
   const input = $('#search'); if (!input) return;
   input.oninput = e => {
     S.search = e.target.value; const position = e.target.selectionStart;
-    $('.library').innerHTML = library(); bindSearch(); $('#search').focus(); $('#search').setSelectionRange(position,position);
+    renderSidebar();$('#search').focus({preventScroll:true});$('#search').setSelectionRange(position,position);
   };
-  const root=$('.library');if(!root.dataset.navBound){root.dataset.navBound='true';root.addEventListener('toggle',e=>{if(e.target.dataset.nav){if(e.target.open)S.navOpen.add(e.target.dataset.nav);else S.navOpen.delete(e.target.dataset.nav);}},true);}
+  $('#resource-type').onchange=e=>{S.resourceType=e.target.value;renderSidebar();$('#resource-type').focus({preventScroll:true});};
 }
-function renderSidebar(){const root=$('.library');if(root){root.innerHTML=library();bindSearch();}}
-function openEntry(id){
-  capturePreparation();S.entry=id;S.sourceOpen=true;renderInspector();renderSidebar();
-  if(S.view==='prepare')$('.sourceview').innerHTML=bookUpgradeHint()+renderSource(selectedEntry(),sourceContext());
+function renderSidebar(){const root=$('.library');if(root){const scroll=root.scrollTop;root.innerHTML=library();bindSearch();updateSidebarSelection();root.scrollTop=scroll;}}
+function updateSidebarSelection(){for(const b of document.querySelectorAll('.library button[data-action="entry"],.library button[data-action="media"]')){const active=resourceActive(b.dataset.action,b.dataset.id);b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','true');else b.removeAttribute('aria-current');}}
+function toggleGroup(b) {
+  const open=!S.navOpen.has(b.dataset.id),body=$('.book-children',b.closest('.nav-node'));
+  if(open)S.navOpen.add(b.dataset.id);else S.navOpen.delete(b.dataset.id);
+  b.setAttribute('aria-expanded',String(open));b.textContent=open?'▾':'▸';b.setAttribute('aria-label',`${open?'Collapse':'Expand'} ${navigationIndex().entries.get(b.dataset.id)?.name||'category'}`);
+  body.hidden=!open;body.innerHTML=open?navigationChildren(b.dataset.id):'';
 }
-function selectRegion(id){capturePreparation();S.region=id;const r=selectedRegion();if(r?.entry){S.entry=r.entry;S.sourceOpen=true;}renderInspector();renderSidebar();S.stage?.paint();}
+function openEntry(id,inline=false){
+  capturePreparation();S.entry=id;S.sourceOpen=true;
+  if(inline&&S.view==='media'){renderInspector();updateSidebarSelection();}
+  else{S.view='text';renderContent();}
+}
+function openMedia(id){capturePreparation();S.media=id;S.region=null;S.mode='pan';S.view='media';S.sourceOpen=false;S.boundary=[];renderContent();}
+function selectRegion(id){capturePreparation();S.region=id;const r=selectedRegion();if(r?.entry){S.entry=r.entry;S.sourceOpen=true;}renderInspector();updateSidebarSelection();S.stage?.paint();}
 function entryEditor(entry) {
   if (!entry) return '<p class="muted">Select an entry to prepare.</p>';
   const prep = S.drafts[entry.id] || S.graph.preparation[entry.id] || {};
@@ -162,7 +190,7 @@ function entryEditor(entry) {
 function renderInspector() {
   capturePreparation();
   const root = $('#inspector'); if (!root) return;
-  if (S.view === 'prepare') { root.innerHTML = entryEditor(selectedEntry()); return; }
+  if (S.view === 'text') { root.innerHTML = entryEditor(selectedEntry()); return; }
   const m = selectedMedia();
   if (!m) { root.innerHTML = '<h2>No media imported</h2><p class="muted">Read the import warnings or add a local picture.</p>' + warnings(); return; }
   const r = selectedRegion();
@@ -356,17 +384,18 @@ async function onAction(b) {
   if (a === 'pick-folder') { const result = await request('pick-folder'); if (result.path) {$('#library-path').value = result.path;await validateSource();} return; }
   if (a === 'import-adventure') return importAdventure();
   if (a === 'cancel-source-job') { await request('import/cancel',{job:b.dataset.id});b.disabled=true;b.textContent='Stopping…';return; }
-  if (a === 'view') { capturePreparation();S.view = b.dataset.view; S.mode = 'pan'; S.search = '';if(S.view==='prepare')S.sourceOpen=true;return renderAdventure(); }
-  if (a === 'entry') return openEntry(b.dataset.id);
-  if (a === 'media') { capturePreparation();S.media = b.dataset.id; S.region = null; S.mode = 'pan';S.view='library';S.sourceOpen=false;return renderAdventure(); }
-  if (a === 'region-entry') {openEntry(selectedRegion().entry);$('#room-source')?.scrollIntoView({block:'start'});return;}
+  if (a === 'toggle-group') return toggleGroup(b);
+  if (a === 'collapse-all') {S.navOpen.clear();S.search='';S.resourceType='all';renderSidebar();$('.library').scrollTop=0;return;}
+  if (a === 'entry') return openEntry(b.dataset.id,!!b.closest('#room-source'));
+  if (a === 'media') return openMedia(b.dataset.id);
+  if (a === 'region-entry') {openEntry(selectedRegion().entry,true);const source=$('#room-source'),root=$('#inspector');if(source)root.scrollTop+=source.getBoundingClientRect().top-root.getBoundingClientRect().top;return;}
   if (a === 'pin') {
     const kind=b.dataset.kind,id=b.dataset.id;
     const response=await request('pin',{kind,id,enabled:!pinned(kind,id)});S.graph.pins=response.pins;renderSidebar();
     for(const node of document.querySelectorAll('[data-action=pin]'))if(node.dataset.kind===kind&&node.dataset.id===id&&!node.closest('.pinned-resources'))node.textContent=pinned(kind,id)?'Unpin':'Pin resource';
     return;
   }
-  if (a.startsWith('mode-')) { S.mode = a.slice(5); if (!isPlayer) renderAdventure(); else updateToolButtons(); return; }
+  if (a.startsWith('mode-')) { S.mode = a.slice(5);updateToolButtons();if(!isPlayer)renderInspector();S.stage?.paint();return; }
   if (a === 'fit') return S.stage?.fit();
   if (a === 'zoom-in' || a === 'zoom-out') return S.stage?.zoom(a === 'zoom-in' ? 1.25 : .8);
   if (a === 'player') {
@@ -374,7 +403,7 @@ async function onAction(b) {
     u.hash = 'player=' + S.boot.player_token; window.open(u,'sessiondesk-player'); return;
   }
   if (a === 'present') { await sessionAction('present'); toast('Presented. Open the player screen for your TV.'); return; }
-  if (a === 'activate' || a === 'close') { await sessionAction(a,{media:b.dataset.id}); if (!isPlayer && a === 'activate') { S.media = b.dataset.id; renderAdventure(); } return; }
+  if (a === 'activate' || a === 'close') { await sessionAction(a,{media:b.dataset.id}); if (!isPlayer && a === 'activate') openMedia(b.dataset.id); return; }
   if (a === 'close-all') return sessionAction('close_all');
   if (a === 'share-note') { await sessionAction('note',{text:$('#shared-note').value}); toast('Shared notes saved.'); return; }
   if (a === 'reset-fog') { if (!confirm('Cover this entire map again? Existing fog strokes will be cleared.')) return; return sessionAction('reset_fog'); }
@@ -419,7 +448,7 @@ document.addEventListener('submit', async e => {
       const saved = await request('prepare',{entry:eid,translation:data.translation,notes:data.notes,status:data.approved ? 'approved' : 'draft'});
       S.graph.preparation[eid]=saved;delete S.drafts[eid];toast('Preparation saved.');
     }
-    if (form.dataset.form === 'picture') { await request('media/add',{name:data.name,data:await fileBytes(data.file)}); dismiss(); S.graph=await request('adventure'); renderAdventure(); toast('Picture imported. Review it before sharing.'); }
+    if (form.dataset.form === 'picture') { await request('media/add',{name:data.name,data:await fileBytes(data.file)}); dismiss(); S.graph=await request('adventure');renderSidebar();renderContent();toast('Picture imported. Review it before sharing.'); }
     if (form.dataset.form === 'restore') {
       if(transferJob)return;
       const job=await request('backup/restore/start',{size:data.file.size});
@@ -442,15 +471,17 @@ class Stage {
   constructor(root,player) {
     this.root=root; this.canvas=$('canvas',root); this.ctx=this.canvas.getContext('2d'); this.player=player;
     this.image=null; this.media=null; this.scale=1; this.x=0; this.y=0; this.space=false; this.drag=null; this.ink=[];
+    this.pointer=null;this.cursor=document.createElement('div');this.cursor.className='brush-cursor';this.cursor.hidden=true;this.cursor.setAttribute('aria-hidden','true');root.append(this.cursor);
     this.fog=document.createElement('canvas'); this.fogKey=''; this.dead=false;
     this.resize=new ResizeObserver(() => { this.size(); this.paint(); }); this.resize.observe(root); this.size();
-    this.keydown=e=>{ if(e.code==='Space' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) { e.preventDefault(); this.space=true; } };
-    this.keyup=e=>{if(e.code==='Space'){if(this.space)e.preventDefault();this.space=false;}}; this.blur=()=>{this.space=false;this.drag=null;};
+    this.keydown=e=>{ if(e.code==='Space' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) { e.preventDefault(); this.space=true;this.updateCursor(); } };
+    this.keyup=e=>{if(e.code==='Space'){if(this.space)e.preventDefault();this.space=false;this.updateCursor();}}; this.blur=()=>{this.space=false;this.drag=null;this.pointer=null;this.updateCursor();};
     window.addEventListener('keydown',this.keydown);window.addEventListener('keyup',this.keyup);window.addEventListener('blur',this.blur);
-    this.canvas.onpointerdown=e=>this.down(e);this.canvas.onpointermove=e=>this.move(e);this.canvas.onpointerup=e=>this.up(e);this.canvas.onpointercancel=()=>{this.drag=null;};
+    this.canvas.onpointerdown=e=>this.down(e);this.canvas.onpointermove=e=>this.move(e);this.canvas.onpointerup=e=>this.up(e);this.canvas.onpointercancel=()=>{this.drag=null;this.pointer=null;this.updateCursor();};
+    this.canvas.onpointerleave=()=>{if(!this.drag){this.pointer=null;this.updateCursor();}};
     this.canvas.onwheel=e=>{e.preventDefault();this.zoom(e.deltaY<0?1.12:1/1.12);};
   }
-  dispose(){this.dead=true;this.resize.disconnect();window.removeEventListener('keydown',this.keydown);window.removeEventListener('keyup',this.keyup);window.removeEventListener('blur',this.blur);}
+  dispose(){this.dead=true;this.cursor.remove();this.resize.disconnect();window.removeEventListener('keydown',this.keydown);window.removeEventListener('keyup',this.keyup);window.removeEventListener('blur',this.blur);}
   size(){this.w=this.root.clientWidth;this.h=this.root.clientHeight;this.dpr=Math.min(devicePixelRatio||1,2);this.canvas.width=this.w*this.dpr;this.canvas.height=this.h*this.dpr;}
   async load(media){
     if(!media){this.media=null;this.image=null;this.paint();return;}
@@ -462,15 +493,25 @@ class Stage {
   fit(){if(!this.media)return;this.scale=Math.min(this.w/this.media.width,this.h/this.media.height)*.95;this.x=(this.w-this.media.width*this.scale)/2;this.y=(this.h-this.media.height*this.scale)/2;this.paint();}
   zoom(factor){if(!this.media)return;const before=this.scale;this.scale=Math.max(.02,Math.min(15,this.scale*factor));const ratio=this.scale/before;this.x=this.w/2-(this.w/2-this.x)*ratio;this.y=this.h/2-(this.h/2-this.y)*ratio;this.paint();}
   point(e){const r=this.canvas.getBoundingClientRect();return [(e.clientX-r.left-this.x)/this.scale,(e.clientY-r.top-this.y)/this.scale];}
+  rememberPointer(e){const rect=this.canvas.getBoundingClientRect();this.pointer=[e.clientX-rect.left,e.clientY-rect.top];}
+  updateCursor(){
+    const brush=!this.player&&this.media?.kind==='map'&&this.image&&['reveal','hide'].includes(S.mode)&&!this.space&&!this.drag?.pan;
+    const p=this.pointer,inside=p&&this.media&&p[0]>=this.x&&p[1]>=this.y&&p[0]<=this.x+this.media.width*this.scale&&p[1]<=this.y+this.media.height*this.scale;
+    this.cursor.hidden=!(brush&&inside);
+    if(!this.cursor.hidden){const diameter=S.radius*this.scale*2;Object.assign(this.cursor.style,{left:p[0]+'px',top:p[1]+'px',width:diameter+'px',height:diameter+'px'});this.cursor.classList.toggle('hide-brush',S.mode==='hide');}
+    this.canvas.style.cursor=this.space||S.mode==='pan'||this.drag?.pan?(this.drag?.pan?'grabbing':'grab'):!this.cursor.hidden?'none':'crosshair';
+  }
   clamp(p){return [Math.max(0,Math.min(this.media.width,p[0])),Math.max(0,Math.min(this.media.height,p[1]))];}
   down(e){
     if(!this.media||!this.image)return; const pan=this.space||e.button===1||S.mode==='pan';const p=this.point(e);
     if(!pan&&(p[0]<0||p[1]<0||p[0]>this.media.width||p[1]>this.media.height))return;
     this.canvas.setPointerCapture(e.pointerId);this.drag={pan,x:e.clientX,y:e.clientY,start:[e.clientX,e.clientY],points:[this.clamp(p)],mode:S.mode};
+    this.rememberPointer(e);this.updateCursor();
     if(!pan&&S.mode==='boundary')S.boundary=this.drag.points;
   }
   move(e){
-    if(!this.drag)return;
+    this.rememberPointer(e);
+    if(!this.drag){this.updateCursor();return;}
     if(this.drag.pan){this.x+=e.clientX-this.drag.x;this.y+=e.clientY-this.drag.y;this.drag.x=e.clientX;this.drag.y=e.clientY;}
     else if(this.drag.points.length<(this.drag.mode==='boundary'?2000:1000)){
       this.drag.points.push(this.clamp(this.point(e)));if(this.drag.mode==='boundary')S.boundary=this.drag.points;
@@ -478,7 +519,7 @@ class Stage {
     this.paint();
   }
   async up(e){
-    const drag=this.drag;if(!drag)return;this.drag=null;
+    const drag=this.drag;if(!drag)return;this.drag=null;this.rememberPointer(e);this.updateCursor();
     if(this.canvas.hasPointerCapture(e.pointerId))this.canvas.releasePointerCapture(e.pointerId);
     try {
       if(drag.pan){
@@ -495,6 +536,7 @@ class Stage {
   path(ctx,points){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));}
   stroke(ctx,stroke,radius){ctx.lineWidth=radius*2;ctx.lineCap='round';ctx.lineJoin='round';this.path(ctx,stroke.points);ctx.stroke();for(const p of [stroke.points[0],stroke.points.at(-1)]){ctx.beginPath();ctx.arc(...p,radius,0,Math.PI*2);ctx.fill();}}
   paint(){
+    this.updateCursor();
     const c=this.ctx;c.setTransform(this.dpr,0,0,this.dpr,0,0);c.clearRect(0,0,this.w,this.h);
     if(!this.media||!this.image){c.fillStyle='#a4adba';c.font='16px Segoe UI';c.textAlign='center';c.fillText(this.media?'Loading image…':'Waiting for the DM to present something.',this.w/2,this.h/2);return;}
     c.save();c.translate(this.x,this.y);c.scale(this.scale,this.scale);c.drawImage(this.image,0,0,this.media.width,this.media.height);

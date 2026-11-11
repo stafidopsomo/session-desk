@@ -1,6 +1,6 @@
 # Windows core build status
 
-Updated November 9, 2026. Version: **0.1.0-dev.4**. This is an unsigned development preview; no alpha tag/release has been published.
+Updated November 11, 2026. Version: **0.1.0-dev.5**. This is an unsigned development preview; no alpha tag/release has been published.
 
 ## Implemented
 
@@ -66,3 +66,11 @@ The default data folder is `%LOCALAPPDATA%/SessionDesk/`. Closing the last DM/pl
 - Supported import shapes (data list, adventureData object/list) are recorded; mismatched source IDs, empty/incomplete libraries and malformed chapter arrays produce useful errors. Missing geometry is not fabricated.
 - Added storage/HTTP tests for export cancellation, restore rollback, concurrent session edits during a backup, interrupted upload/retry, repair, cache recovery, DM-only downloads and image geometry validation. Browser E2E covers native download, invalid restore then retry, restored notes/pins/fog/images and cancellation. Frozen smoke uses the same transfer endpoints and restart path.
 - Gate 2's defined core workflow is implemented. Gate 3 remains the owned-library/visual check, and Gate 4 still needs full tester/artifact acceptance. This is an unsigned development preview, not a public alpha or an AI integration.
+
+## Development preview 5 - resource navigation and brush feedback
+
+- One Resources browser replaces the overlapping Library, Book/resources and Session modes. Text opens the structured reader/preparation; pictures/maps open their preview. A persistent On player screen strip controls presented tabs. Browsing and preparation never share resources automatically.
+- Chapters start collapsed, expand separately from selecting their text, and render children only when expanded. Navigation indexes avoid repeatedly scanning the whole source tree. Resource selection retains the existing sidebar DOM, scroll offset, folds and search/type selection. Collapse all clears search/type filters and returns to closed chapters. Pins remain above search.
+- Search filters All types, Text, Images and Maps, with source context on results. Player map variants remain hidden. Unsaved preparation drafts survive switching between text and media.
+- Reveal/Hide show a contrasting radius circle and center marker, scaled with the brush slider and current map zoom. It is hidden while Space/middle-button panning, outside the image, and on player screens. Tool changes retain the map canvas and its pan/zoom instead of resetting the page.
+- Extended source/frozen browser coverage uses an original synthetic 30-chapter sidebar: repeated text/picture clicks preserve item position and DOM, collapse stays collapsed, filters and pins persist, unsaved drafts survive navigation, and cursor size tracks slider/zoom. All workspaces and screenshots are isolated synthetic data, with external requests blocked. The existing 63 Python and two renderer checks remain applicable; Gates 3/4 acceptance is not promoted by this UX fix.

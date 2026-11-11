@@ -1,5 +1,6 @@
 """Real browser workflow against original synthetic content, source or frozen EXE."""
 import argparse
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -12,10 +13,79 @@ from sessiondesk.store import Store
 from tools.smoke_core import call, launch
 
 
+def resource_navigation(page):
+    """Exercise an actually scrolling sidebar, without using an owned book."""
+    sidebar=page.locator('.library')
+    expect(sidebar.get_by_role('button',name='Expand The observatory',exact=True)).to_be_visible()
+    expect(sidebar.locator('[aria-expanded=true]')).to_have_count(0)
+    sidebar.get_by_role('button',name='Expand The observatory',exact=True).click()
+    expect(sidebar.get_by_role('button',name='Arrival platform',exact=True)).to_be_visible()
+    page.locator('#resource-type').select_option('text')
+    expect(sidebar.locator('.search-results [data-action=media]')).to_have_count(0)
+    expect(sidebar.locator('.search-results')).to_contain_text('Arrival platform')
+    page.locator('#resource-type').select_option('image')
+    expect(sidebar.locator('.search-results [data-action=entry]')).to_have_count(0)
+    expect(sidebar.locator('.search-results')).to_contain_text('Evening sky')
+    expect(sidebar.locator('.search-results')).not_to_contain_text('Observatory floor')
+    page.locator('#search').fill('floor')
+    expect(sidebar.locator('.search-results')).to_have_text('No matches.')
+    page.locator('#resource-type').select_option('map')
+    expect(sidebar.locator('.search-results [data-action=media]')).to_have_count(2)
+    expect(sidebar.locator('.search-results')).not_to_contain_text('Player')
+    sidebar.get_by_role('button',name='Observatory floor',exact=False).click()
+    expect(page.locator('#search')).to_have_value('floor')
+    expect(page.locator('#resource-type')).to_have_value('map')
+    page.locator('#search').fill('')
+    page.locator('#resource-type').select_option('all')
+    expect(sidebar.get_by_role('button',name='Collapse The observatory',exact=True)).to_be_visible()
+    page.locator('#search').fill('floor')
+    page.locator('#resource-type').select_option('map')
+    sidebar.get_by_role('button',name='Collapse all',exact=True).click()
+    expect(page.locator('#search')).to_have_value('')
+    expect(page.locator('#resource-type')).to_have_value('all')
+    expect(sidebar.locator('[aria-expanded=true]')).to_have_count(0)
+    # Repeated text/media selections must leave the same sidebar DOM, item
+    # position and scroll offset, including after an image finishes loading.
+    chapter=sidebar.get_by_role('button',name='Field notes 15',exact=True)
+    chapter.scroll_into_view_if_needed()
+    def position():
+        return chapter.evaluate('(b)=>({scroll:b.closest(".library").scrollTop,y:b.getBoundingClientRect().top})')
+    before=position()
+    sidebar.evaluate('(root)=>{window.sidebarForTest=root;}')
+    for _ in range(3):
+        chapter.click()
+        expect(page.locator('.sourceview')).to_contain_text('Original field observation 15')
+        after=position()
+        assert abs(after['scroll']-before['scroll'])<1 and abs(after['y']-before['y'])<1, (before,after)
+        assert sidebar.evaluate('(root)=>root===window.sidebarForTest'), 'Sidebar was replaced'
+    sidebar.get_by_role('button',name='Expand Field notes 15',exact=True).click()
+    sketch=sidebar.get_by_role('button',name='Field sketch 15',exact=False)
+    sketch.scroll_into_view_if_needed()
+    before=position()
+    for _ in range(3):
+        sketch.click()
+        expect(page.locator('#inspector h2')).to_have_text('Field sketch 15')
+        after=position()
+        assert abs(after['scroll']-before['scroll'])<1 and abs(after['y']-before['y'])<1, (before,after)
+    sidebar.get_by_role('button',name='Collapse all',exact=True).click()
+    expect(sidebar.locator('[aria-expanded=true]')).to_have_count(0)
+    sidebar.get_by_role('button',name='The observatory',exact=True).click()
+    expect(sidebar.locator('[aria-expanded=true]')).to_have_count(0)
+    sidebar.get_by_role('button',name='Expand The observatory',exact=True).click()
+    sidebar.get_by_role('button',name='Observatory floor',exact=False).click()
+
+
 def run(exe=None, artifacts=None):
     with tempfile.TemporaryDirectory(prefix="sessiondesk-browser-") as temp:
         base = Path(temp)
         source = make_library(base / "library", wrapped=True, rich=True)
+        source_file=source/'data/adventure/adventure-demo.json'
+        content=json.loads(source_file.read_text(encoding='utf-8'))
+        content['adventureData'][0]['data'].extend([
+            {'name':f'Field notes {i:02}', 'entries':[f'Original field observation {i:02}',
+                {'type':'image','title':f'Field sketch {i:02}','href':{'type':'internal','path':'original/map.png'}}]}
+            for i in range(30)])
+        source_file.write_text(json.dumps(content),encoding='utf-8')
         with launch(base / "app",exe) as ready, sync_playwright() as p:
             browser = p.chromium.launch()
             context = browser.new_context(viewport={"width":1440,"height":960},device_scale_factor=1)
@@ -73,6 +143,7 @@ def run(exe=None, artifacts=None):
             expect(page.locator('.library')).not_to_contain_text('Observatory floor — Player')
             expect(page.locator('.book-navigation')).to_contain_text('The observatory')
             expect(page.locator('.book-navigation')).to_contain_text('The lower gallery')
+            resource_navigation(page)
             wid = call(ready,"bootstrap")["workspaces"][0]["id"]
             aid = call(ready,"workspace",{"workspace":wid})["adventures"][0]["id"]
             scope = {"workspace":wid,"adventure":aid}
@@ -90,18 +161,26 @@ def run(exe=None, artifacts=None):
             expect(page.locator('.pinned-resources')).to_contain_text('Arrival platform')
             page.locator('#search').fill('')
             expect(page.locator('.pinned-resources')).to_contain_text('Arrival platform')
+            page.locator('#translation').fill('Unsaved original browser draft')
+            page.locator('.book-navigation').get_by_role('button',name='Evening sky',exact=False).click()
+            page.locator('.pinned-resources').get_by_role('button',name='Arrival platform',exact=True).click()
+            expect(page.locator('#translation')).to_have_value('Unsaved original browser draft')
+            assert call(ready,'session',scope)==before, 'Browsing a resource presented it to players'
+            page.locator('.book-navigation').get_by_role('button',name='Observatory floor',exact=False).click()
+            page.locator('#region-select').select_option(index=1)
+            expect(page.locator('#translation')).to_have_value('Unsaved original browser draft')
             page.locator('#translation').fill("Ένα ήσυχο παρατηρητήριο κάτω από γυάλινη στέγη.")
             page.locator('#private-notes').fill("Private browser note")
             page.get_by_role("checkbox",name="Reviewed and approved").check()
             page.get_by_role("button",name="Save preparation").click()
             expect(page.locator('#toast')).to_have_text("Preparation saved.")
             if artifacts:page.screenshot(path=str(artifacts/'room-reader.png'))
-            page.get_by_role('button',name='Book / resources',exact=True).click()
+            page.locator('.pinned-resources').get_by_role('button',name='Arrival platform',exact=True).click()
             expect(page.locator('.sourceview .book-box.readaloud')).to_be_visible()
             expect(page.locator('.sourceview .book-table')).to_be_visible()
             expect(page.locator('.book-navigation')).not_to_contain_text('16b')
             if artifacts:page.screenshot(path=str(artifacts/'book-reader.png'))
-            page.get_by_role("button",name="Library",exact=True).click()
+            page.locator('.book-navigation').get_by_role('button',name='Observatory floor',exact=False).click()
             page.get_by_role("checkbox",name="I reviewed this image",exact=False).check()
             page.get_by_role("button",name="Present to players").click()
             # Synthetic legacy import: enrich its metadata while the same tab is
@@ -131,6 +210,33 @@ def run(exe=None, artifacts=None):
             page.get_by_role("heading",name="Observatory floor").click()
             box = page.locator('#stage').bounding_box()
             x,y=box['x']+box['width']/2,box['y']+box['height']/2
+            page.mouse.move(x,y)
+            cursor=page.locator('.brush-cursor')
+            expect(cursor).to_be_visible()
+            size=cursor.bounding_box()['width']
+            page.locator('#brush').fill('90')
+            page.mouse.move(x,y)
+            expect(cursor).to_be_visible()
+            assert abs(cursor.bounding_box()['width']/size-1.5)<.02
+            size=cursor.bounding_box()['width']
+            canvas=page.locator('#stage canvas').element_handle()
+            page.get_by_role('button',name='Zoom in',exact=True).click()
+            page.mouse.move(x,y)
+            assert abs(cursor.bounding_box()['width']/size-1.25)<.02
+            page.get_by_role('button',name='Hide',exact=True).click()
+            page.mouse.move(x,y)
+            expect(cursor).to_have_class('brush-cursor hide-brush')
+            assert canvas.evaluate('(c)=>c===document.querySelector("#stage canvas")'), 'Tool change reset the map'
+            page.get_by_role('button',name='Pan',exact=True).click()
+            page.mouse.move(x,y)
+            expect(cursor).not_to_be_visible()
+            page.get_by_role('button',name='Reveal',exact=True).click()
+            page.mouse.move(x,y)
+            expect(cursor).to_be_visible()
+            page.keyboard.down('Space');expect(cursor).not_to_be_visible();page.keyboard.up('Space')
+            expect(cursor).to_be_visible()
+            if artifacts:page.screenshot(path=str(artifacts/'brush-cursor.png'))
+            page.get_by_role('heading',name='Observatory floor',exact=True).click()
             page.keyboard.down('Space');page.mouse.move(x,y);page.mouse.down();page.mouse.move(x+50,y+20,steps=4);page.mouse.up();page.keyboard.up('Space')
             assert call(ready,"session",scope)["fog"] == {}, "Space-pan unexpectedly painted fog"
             page.wait_for_function("""() => {const c=document.querySelector('#stage canvas');return c && c.getContext('2d').getImageData(Math.floor(c.width/2),Math.floor(c.height*.7),1,1).data[3]===255;}""")
@@ -163,7 +269,8 @@ def run(exe=None, artifacts=None):
             assert strokes, "Player drawing was not submitted"
             player.get_by_role("button",name="Zoom in",exact=True).click()
             # Open a second tab and prove player-controlled activation and close-all.
-            page.get_by_role("button",name="Gallery floor",exact=True).click()
+            page.locator('.library').get_by_role('button',name='Expand The lower gallery',exact=True).click()
+            page.locator('.book-navigation').get_by_role("button",name="Gallery floor",exact=False).click()
             page.get_by_role("checkbox",name="I reviewed this image",exact=False).check()
             page.get_by_role("button",name="Present to players").click()
             expect(player.locator('#player-tabs .tab')).to_have_count(2)
@@ -227,7 +334,7 @@ def run(exe=None, artifacts=None):
             assert not errors, errors
             assert not external, external
             context.close();browser.close()
-            print("Browser E2E passed: preparation/player tools, native backup download, failed restore/retry and cancellation; zero external requests.")
+            print("Browser E2E passed: stable/collapsible resource navigation, type filters, scaled brush cursor, preparation/player tools and backup recovery; zero external requests.")
 
 
 if __name__ == '__main__':

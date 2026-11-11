@@ -1,6 +1,6 @@
 # Session Desk — Windows development preview
 
-A local app for preparing and running independent tabletop adventures. The first **0.1.0-dev.4 Windows x64 EXE** is implemented; this is a development preview, not a completed tester alpha. AI is Off and unavailable.
+A local app for preparing and running independent tabletop adventures. **0.1.0-dev.5 Windows x64 EXE** is a development preview, not a completed tester alpha. AI is Off and unavailable.
 
 ## Run on Windows
 
@@ -14,7 +14,7 @@ The default workspace location is `%LOCALAPPDATA%/SessionDesk/workspaces`, outsi
 
 ## Current capabilities and limits
 
-Validated local-copy selection/installation, structured adventure import, book-order chapters/sections, original read-aloud boxes/lists/tables, persistent pins above search and room preparation beside the map. DM navigation omits player variants; supported player assets stay behind their DM map. Freehand boundary correction, explicit shared tabs/notes, additive fog, pan/zoom, temporary drawing and image-complete backups support the session workflow.
+Validated local-copy selection/installation, structured adventure import, book-order chapters/sections, original read-aloud boxes/lists/tables, persistent pins above search and room preparation beside the map. One Resources browser opens text in the reader and images/maps in the preview; search has Text/Images/Maps filters. Collapse all returns to closed chapters. Selection keeps sidebar scroll/folds, and tool changes retain map pan/zoom. On player screen lists shared tabs. Reveal/Hide show a radius cursor that follows brush size and zoom. DM navigation omits player variants; supported player assets stay behind their DM map. Freehand boundary correction, explicit shared notes, additive fog, temporary drawing and image-complete backups support the session workflow.
 
 Synthetic source and frozen-app tests run on Windows 11 x64 with a fresh app-data directory and developer tools hidden from PATH. Those automated checks are **not** a clean Windows account/VM test. The owner separately confirmed Gate 1 complete on November 9. Owned 2014 Icewind Dale import now succeeds in an isolated workspace. Visual/geometry acceptance, laptop/friend-PC compatibility and complete alpha acceptance are still pending; [build status](BUILD-STATUS.md) records the distinction. Packages are unsigned. Changed source snapshots require a new workspace to protect existing manual work. PDF/OCR, AI, LAN players and personal-campaign migration remain deferred.
 
@@ -30,7 +30,7 @@ python -m venv .venv
 .venv\Scripts\python tools/check_product_boundary.py
 .venv\Scripts\python tools/e2e_core.py
 .venv\Scripts\python tools/build_windows.py
-.venv\Scripts\python tools/smoke_core.py --archive dist/SessionDesk-0.1.0-dev.4-windows-x64.zip
+.venv\Scripts\python tools/smoke_core.py --archive dist/SessionDesk-0.1.0-dev.5-windows-x64.zip
 .venv\Scripts\python tools/e2e_core.py --exe dist/SessionDesk/SessionDesk.exe
 ```
 
