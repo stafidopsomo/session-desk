@@ -1,11 +1,12 @@
 {
   "version": "0.1.0-dev.6",
   "alpha_ready": false,
-  "product_digest": null,
+  "product_digest": "4676ead823a11a168099c7b0ee214c4b65d824e89bfd27532105d53c49415502",
   "checks": {
     "owned_library_import": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "basis": "local_owned_library_acceptance",
+      "evidence": "2026-11-11: all 80 available adventures in selected 2014 library imported and completed export/restore across isolated acceptance runs; 7 representative adventures also passed on the downloaded Windows CI artifact from run 43047995272. Zero importer warnings. This does not certify every source polygon visually."
     },
     "clean_standard_user": {
       "passed": true,
@@ -17,16 +18,17 @@
       "evidence": null
     },
     "backup_restore": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "basis": "synthetic_ci_and_private_local_acceptance",
+      "evidence": "Run 43047995272: source/frozen core and prepared-campaign E2E. Owner-only recovery conversion and native portable roundtrip verified all files, character data, calibrated maps and pixel-identical saved fog under that downloaded EXE. Private inputs/reports are excluded from Git/CI."
     },
     "privacy_audit": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "evidence": "Run 43047995272: 81-file text-only source allowlist and independent product history; explicit frozen static allowlist, 1036 packaged-file hashes, developer-path scan, dependency notices, no default campaign/library/provider. Downloaded artifact SHA-256 and inner ZIP manifest/checksums independently verified."
     },
     "frozen_browser_e2e": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "evidence": "Run 43047995272: core and prepared browser E2E on frozen Windows x64; original synthetic fixtures, isolated profiles, developer tools hidden from PATH, AI Off and external requests blocked/asserted absent."
     }
   },
   "milestones": {
