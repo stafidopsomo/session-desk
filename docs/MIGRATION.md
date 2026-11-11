@@ -43,8 +43,8 @@ The first simple release can omit these modules entirely. Personal migration is 
 
 ## GitHub distribution boundary
 
-The development repository also has private personal history on another branch. Publishing a release there does not make downloads available without repository read access; giving that access exposes other branches/history. A clean product branch is not a per-branch permission boundary.
+The original private campaign repository also has an independent product branch. Publishing a release there does not make downloads available without repository read access; giving that access exposes other branches/history. A clean product branch is not a per-branch permission boundary.
 
-A separate downloads-only repository can contain a user README, feedback instructions, release notes and audited application ZIP/checksum assets while product source stays private. Alternatively, a separate product repository can host the clean product history after an explicit source-distribution decision. Do not change visibility or mirror all refs from the personal repository.
+The owner selected a separate public product-source repository on November 11: https://github.com/stafidopsomo/session-desk. Publish only the audited independent product history there. The original campaign repository remains private; do not change its visibility or mirror all its refs. A downloads-only repository was considered but was not the owner's choice.
 
 These choices do not change workspace privacy: no personal campaign, source library, migration report or recovery backup belongs in either distribution repository. See [release process](RELEASE-PIPELINE.md) for actual publication gates and [build status](BUILD-STATUS.md) for remaining acceptance.

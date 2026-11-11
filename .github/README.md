@@ -2,6 +2,8 @@
 
 A local Windows app for preparing a tabletop adventure and showing maps, pictures and notes on a separate player screen.
 
+[![Windows checks](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml/badge.svg?branch=main)](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml)
+
 **Status:** Windows x64 development preview, 0.1.0-dev.5. A first tester prerelease is being prepared; no GitHub release has been published yet. AI is Off and unavailable.
 
 ## Run a packaged build
@@ -11,7 +13,7 @@ A local Windows app for preparing a tabletop adventure and showing maps, picture
 3. Create a workspace, choose **Add adventure**, and select an existing local 5e.tools library or install the supported local 2014 copy at a location you choose.
 4. Import an adventure. Prepare narration and private notes, review map/image safety, then choose **Present to players** and **Open player screen**.
 
-No Python, Git, Node or AI account is required to run the EXE. Current CI builds are available as `sessiondesk-windows-x64` Actions artifacts to people with access to the development repository. A public download link will be added after the separate release destination and acceptance checks are complete.
+No Python, Git, Node or AI account is required to run the EXE. Current development builds are available as `sessiondesk-windows-x64` artifacts from green [Actions runs](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml); GitHub requires sign-in to download an Actions artifact. A versioned download will appear under [Releases](https://github.com/stafidopsomo/session-desk/releases) after release acceptance is complete. An Actions artifact is not a published release.
 
 ## At the table
 

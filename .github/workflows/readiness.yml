@@ -2,10 +2,10 @@ name: Windows core checks and package
 
 on:
   push:
-    branches: [release-dev]
+    branches: [main, release-dev]
     tags: ['product-v*']
   pull_request:
-    branches: [release-dev]
+    branches: [main, release-dev]
 
 permissions:
   contents: read
@@ -66,7 +66,7 @@ jobs:
         with:
           name: sessiondesk-windows-x64
           path: dist
-      - name: Publish the validated tag as a private prerelease
+      - name: Publish the validated tag as a prerelease
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

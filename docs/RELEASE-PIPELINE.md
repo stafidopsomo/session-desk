@@ -11,8 +11,8 @@ A separate tag-only publishing job has release-write permission. It first runs t
 - `.github/README.md` is the user-facing landing page, with installation/update/save guidance and honest implemented-feature limits. GitHub [gives this location priority over root/docs READMEs](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes), so the root can retain its short README.txt and all Markdown stays outside it. docs/README.md remains the developer guide.
 - The feedback issue form requests version, Windows version and reproducible steps without asking for private workspaces or source books.
 - docs/MIGRATION.md separates full recovery snapshots from supported workspace backups, and optional UI from exclusion of unreleased code in a build. No personal report or backup is added to product source.
-- A separate public downloads-only repository is the smallest sharing option when the product source should remain private. Its contents can be limited to the landing README, release notes, feedback instructions and audited application ZIP/checksum assets. A clean product-source repository is another explicit distribution choice. Neither requires changing the personal repository's visibility or granting a tester access to personal history.
-- The destination/name/visibility has not yet been selected; no repository/tag/release is created by these preparation changes. The existing publishing job targets its own repository only; cross-repository publication is not implemented or falsely assumed to have credentials. Configure that only after selecting the destination and a least-privilege publishing identity, or create the first draft release through the chosen repository's supported release interface.
+- The owner selected public product source on November 11: https://github.com/stafidopsomo/session-desk. The original campaign repository stays private. Use a separate clone fetched through a single-branch non-local transfer; inspect its reachable product root, historical paths and object/ref graph before pushing. Never use --mirror/--all or push personal tags/branches. Public source means unfinished private modules must be excluded from the source tree too, not merely from binary packaging.
+- The public product repository uses main for its landing/tested branch and release-dev for ongoing work; both receive the root Windows CI job. The existing tag-only publishing job targets that product repository and uses its own GitHub token. It needs no cross-repository token or credentials. Source publication does not mark any alpha acceptance check passed and does not automatically create a release/tag.
 - A genuine release uses a versioned tag and vetted assets; a CI Actions artifact is not called a GitHub release. Check the public download from outside the maintainer's signed-in session before handing the link to a friend. GitHub [requires repository read access to view releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases); a private repository cannot provide an anonymous public release link.
 - Keep the current alpha gate and remaining evidence truthful. Do not mark laptop, owned-source visual/geometry or artifact acceptance passed merely to publish. Personal migration/Characters support is not bundled as a prerequisite of the first simple release.
 
@@ -20,8 +20,8 @@ A separate tag-only publishing job has release-write permission. It first runs t
 
 - `release-dev` has a parentless, campaign-free history and a separate worktree. Feature branches should descend from it.
 - The personal branch remains private and independent. Never merge its commits into the release history.
-- Share audited ZIP/EXE files directly with testers. The owner can download a private build and forward its vetted ZIP. A private GitHub release URL is not accessible without repository permissions; giving access to a branch does not isolate other refs/history.
-- Before exposing source or changing repository visibility, move the clean product history to a separate repository and verify its object/ref contents. No personal repository visibility change is authorized.
+- Publish audited ZIP/EXE release assets in the selected public product repository after acceptance. An Actions artifact is a development build, not a release. The personal repository remains private; giving access to its branch would not isolate other refs/history.
+- Public product source is authorized only in the separate session-desk repository after auditing its history and object/ref contents. No personal repository visibility change is authorized.
 - Production/alpha tags must point to commits reachable from the clean product branch. Never build product tags from the personal branch.
 
 ## Packaging decision
@@ -36,7 +36,7 @@ The application install is read-only. Workspaces live in a user-data directory a
 
 ## Pull request / release-dev CI
 
-Trigger on pushes to release-dev and pull requests targeting it. Use a clean checkout with no personal library, account or private campaign. [GitHub's workflow event documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows) distinguishes branch/tag triggers from events that require a workflow on the repository's default branch; avoid assuming a manual-dispatch workflow on a non-default branch is discoverable automatically.
+Trigger on pushes to main/release-dev and pull requests targeting either branch. Use a clean checkout with no personal library, account or private campaign. [GitHub's workflow event documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows) distinguishes branch/tag triggers from events that require a workflow on the repository's default branch; avoid assuming a manual-dispatch workflow on a non-default branch is discoverable automatically.
 
 Required jobs:
 

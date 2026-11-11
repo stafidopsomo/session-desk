@@ -40,7 +40,7 @@ For source development: `.venv\Scripts\python -m sessiondesk`. All checks use or
 
 ## Distribution boundary
 
-This branch has independent, campaign-free history. Never merge the personal branch into it. The surrounding private repository has personal content on other refs: share only vetted ZIP/EXE artifacts directly, without granting testers repository access. Private release links require repository permissions. Public source sharing needs a separate clean repository.
+Public product source: https://github.com/stafidopsomo/session-desk, selected by the owner on November 11. Its main/release-dev branches descend only from the independent, campaign-free product root. The original campaign repository stays private. Never merge its personal branch or mirror all its refs/objects into the product repository. Workspace backups and case-specific migration reports stay outside both product source and application packages.
 
 Tagged alpha publication fails closed until versioned acceptance evidence covers the exact product tree. The current record deliberately does not authorize an alpha. [Provider feasibility](PROVIDERS.md) and [Codex preflight](CODEX-PREFLIGHT.md) are historical references for a deferred phase, not setup steps or blockers for this core.
 
