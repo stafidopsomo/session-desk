@@ -6,9 +6,9 @@ import subprocess
 CLEAN_ROOT = '7cecbbc5062a1d7ed6b3b6a8d614352dac716c46'
 ALLOWED_FILES = frozenset({
     '.gitignore', 'README.txt', 'ci.ps1', 'docs/AGENTS.md', 'docs/README.md',
-    '.github/workflows/readiness.yml',
+    '.github/workflows/readiness.yml', '.github/README.md', '.github/ISSUE_TEMPLATE/bug_report.yml',
     'docs/ARCHITECTURE.md', 'docs/CODEX-PREFLIGHT.md',
-    'docs/IMPLEMENTATION-GATES.md', 'docs/PROVIDERS.md',
+    'docs/IMPLEMENTATION-GATES.md', 'docs/PROVIDERS.md', 'docs/MIGRATION.md',
     'docs/READINESS.md', 'docs/RELEASE-PIPELINE.md',
     'tools/check_product_boundary.py', 'tools/probe_codex.py',
     'tests/test_readiness.py',

@@ -1,5 +1,7 @@
 # Session Desk — Windows development preview
 
+[User-facing GitHub overview](../.github/README.md) · [Migration and optional features](MIGRATION.md). This page contains the development/build details.
+
 A local app for preparing and running independent tabletop adventures. **0.1.0-dev.5 Windows x64 EXE** is a development preview, not a completed tester alpha. AI is Off and unavailable.
 
 ## Run on Windows
@@ -20,7 +22,7 @@ Synthetic source and frozen-app tests run on Windows 11 x64 with a fresh app-dat
 
 ## Development and packaging
 
-From the repository root, use Windows x64 Python 3.12.10. The root `ci.ps1` is the canonical Windows CI job; `.github/workflows/readiness.yml` is its required GitHub wrapper. All Markdown lives in docs/. The core uses the standard library; these locked dependencies are build/browser-test tools only.
+From the repository root, use Windows x64 Python 3.12.10. The root `ci.ps1` is the canonical Windows CI job; `.github/workflows/readiness.yml` is its required GitHub wrapper. Markdown stays outside the root, under docs/ plus the user-facing .github/README.md entry. The core uses the standard library; these locked dependencies are build/browser-test tools only.
 
 ```text
 python -m venv .venv

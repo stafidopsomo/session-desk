@@ -1,0 +1,35 @@
+name: Bug report
+description: Report a problem with a packaged Session Desk build.
+body:
+  - type: markdown
+    attributes:
+      value: "Include the version and steps below. Do not attach campaign backups, source books, credentials or private character/story information. Redact screenshots before sharing."
+  - type: input
+    id: app_version
+    attributes:
+      label: Session Desk version
+      description: Shown in Settings; include whether you ran the EXE or source.
+      placeholder: 0.1.0-dev.5 Windows EXE
+    validations:
+      required: true
+  - type: input
+    id: windows_version
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 x64
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Describe the smallest repeatable example. Use synthetic names/content where possible.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual result
+      description: Include the visible error message and whether retry/restart helped.
+    validations:
+      required: true

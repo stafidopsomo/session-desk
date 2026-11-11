@@ -46,7 +46,7 @@ Use opaque, stable IDs. Never use a room number alone as a cross-workspace key.
 - `Map`: adventure ID, asset references, coordinate dimensions/transforms, optional grid calibration and source locator.
 - `Region`: map ID, stable source-region ID, source-entry relationship, polygon, role (`room`, `feature`, `landing`, `area`, `unknown`) and verification status. One entry may relate to several regions/maps.
 - `PreparationResource`: scoped source IDs, kind, language, origin (`imported`, `manual`, later `ai`), draft/approved/superseded state, input fingerprint and asset reference. Prompt/provider provenance is optional future metadata; manual resources do not require a provider.
-- `Character`: workspace-scoped record, user-confirmed fields and optional adventure links. No preloaded party, level, gold or backstory.
+- `Character` — planned, not implemented in the preview: workspace-scoped record, user-confirmed fields and optional adventure links. No preloaded party, level, gold or backstory. See MIGRATION.md for optional-module and backup requirements; the current document validator rejects this namespace.
 - `Session`: workspace/adventure links, presentation tabs, room notes and fog operations. Keep preparation separate from actual-play history.
 - `Job`: kind, immutable input manifest/hash, provider/capability requirements, state, attempts, cancellation flag, result reference and safe failure classification.
 

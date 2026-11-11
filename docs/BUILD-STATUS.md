@@ -12,7 +12,7 @@ Updated November 11, 2026. Version: **0.1.0-dev.5**. This is an unsigned develop
 - Complete image-inclusive backup/restore with hashes, size/path/type/identity validation, new workspace identity on restore, and unsupported-schema refusal without resetting data. Initial schema is version 1; no previous product schema needs migration yet.
 - Loopback-only server, per-instance DM/player capabilities, same-origin/Host validation, bounded routes/uploads, escaped source text and a strict player-response allowlist. Same-computer presentation is not a security boundary against an adversarial local user.
 - Frozen one-folder Windows build with bundled Python/Tk runtime, explicit static-asset allowlist, dependency/license notices, file manifest, checksums and source/version provenance. Synthetic fixtures, diagnostics, source libraries and saves are excluded.
-- The root ci.ps1 is the main Windows CI job; GitHub calls it from the required .github/workflows wrapper. All Markdown documents, including README and agent instructions, live under docs/. A separate tag publication job fails closed until matching alpha acceptance evidence exists.
+- The root ci.ps1 is the main Windows CI job; GitHub calls it from the required .github/workflows wrapper. Markdown lives under docs/ plus the user-facing .github/README.md; none is in the repository root. A separate tag publication job fails closed until matching alpha acceptance evidence exists.
 
 ## Verification evidence
 
@@ -74,3 +74,10 @@ The default data folder is `%LOCALAPPDATA%/SessionDesk/`. Closing the last DM/pl
 - Search filters All types, Text, Images and Maps, with source context on results. Player map variants remain hidden. Unsaved preparation drafts survive switching between text and media.
 - Reveal/Hide show a contrasting radius circle and center marker, scaled with the brush slider and current map zoom. It is hidden while Space/middle-button panning, outside the image, and on player screens. Tool changes retain the map canvas and its pan/zoom instead of resetting the page.
 - Extended source/frozen browser coverage uses an original synthetic 30-chapter sidebar: repeated text/picture clicks preserve item position and DOM, collapse stays collapsed, filters and pins persist, unsaved drafts survive navigation, and cursor size tracks slider/zoom. All workspaces and screenshots are isolated synthetic data, with external requests blocked. The existing 63 Python and two renderer checks remain applicable; Gates 3/4 acceptance is not promoted by this UX fix.
+
+## November 11 migration/distribution preparation
+
+- A user-facing .github/README.md now takes precedence on GitHub while keeping Markdown outside the root. It describes the actual preview, installation/update/save steps, scope limits and the distinction between an app ZIP and source-code ZIP. docs/README.md remains the developer guide; a short issue form supports reproducible, privacy-conscious feedback.
+- Isolated compatibility probes confirm that a raw campaign recovery ZIP is rejected without publishing a workspace, and an unknown character document is rejected. This is evidence of the missing importer/module contract, not a migrated campaign. Private backup/inventory/case-specific reports stay outside Git and are not CI fixtures.
+- Optional-module behavior and legacy migration requirements are documented as planned, not implemented. Public core content does not include private/unreleased modules or campaign defaults; hiding a tab alone is not a code-distribution boundary.
+- No new GitHub repository, public visibility change, tag or release is made by this preparation. The destination requires the owner's distribution choice. Gates 3/4 and alpha acceptance are unchanged; existing dev.5 source/frozen validation remains the runtime evidence.
