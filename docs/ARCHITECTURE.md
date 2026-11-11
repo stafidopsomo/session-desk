@@ -102,3 +102,10 @@ Preserve the imported chapter/section hierarchy and structured source nodes for 
 The left sidebar contains DM maps in book order. Player variants stay behind their DM map; exact-size and explicit autoScale parent links share the DM coordinate space for fog. Unsupported transforms are not guessed. Pins are workspace/adventure-scoped user data, independent of search/preparation/session and included in backups. A room's source and manual preparation open in the same map page. Whole-book reading remains available separately.
 
 An older snapshot can be enriched by re-importing the identical source fingerprint. Preserve preparation, pins, manual pictures, shared notes, session tabs/fog and saved room boundaries. Changed source snapshots still require a new workspace; the enrichment path is not a general destructive refresh.
+
+
+## November 12 reviewed implementation
+
+The deployment remains one modular application. Background jobs/transfers live in sessiondesk/jobs.py with their own lifecycle lock and explicit start/status/cancel/commit/download/close operations; server.py assembles services and handles the existing HTTP routes. Native dialog locking is separate from heartbeat/session state. Storage and data-only prepared modules retain their existing formats.
+
+Correctness precedes broader extraction: the reviewed build fixes cleanup outcomes, atomic file materialization, cancellation, export asset reachability, offline tracking and asynchronous player presentation. The next seams are the large browser entry point and shared presentation/client coordination, plus a consistent snapshot design that shortens large backup lock time. No framework/service rewrite or AI/provider implementation is part of this correction. See reviews/2026-11-12/REVIEW.md.

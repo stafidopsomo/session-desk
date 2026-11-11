@@ -1,4 +1,4 @@
-SESSION DESK 0.1.0-preview.1 — WINDOWS X64 PREVIEW
+SESSION DESK 0.1.0-preview.2 — WINDOWS X64 PREVIEW
 
 Have a supported prepared-campaign or Session Desk backup? Choose Restore
 backup on the home screen. A new workspace is created; your original stays

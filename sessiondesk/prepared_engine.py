@@ -7,10 +7,26 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import re
 import threading
 import time
 from types import SimpleNamespace
+from urllib.parse import urlsplit
 from . import prepared_tokens as table_tools
+
+MAX_TABS = 100
+MAX_FOG_OPERATIONS = 10000
+
+
+def local_book_link(value):
+    """Only a local book reader and a bounded, explicit book locator may be shared."""
+    if (not isinstance(value, str) or len(value) > 2000
+            or any(ord(c) < 32 or ord(c) == 127 or c == '\\' for c in value)):
+        return False
+    parts = urlsplit(value)
+    return (not parts.scheme and not parts.netloc and not parts.query
+            and parts.path == '/reference/book.html'
+            and re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}', parts.fragment.split(',', 1)[0]) is not None)
 
 
 def make_runtime(workspace, lock):
@@ -110,6 +126,8 @@ def make_runtime(workspace, lock):
     def open_tab(tab):
         ensure_tabs()
         old = next((t for t in STATE['tabs'] if t['id'] == tab['id']), None)
+        if old is None and len(STATE['tabs']) >= MAX_TABS:
+            raise ValueError('Close a player tab before opening another (100 maximum).')
         if old:
             old.update(tab)
         else:
@@ -226,8 +244,8 @@ def make_runtime(workspace, lock):
                 table_tools.apply(TABLE, body, m, STATE['fog'].get(m['id'], {'operations': []}), data['tokenCatalog'], player=player)
                 return snapshot(player=player)
             if kind == 'map':
-                STATE.update(mapId=m['id'], locationId=None, overlay=None)
                 open_tab({'id': 'map:' + m['id'], 'kind': 'map', 'mapId': m['id'], 'locationId': None})
+                STATE.update(mapId=m['id'], locationId=None, overlay=None)
             elif kind == 'opening-scene':
                 if not any(s['id'] == body.get('id') for s in data['opening']['scenes']):
                     raise ValueError('Unknown opening scene')
@@ -236,9 +254,9 @@ def make_runtime(workspace, lock):
                 target = body.get('id')
                 if target is not None and not any(p['id'] == target for p in m['locations']):
                     raise ValueError('Unknown location')
-                STATE['locationId'] = target
                 if m.get('kind') != 'dungeon':
                     open_tab({'id': 'map:' + m['id'], 'kind': 'map', 'mapId': m['id'], 'locationId': target})
+                STATE['locationId'] = target
             elif kind == 'room-note':
                 room = next((p for p in m['locations'] if p['id'] == body.get('id')), None)
                 shape = int(body.get('shape', 0)); text = body.get('text', '')
@@ -277,14 +295,17 @@ def make_runtime(workspace, lock):
                 open_tab({'id': 'guide:' + card['id'], 'kind': 'guide', 'cardId': card['id']})
             elif kind == 'book-section':
                 card = next((c for c in data['guide']['cards'] if c['id'] == body.get('cardId')), None)
-                if not card or not card.get('sourceLink', '').startswith('/reference/book.html#scag'):
-                    raise ValueError('Unknown SCAG section')
-                open_tab({'id': 'book:' + card['id'], 'kind': 'book', 'url': card['sourceLink'], 'title': 'SCAG · ' + card['title']})
+                if not card or not local_book_link(card.get('sourceLink')):
+                    raise ValueError('Choose a guide card with a local book source.')
+                open_tab({'id': 'book:' + card['id'], 'kind': 'book', 'url': card['sourceLink'], 'title': card.get('title') or 'Book source'})
             elif kind == 'shop-catalog':
                 open_tab({'id': 'shop:catalog', 'kind': 'book', 'url': '/shop', 'title': data['shopping'].get('title', 'Shops & supplies')})
             elif kind in ('room', 'brush', 'undo', 'reset', 'all', 'cover'):
                 if m.get('kind') != 'dungeon':
                     raise ValueError('Fog is available on dungeon maps')
+                if (kind in ('room', 'brush', 'all', 'cover')
+                        and len(STATE['fog'].get(m['id'], {'operations': []})['operations']) >= MAX_FOG_OPERATIONS):
+                    raise ValueError('Fog history is full. Export a backup, then undo or reset fog before revealing more.')
                 fog = fog_for(m)
                 if kind == 'room':
                     room = next((p for p in m['locations'] if p['id'] == body.get('id')), None)
@@ -328,8 +349,8 @@ def make_runtime(workspace, lock):
                 context = active.get('scene')
                 if not context or not map_by_id(context['mapId'], data):
                     raise ValueError('No room scene is active')
-                STATE.update(mapId=context['mapId'], locationId=context['roomId'])
                 open_tab({'id': 'map:' + context['mapId'], 'kind': 'map', 'mapId': context['mapId'], 'locationId': context['roomId']})
+                STATE.update(mapId=context['mapId'], locationId=context['roomId'])
             elif kind == 'picture':
                 asset = next((a for a in data['assets'] if a['path'] == body.get('path')), None)
                 if not asset or asset.get('spoiler', True) or Path(asset['path']).suffix.lower() == '.pdf':

@@ -44,6 +44,10 @@ ALLOWED_FILES = frozenset({
     'tests/prepared_fixture.py', 'tests/test_prepared.py', 'tools/e2e_prepared.py',
     'tools/verify_library.py',
     'tests/test_release_gate.py',
+    'sessiondesk/jobs.py', 'tests/test_jobs.py', 'tests/test_module_recovery.py',
+    'tests/test_prepared_characters.py', 'tests/test_prepared_limits.py',
+    'tests/test_install_recovery.py',
+    'docs/reviews/2026-11-12/REVIEW.md',
 })
 
 

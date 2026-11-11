@@ -1,6 +1,6 @@
 # Windows core build status
 
-Updated November 11, 2026. Version **0.1.0-preview.1**, unsigned Windows preview prerelease. No completed alpha is claimed.
+Updated November 11, 2026. Version **0.1.0-preview.2**, unsigned Windows preview prerelease. No completed alpha is claimed.
 
 ## Implemented
 
@@ -17,7 +17,7 @@ Updated November 11, 2026. Version **0.1.0-preview.1**, unsigned Windows preview
 
 Host: Windows 11 Pro x64 build 26300, Python 3.12.10. Synthetic automated tests use isolated app data and original fixtures. No owned books/private data run in CI or enter its artifacts.
 
-- 84 offline unit/contract tests cover generic import/storage/HTTP, schema upgrades, prepared-file preservation, unknown-module roundtrip, failed/cancelled imports, DM/player separation, 2014 rules, attachment safety and AI rejection.
+- 109 offline unit/contract tests cover generic import/storage/HTTP, schema upgrades, prepared-file preservation, unknown-module roundtrip, failed/cancelled imports, DM/player separation, 2014 rules, attachment safety and AI rejection.
 - Core browser E2E covers first run/import, preparation, book formatting, pins/folds/scroll, boundaries, reveal radius, Space-pan, player tabs/notes/drawing, cancellation, native backup download and restored state.
 - Prepared browser E2E uses Restore, connects a synthetic rules library, edits a sheet, opens guides/shops, shares notes/draws, exports and restores into another data root. It checks that a fresh workspace has no optional panels and blocks/asserts external requests.
 - Frozen smoke/E2E use an isolated profile and hide developer tools from PATH. Extracted-ZIP checks verify hashes, Unicode relocation, persistence, last-window shutdown and unchanged install files. This is not a clean VM or another physical computer.
@@ -38,3 +38,10 @@ The owner requested the first GitHub preview with automated tests while laptop a
 
 
 First-preview candidate 93d17de passed [Windows CI run 43102202769](https://github.com/stafidopsomo/session-desk/actions/runs/43102202769) and the same local root job. Its frozen EXE passed seven representative owned-adventure import/export/restore checks with zero warnings, plus the private full-file campaign and pixel-identical fog roundtrip. Only aggregate evidence is committed. The tag pipeline repeats the build checks and verifies its own same-run artifact before publishing; laptop/full visual acceptance remains deferred.
+
+
+## Reviewed preview.2
+
+November 12 owner request: independent structure/code review, fix verified defects and rebuild for tomorrow's testing. Three reviewers plus root review produced [the report](reviews/2026-11-12/REVIEW.md). Job/transfer ownership is now a composed service. Regression checks cover Windows cleanup locks, incomplete materialization, mid-snapshot cancellation, compact asset-complete exports, offline sheets, safe limits, generic book links, installer preference failure and ordered player presentation.
+
+All checks must pass for the exact reviewed tree before preview.2 publication. Laptop/full visual results remain deferred. This is a correction prerelease with preview.1 retained as rollback, not a completed alpha or proof of compatibility on unseen hardware.

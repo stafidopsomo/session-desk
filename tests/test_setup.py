@@ -102,16 +102,16 @@ class SetupTests(unittest.TestCase):
         path.write_text('{"adventureData": []}',encoding='utf-8')
         first=app.start_import({'workspace':wid,'path':str(self.library),'source':'DEMO'})
         for _ in range(100):
-            if app.jobs[first['id']]['state']=='failed':break
+            if app.transfers.jobs[first['id']]['state']=='failed':break
             time.sleep(.01)
-        self.assertEqual(app.jobs[first['id']]['state'],'failed')
+        self.assertEqual(app.transfers.jobs[first['id']]['state'],'failed')
         self.assertEqual(self.store.overview(wid)['adventures'],[])
         path.write_bytes(original)
         second=app.start_import({'workspace':wid,'path':str(self.library),'source':'DEMO'})
         for _ in range(100):
-            if app.jobs[second['id']]['state']=='complete':break
+            if app.transfers.jobs[second['id']]['state']=='complete':break
             time.sleep(.01)
-        self.assertEqual(app.jobs[second['id']]['state'],'complete')
+        self.assertEqual(app.transfers.jobs[second['id']]['state'],'complete')
 
     def test_window_lifetime_keeps_players_and_reload_alive_then_exits(self):
         app=Application(self.store)
@@ -130,13 +130,13 @@ class SetupTests(unittest.TestCase):
         app=Application(self.store)
         app.clients={'closed':{'seen':1,'closed':True}}
         event=threading.Event()
-        app.jobs={'job':{'state':'running','cancel':event}}
+        app.transfers.jobs={'job':{'state':'running','cancel':event}}
         self.assertFalse(app.should_exit(1))
         self.assertFalse(app.should_exit(10))
         self.assertTrue(event.is_set())
-        app.jobs['job']['state']='committing'
+        app.transfers.jobs['job']['state']='committing'
         self.assertFalse(app.should_exit(11))
-        app.jobs['job']['state']='complete'
+        app.transfers.jobs['job']['state']='complete'
         self.assertTrue(app.should_exit(12))
 
     def test_cancelled_job_acknowledges_stop_and_releases_operation_slot(self):
@@ -144,18 +144,18 @@ class SetupTests(unittest.TestCase):
         def work(event,job,progress):
             if not event.wait(2):raise AssertionError('Cancellation was not delivered')
             raise UserError('Cancelled synthetic operation')
-        first=app.start_job('install',work)
+        first=app.transfers.start_job('install',work)
         response=app.api('/api/import/cancel',{'job':first['id']},False,'POST')
         self.assertTrue(response['cancel_requested'])
         for _ in range(100):
-            if app.jobs[first['id']]['state']=='cancelled':break
+            if app.transfers.jobs[first['id']]['state']=='cancelled':break
             time.sleep(.01)
-        self.assertEqual(app.jobs[first['id']]['state'],'cancelled')
-        second=app.start_job('install',lambda *args:{'synthetic':True})
+        self.assertEqual(app.transfers.jobs[first['id']]['state'],'cancelled')
+        second=app.transfers.start_job('install',lambda *args:{'synthetic':True})
         for _ in range(100):
-            if app.jobs[second['id']]['state']=='complete':break
+            if app.transfers.jobs[second['id']]['state']=='complete':break
             time.sleep(.01)
-        self.assertEqual(app.jobs[second['id']]['state'],'complete')
+        self.assertEqual(app.transfers.jobs[second['id']]['state'],'complete')
 
 
 if __name__=='__main__':unittest.main()

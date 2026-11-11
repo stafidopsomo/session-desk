@@ -27,7 +27,7 @@ export function setupTokens(root,{atlas,action,getState,player=false,onArm}){
   size.oninput=()=>{atlas.tokenRadius=Number(size.value);localStorage.setItem('campaign-token-size',size.value);atlas.draw();};
   window.addEventListener('keydown',e=>{if(e.key==='Escape'){atlas.tokenPlacement=null;atlas.canvas.style.cursor='grab';q('[data-help]').textContent='Choose a portrait, then click the map. Drag placed tokens to move them.';}});
   return {update(state=getState()){
-    root.hidden=atlas.map?.kind!=='dungeon';
+    root.hidden=atlas.map?.kind!=='dungeon'||(player&&!!(state.overlay||state.guideCard||state.bookSection||state.emptyState));
     if(mapId!==state.mapId){mapId=state.mapId;atlas.selectedTokenId=null;atlas.tokenPlacement=null;}
     const catalog=state.tokenCatalog||[],key=JSON.stringify(catalog);
     if(catalogKey!==key){

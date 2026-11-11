@@ -14,6 +14,8 @@ from sessiondesk import __version__
 REQUIRED = {"owned_library_import", "clean_standard_user", "laptop_compatibility",
             "backup_restore", "privacy_audit", "frozen_browser_e2e"}
 FIRST_PREVIEW = '0.1.0-preview.1'
+PREVIEW_SCOPES = {FIRST_PREVIEW: 'first_windows_preview',
+                  '0.1.0-preview.2': 'reviewed_windows_preview'}
 
 
 def product_digest(root=ROOT):
@@ -32,10 +34,10 @@ def product_digest(root=ROOT):
 def evaluate(record, version, digest, tag):
     errors = []
     required = REQUIRED
-    preview = version == FIRST_PREVIEW
+    preview = version in PREVIEW_SCOPES
     if preview:
-        # The owner explicitly requested this first preview while away from the
-        # laptop. This decision is limited to this tag; alpha acceptance is intact.
+        # Owner-requested preview decisions are version-scoped. They do not
+        # establish hardware results or relax the full alpha requirements.
         decision = record.get('publication', {})
         decision = decision if isinstance(decision, dict) else {}
         deferred = decision.get('deferred', {})
@@ -43,12 +45,12 @@ def evaluate(record, version, digest, tag):
         if (record.get('preview_ready') is not True or record.get('alpha_ready') is not False
                 or decision.get('channel') != 'preview' or decision.get('kind') != 'prerelease'
                 or decision.get('basis') != 'owner_request'
-                or decision.get('scope') != 'first_windows_preview'
+                or decision.get('scope') != PREVIEW_SCOPES[version]
                 or not re.fullmatch(r'\d{4}-\d{2}-\d{2}', str(decision.get('date', '')))
                 or not decision.get('reason')
                 or set(deferred) != {'laptop_compatibility', 'full_visual_geometry'}
                 or not all(deferred.values())):
-            errors.append('The first preview needs its explicit scoped publication decision and completed automated checks.')
+            errors.append('This preview needs its explicit version-scoped publication decision and completed automated checks.')
         laptop = record.get('checks', {}).get('laptop_compatibility', {})
         if laptop.get('passed') is not False or laptop.get('status') != 'deferred':
             errors.append('The preview must retain laptop compatibility as deferred, not claim it passed.')
@@ -57,7 +59,7 @@ def evaluate(record, version, digest, tag):
         if record.get("alpha_ready") is not True:
             errors.append("Alpha acceptance has not been completed.")
         if not re.fullmatch(r'\d+\.\d+\.\d+-alpha\.\d+', version):
-            errors.append('Only the explicitly authorized first preview or an accepted alpha can be published.')
+            errors.append('Only an explicitly authorized preview or an accepted alpha can be published.')
     if record.get("version") != version or tag != "product-v" + version:
         errors.append("Tag/version must identify the accepted release exactly.")
     if record.get("product_digest") != digest:
@@ -108,7 +110,7 @@ def main():
         parser.error('--archive and --commit must be supplied together.')
     if args.archive:
         verify_package(args.archive, __version__, product_digest(), args.commit)
-    print('Publication gate passed for the accepted ' + ('first preview' if __version__ == FIRST_PREVIEW else 'alpha') + ' product tree.')
+    print('Publication gate passed for the accepted ' + ('preview' if __version__ in PREVIEW_SCOPES else 'alpha') + ' product tree.')
 
 
 if __name__ == "__main__":

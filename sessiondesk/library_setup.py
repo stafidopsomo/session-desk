@@ -17,6 +17,7 @@ RELEASE = {"version": "1.221.6", "rules": "2014",
            "sha256": "415a07ce01e09c3d5c1b9746f497b2038a082e5811a85f48981c3d22e8824591"}
 IMAGE_BASE = "https://2014.5e.tools/img/"
 DOWNLOAD_HOSTS = {"github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com", "2014.5e.tools"}
+IMAGES_DISABLED = '.sessiondesk-images-disabled'
 
 
 def download(url, destination, limit, cancelled, progress, opener=urlopen):
@@ -123,6 +124,8 @@ class LibrarySetup:
         parent.mkdir(parents=True, exist_ok=True)
         stage = parent / (".sessiondesk-install-" + str(uuid.uuid4()))
         stage.mkdir()
+        published = False
+        warnings = []
         try:
             archive = stage / "source.zip"
             progress("Downloading verified 2014 source copy", 0, 0)
@@ -135,6 +138,10 @@ class LibrarySetup:
             progress("Extracting and validating local copy", 0, 0)
             extract_source(archive, content, cancelled)
             Library(content).validate()
+            # Consent belongs to this installed copy. Keep downloads disabled
+            # even after restart if saving its preferences fails; an old registry
+            # entry for a previously removed copy must not enable network access.
+            (content / IMAGES_DISABLED).write_bytes(b'')
             if cancelled():
                 raise UserError("Installation cancelled; destination unchanged.")
             on_commit()
@@ -144,26 +151,53 @@ class LibrarySetup:
                     raise UserError("Destination changed during installation; choose another folder.")
                 destination.rmdir()
             content.replace(destination)
+            published = True
             config = self.config()
             config[str(destination.resolve())] = {"images": bool(include_images), "version": release["version"]}
             temp = self.settings.with_suffix(".tmp")
-            temp.write_text(json.dumps(config), encoding="utf-8")
-            temp.replace(self.settings)
-            return self.validate(destination)
+            try:
+                temp.write_text(json.dumps(config), encoding="utf-8")
+                temp.replace(self.settings)
+            except OSError:
+                # The source copy has already committed. Report it as usable,
+                # retain the durable download block and do not tell users to retry
+                # an installation into the now-populated destination.
+                warnings.append('Local copy installed. Setup preferences could not be saved, so automatic image downloads remain disabled. You can import its text or select an existing image folder. Check app data folder permissions and free space.')
+                try:
+                    temp.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            else:
+                if include_images:
+                    try:
+                        (destination / IMAGES_DISABLED).unlink()
+                    except OSError:
+                        warnings.append('Local copy installed. Automatic image downloads remain disabled because their saved setting could not be applied. You can import its text or select an existing image folder.')
+            return self.validate(destination) | {'warnings': warnings}
         finally:
             # Only this newly-created staging directory may be removed recursively.
             if stage.resolve().is_relative_to(parent) and stage.name.startswith(".sessiondesk-install-"):
-                shutil.rmtree(stage)
+                try:
+                    shutil.rmtree(stage)
+                except OSError:
+                    if not published:
+                        raise
+                    warnings.append('Local copy installed and ready. Temporary installer files could not be removed.')
+
+    def images_enabled(self, library):
+        managed = self.config().get(str(library.root), {})
+        disabled = library.root / IMAGES_DISABLED
+        return (isinstance(managed, dict) and managed.get('images') is True
+                and not disabled.exists() and not disabled.is_symlink())
 
     def validate(self, location, images=None):
         library = Library(location, images)
         result = library.validate()
-        managed = self.config().get(str(library.root), {})
-        result["download_images"] = managed.get("images") is True and not images
+        result["download_images"] = self.images_enabled(library) and not images
         return result
 
     def fetcher(self, library):
-        if self.config().get(str(library.root), {}).get("images") is not True:
+        if not self.images_enabled(library):
             return None
         # The registry is app-owned consent, not instructions read from a source book.
         expected_root = (library.root / "img").resolve()

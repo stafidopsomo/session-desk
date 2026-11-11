@@ -450,7 +450,7 @@ document.addEventListener('submit', async e => {
       sourceJob={kind:'install',state:'starting'};sourceBusy(true);
       const job=await request('library/install',{location:data.location,include_images:data.include_images==='on'});
       const result=await trackSourceJob(job);
-      if(result){existingSourceForm(result.path);await validateSource();}
+      if(result){existingSourceForm(result.path);await validateSource();if(result.warnings?.length){const notice=document.createElement('p');notice.className='notice';notice.setAttribute('role','status');notice.textContent=result.warnings.join(' ');$('#source-status').append(notice);}}
     }
     if (form.dataset.form === 'preparation') {
       const eid=form.dataset.entry;

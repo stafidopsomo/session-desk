@@ -13,7 +13,7 @@ import uuid
 import zipfile
 
 from .importer import MAX_IMAGE, MAX_TOTAL, UserError, image_size, polygon, stable
-from .transfers import CHUNK, MAX_BACKUP, check_cancel, staging, remove_staging
+from .transfers import CHUNK, MAX_BACKUP, check_cancel, staging, remove_staging, recover_staging
 
 KIND = 'campaign-desk-v1'
 MODULE_ID = stable('sessiondesk-module', KIND)
@@ -93,16 +93,30 @@ def supported(module):
 
 def materialize(folder, module_id, module):
     root = local(folder, 'module-files/' + module_id)
+    parent = root.parent
+    if parent.exists():
+        recover_staging(parent, '_materialize-')
     if root.exists():
         if root.is_symlink() or root.is_junction():
             raise UserError('Module folder cannot be linked.')
         return root
-    root.mkdir(parents=True)
-    for name, record in module['files'].items():
-        target = local(root, name)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        source = local(folder, 'assets/' + record['asset'])
-        shutil.copyfile(source, target)
+    parent.mkdir(parents=True, exist_ok=True)
+    # The marker stays outside content: only complete authored data is published.
+    pending = staging(parent, '_materialize-')
+    content = pending / 'content'
+    content.mkdir()
+    try:
+        for name, record in module['files'].items():
+            target = local(content, name)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            source = local(folder, 'assets/' + record['asset'])
+            shutil.copyfile(source, target)
+        content.replace(root)
+    finally:
+        try:
+            remove_staging(parent, pending, '_materialize-')
+        except OSError:
+            pass  # Marked staging is recoverable; published data is complete.
     return root
 
 
@@ -248,12 +262,13 @@ def capture_file(folder, file, cancelled=lambda: False):
         temp.unlink(missing_ok=True)
 
 
-def sync(store, wid, conn):
+def sync(store, wid, conn, cancelled=lambda: False):
     """Snapshot edited module files under the same lock as runtime writers."""
     folder = store.folder(wid)
     modules = [(key, json.loads(value)) for key, value in conn.execute(
         "SELECT key,value FROM documents WHERE key LIKE 'module:%'")]
     for key, module in modules:
+        check_cancel(cancelled)
         if not supported(module):
             continue  # Unknown module schemas round-trip unchanged and stay inert.
         root = local(folder, 'module-files/' + key.split(':', 1)[1])
@@ -261,11 +276,12 @@ def sync(store, wid, conn):
             continue
         files = {}
         for file in sorted(root.rglob('*')):
+            check_cancel(cancelled)
             if file.is_symlink() or file.is_junction():
                 raise UserError('Linked module files cannot be backed up.')
             if file.is_file() and file.suffix != '.tmp':
                 name = relative(file.relative_to(root).as_posix())
-                files[name] = capture_file(folder, file)
+                files[name] = capture_file(folder, file, cancelled)
                 record = files[name]
                 conn.execute('INSERT OR REPLACE INTO assets VALUES (?,?,?)',
                              (record['asset'], record['mime'], record['size']))
@@ -275,6 +291,25 @@ def sync(store, wid, conn):
         if supported(module):
             module['summary'] = inspect_campaign(root)
         store.put(conn, key, module)
+
+
+def backup_assets(documents, assets):
+    """Export current references, retaining immutable historical files locally.
+
+    An in-flight backup may still need old hashes, so this is not garbage
+    collection. Unknown modules conservatively retain all attachments.
+    """
+    needed = set()
+    for key, value in documents.items():
+        if key.startswith('adventure:'):
+            needed.update(m['asset'] for m in value['maps'] + value['pictures'])
+        elif key.startswith('module:'):
+            if not supported(value):
+                return assets
+            needed.update(record['asset'] for record in value['files'].values())
+            if value.get('original'):
+                needed.add(value['original']['asset'])
+    return {digest: assets[digest] for digest in needed}
 
 
 def import_campaign(store, source, cancelled, progress, on_commit):

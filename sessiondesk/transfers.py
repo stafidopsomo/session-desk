@@ -53,6 +53,9 @@ def recover_staging(parent, prefix):
         if folder.is_dir() and not folder.is_symlink() and folder.name.startswith(prefix):
             marker = folder / MARKER
             if marker.is_file() and not marker.is_symlink() and marker.read_text(encoding='utf-8') == MARKER_TEXT:
-                remove_staging(parent, folder, prefix)
+                try:
+                    remove_staging(parent, folder, prefix)
+                except OSError:
+                    continue  # A temporary Windows lock can be retried on next launch.
                 removed += 1
     return removed

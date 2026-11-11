@@ -39,13 +39,22 @@ def update(root,body,reference):
         if not isinstance(value,dict):raise ValueError('Expected sheet fields')
         allowed={'classKey','subclassKey','raceKey','subraceKey','scores','saves','skills','ac','hpMax','hpCurrent','hpTemp','speed','armorModel','resources','featureNotes','selectedFeatures','selectedSpells','disabledFeatures','castingAbility'}
         if set(value)-allowed:raise ValueError('Unknown sheet field')
-        db=database(str(reference));sheet={**c.get('sheet',{}),**value}
-        for key,group in [('classKey','classes'),('subclassKey','subclasses'),('raceKey','races'),('subraceKey','subraces')]:
-            if sheet.get(key) and sheet[key] not in db[group]:raise ValueError('Unknown rules source: '+key)
+        before=c.get('sheet',{});db=database(str(reference));sheet={**before,**value}
+        references={'classKey':'classes','subclassKey':'subclasses','raceKey':'races','subraceKey':'subraces'}
+        for key in references:
+            if key in value and not isinstance(value[key],str):raise ValueError('Invalid rules source: '+key)
+        changed={key for key in references if key in value and value[key]!=before.get(key,'')}
+        # Tracking HP or resources must work without the external rules library.
+        # Existing stable references are retained; choosing new references still
+        # requires matching entries from the explicitly selected classic source.
+        for pair in (('classKey','subclassKey'),('raceKey','subraceKey')):
+            if changed.intersection(pair):
+                for key in pair:
+                    if sheet.get(key) and sheet[key] not in db[references[key]]:raise ValueError('Unknown rules source: '+key)
         cls=db['classes'].get(sheet.get('classKey'));sub=db['subclasses'].get(sheet.get('subclassKey'))
-        if sub and (not cls or sub['className']!=cls['name'] or sub.get('classSource','PHB')!=cls['source']):raise ValueError('Subclass does not match class')
+        if changed.intersection(('classKey','subclassKey')) and sub and (not cls or sub['className']!=cls['name'] or sub.get('classSource','PHB')!=cls['source']):raise ValueError('Subclass does not match class')
         race=db['races'].get(sheet.get('raceKey'));sr=db['subraces'].get(sheet.get('subraceKey'))
-        if sr and (not race or sr['raceName']!=race['name'] or sr.get('raceSource','PHB')!=race['source']):raise ValueError('Subrace does not match race')
+        if changed.intersection(('raceKey','subraceKey')) and sr and (not race or sr['raceName']!=race['name'] or sr.get('raceSource','PHB')!=race['source']):raise ValueError('Subrace does not match race')
         for key in ('scores','skills','saves'):
             values=sheet.get(key,{})
             if not isinstance(values,dict):raise ValueError('Invalid '+key)
@@ -60,9 +69,11 @@ def update(root,body,reference):
             if k in sheet and (not isinstance(sheet[k],str) or len(sheet[k])>20000):raise ValueError('Invalid sheet text')
         if sheet.get('castingAbility','') not in ('',*ABILITIES):raise ValueError('Invalid spellcasting ability')
         for k,g in [('selectedFeatures','optional'),('selectedSpells','spells'),('disabledFeatures',None)]:
-            if k in sheet and (not isinstance(sheet[k],list) or len(sheet[k])>300 or any(not isinstance(x,str) or len(x)>500 or g and x not in db[g] for x in sheet[k])):raise ValueError('Invalid selected references')
+            if k in sheet and (not isinstance(sheet[k],list) or len(sheet[k])>300 or any(not isinstance(x,str) or len(x)>500 for x in sheet[k])):raise ValueError('Invalid selected references')
+            if k in value and g and any(x not in db[g] and x not in before.get(k,[]) for x in value[k]):raise ValueError('Invalid selected references')
         c['sheet']=sheet
-        c['class']=cls['name']+(' · '+sub['name'] if sub else '') if cls else 'Class not set'
+        if changed.intersection(('classKey','subclassKey')):
+            c['class']=cls['name']+(' · '+sub['name'] if sub else '') if cls else 'Class not set'
     elif field=='level':
         if type(value)!=int or not 1<=value<=20:raise ValueError('Level must be 1–20')
         c[field]=value

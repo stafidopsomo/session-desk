@@ -15,6 +15,55 @@ from sessiondesk.workspace_modules import MODULE_ID
 from tools.smoke_core import call, launch
 
 
+def prepared_action(page, body):
+    page.evaluate("""async body => {
+      const response=await fetch('api/action',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(body)});
+      if(!response.ok)throw Error('Could not present original fixture resource');
+    }""", body)
+
+
+def player_render_order(page, player):
+    """A slower picture must not repaint the map after a newer tab selection."""
+    prepared_action(page, {'action':'map','mapId':'realm'})
+    prepared_action(page, {'action':'map','mapId':'practice'})
+    expect(player.get_by_role('button',name='Show Practice floor',exact=True)).to_have_attribute('aria-pressed','true')
+    player.evaluate("""async () => {
+      const {AtlasMap}=await import(new URL('static/map.js',location.href).href);
+      const originalSet=AtlasMap.prototype.set,originalDecode=Image.prototype.decode;
+      window.renderedMapProbe=[];
+      AtlasMap.prototype.set=function(map,state){
+        if(this.canvas.id==='canvas')window.renderedMapProbe.push({map:map.id,version:state.version});
+        return originalSet.call(this,map,state);
+      };
+      let held=false;
+      Image.prototype.decode=function(){
+        const decoded=originalDecode.call(this);
+        if(!held&&new URL(this.src).pathname.endsWith('/maps/player.png')){
+          held=true;return decoded.then(()=>new Promise(resolve=>window.releasePictureProbe=resolve));
+        }
+        return decoded;
+      };
+      window.cleanupRenderProbe=()=>{AtlasMap.prototype.set=originalSet;Image.prototype.decode=originalDecode;};
+    }""")
+    try:
+        prepared_action(page, {'action':'picture','path':'maps/player.png'})
+        player.wait_for_function('()=>typeof window.releasePictureProbe==="function"')
+        player.get_by_role('button',name='Show Practice region',exact=True).click()
+        player.wait_for_function('()=>window.renderedMapProbe.some(x=>x.map==="realm")')
+        player.evaluate("""async () => {
+          window.releasePictureProbe();
+          await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);
+        }""")
+        rendered=player.evaluate('()=>window.renderedMapProbe')
+        assert rendered[-1]['map']=='realm',rendered
+        expect(player.locator('#overlay')).to_be_hidden()
+    finally:
+        player.evaluate('()=>window.cleanupRenderProbe()')
+    player.get_by_role('button',name='Show Practice floor',exact=True).click()
+    expect(player.locator('#partyTools summary')).to_be_visible()
+
+
 def run(exe=None,artifacts=None):
     with tempfile.TemporaryDirectory(prefix='sessiondesk-prepared-browser-') as temp:
         base=Path(temp)
@@ -89,6 +138,24 @@ def run(exe=None,artifacts=None):
             expect(player.locator('#undoDrawing')).to_be_enabled()
             player.get_by_role('button',name='Eraser',exact=True).click()
             player.get_by_role('button',name='Zoom in',exact=True).click()
+            # A picture/reference hides the dungeon tools beneath it. Returning
+            # to the map restores them without changing its tokens or fog.
+            expect(player.locator('#partyTools summary')).to_be_visible()
+            prepared_action(page, {'action':'picture','path':'adventures/practice/a.png'})
+            expect(player.locator('#overlay')).to_be_visible()
+            expect(player.locator('#partyTools summary')).to_be_hidden()
+            player.get_by_role('button',name='Show Practice floor',exact=True).click()
+            expect(player.locator('#overlay')).to_be_hidden()
+            expect(player.locator('#partyTools summary')).to_be_visible()
+            page.locator('#shoppingNav').click()
+            page.locator('#presentShop').click()
+            expect(player.locator('#bookSection')).to_be_visible()
+            expect(player.locator('#partyTools summary')).to_be_hidden()
+            player.get_by_role('button',name='Show Practice floor',exact=True).click()
+            expect(player.locator('#bookSection')).to_be_hidden()
+            expect(player.locator('#partyTools summary')).to_be_visible()
+            page.locator('#atlasNav').click()
+            player_render_order(page, player)
             # Persistent fog is unchanged by browsing a prepared guide/sheet.
             data_root=base/'app/profile/SessionDesk'
             store=Store(data_root)

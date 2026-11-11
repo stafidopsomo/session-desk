@@ -2,11 +2,11 @@
 
 [User-facing GitHub overview](../.github/README.md) · [Migration and optional features](MIGRATION.md). This page contains the development/build details.
 
-A local app for preparing and running independent tabletop adventures. **0.1.0-preview.1 Windows x64 EXE** is the first public preview prerelease, not a completed alpha. AI is Off and unavailable.
+A local app for preparing and running independent tabletop adventures. **0.1.0-preview.2 Windows x64 EXE** is the reviewed Windows preview prerelease, not a completed alpha. AI is Off and unavailable.
 
 ## Run on Windows
 
-1. Download the Windows x64 application ZIP from [the first preview release](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.1.0-preview.1). Extract it completely.
+1. Download the Windows x64 application ZIP from [the reviewed preview release](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.1.0-preview.2). Extract it completely.
 2. Double-click **SessionDesk.exe**. Keep its `_internal` folder beside it. Python, Git, Node and an AI login are not needed to run the app.
 3. Create a workspace → Add adventure → select your existing local 5e.tools library → import → prepare/review → present.
 
@@ -33,7 +33,7 @@ python -m venv .venv
 .venv\Scripts\python tools/e2e_core.py
 .venv\Scripts\python tools/e2e_prepared.py
 .venv\Scripts\python tools/build_windows.py
-.venv\Scripts\python tools/smoke_core.py --archive dist/SessionDesk-0.1.0-preview.1-windows-x64.zip
+.venv\Scripts\python tools/smoke_core.py --archive dist/SessionDesk-0.1.0-preview.2-windows-x64.zip
 .venv\Scripts\python tools/e2e_core.py --exe dist/SessionDesk/SessionDesk.exe
 .venv\Scripts\python tools/e2e_prepared.py --exe dist/SessionDesk/SessionDesk.exe
 ```

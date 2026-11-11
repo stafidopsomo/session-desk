@@ -191,6 +191,12 @@ class PreparedRuntimeTests(PreparedCase):
         with self.assertRaisesRegex(UserError,'2014'):
             self.app.connect_source(self.wid,self.reference)
 
+    def test_data_folder_without_optional_package_metadata_connects_to_library_root(self):
+        (self.reference/'package.json').unlink()
+        self.app.connect_source(self.wid,self.reference/'data')
+        self.assertEqual(self.app.prepared(self.wid).workspace.reference,self.reference.resolve())
+        self.assertTrue(self.app.prepared(self.wid).capabilities()['rules'])
+
     def test_invalid_saved_room_reference_prevents_restore_publication(self):
         state=json.loads((self.original/'state/table.json').read_text())
         state['fog']['practice']['operations'].append({'kind':'room','id':'missing','shape':0,'reveal':True})

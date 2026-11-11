@@ -57,6 +57,14 @@ class ReleaseGateTests(unittest.TestCase):
         r['checks']['laptop_compatibility']={'passed':True,'evidence':'Original synthetic hardware result'}
         self.assertEqual(self.check(r,version=r['version']), [])
 
+    def test_reviewed_preview_requires_its_own_version_scoped_decision(self):
+        r=record();r['version']='0.1.0-preview.2'
+        self.assertTrue(self.check(r,version=r['version']))
+        r['publication'].update(scope='reviewed_windows_preview',date='2026-11-12',reason='Original review/rebuild test request')
+        self.assertEqual(self.check(r,version=r['version']),[])
+        r['version']='0.1.0-preview.3'
+        self.assertTrue(self.check(r,version=r['version']))
+
     def test_package_requires_clean_matching_provenance_and_every_file_hash(self):
         with tempfile.TemporaryDirectory() as temp:
             archive=Path(temp)/'original-test-package.zip'

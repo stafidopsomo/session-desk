@@ -1,7 +1,7 @@
 import {AtlasMap, assetUrl} from './map.js';
 import {setupTokens} from './tokens.js';
 const roomLabel=id=>id==='house-outside'?'Outside':'Room '+id.replace(/^(?:forge-|house-)/,'');
-const $=id=>document.getElementById(id);let state,selectedRoom=null,noteTimer,pictureRequest=0;
+const $=id=>document.getElementById(id);let state,selectedRoom=null,noteTimer,pictureRequest=0,updateRevision=0;
 const atlas=new AtlasMap($('canvas'),{player:true,onSelect:(room,shape)=>{const scene=room.scenes?.find(s=>s.shape===shape);if(scene){selectedRoom=null;playerTabAction({action:'room-scene',mapId:state.mapId,id:room.id,shape});return;}selectedRoom={id:room.id,shape,mapId:state.mapId};showNotebook();},onZoom:p=>{if(!state?.overlay)$('viewZoom').textContent=p+'%';},onAnnotationChange:syncDrawingControls});
 const photo=new AtlasMap($('pictureCanvas'),{player:true,onZoom:p=>{if(state?.overlay)$('viewZoom').textContent=p+'%';},onAnnotationChange:syncDrawingControls});
 const tokenControls=setupTokens($('partyTools'),{atlas,action:playerTabAction,getState:()=>state,player:true});
@@ -14,16 +14,17 @@ function playerTabAction(payload){
 $('closeAllTabs').onclick=()=>playerTabAction({action:'tab-close-all'});
 function activeViewer(){return state?.overlay?photo:atlas;}
 function syncDrawingControls(){const history=activeViewer().inkHistory();$('undoDrawing').disabled=!history.length;$('clearDrawing').disabled=!history.length||!!history.at(-1)?.clear;}
-async function showPicture(path,next){
+async function showPicture(path,next,revision){
   const request=++pictureRequest;$('pictureLoading').hidden=photo.map?.image===path&&!!photo.image;
   try{
     let image=pictureSources.get(path);
     if(!image){image=new Image();image.src=assetUrl(path);await image.decode();pictureSources.set(path,image);while(pictureSources.size>3)pictureSources.delete(pictureSources.keys().next().value);}
-    if(request!==pictureRequest)return;
+    if(request!==pictureRequest||revision!==updateRevision)return;
     photo.cacheImage(path,image);
     await photo.set({id:'picture:'+path,title:next.overlay.title||'Picture',kind:'picture',image:path,width:image.naturalWidth,height:image.naturalHeight,locations:[]},{...next,location:null,locationId:null,ping:null});
+    if(request!==pictureRequest||revision!==updateRevision)return;
     $('pictureLoading').hidden=true;syncDrawingControls();
-  }catch{$('pictureLoading').hidden=false;$('pictureLoading').textContent='Picture could not be loaded.';}
+  }catch{if(request===pictureRequest&&revision===updateRevision){$('pictureLoading').hidden=false;$('pictureLoading').textContent='Picture could not be loaded.';}}
 }
 function showNotebook(){
   const visible=selectedRoom&&selectedRoom.mapId===state.mapId&&state.revealed.includes(`${selectedRoom.id}:${selectedRoom.shape}`)&&!state.overlay&&!state.guideCard&&!state.bookSection&&!state.emptyState;
@@ -33,6 +34,7 @@ function showNotebook(){
 }
 async function update(next){
   if(state&&(next.version<state.version||(next.version===state.version&&next.tableVersion<state.tableVersion)))return;
+  const revision=++updateRevision;
   const sceneChanged=!!state?.overlay?.scene!==!!next.overlay?.scene;
   const viewerFocused=[$('canvas'),$('pictureCanvas')].includes(document.activeElement);
   state=next;if(!next.map)return;
@@ -51,11 +53,13 @@ async function update(next){
   $('bookSection').hidden=!next.bookSection;
   if(next.bookSection)$('bookSection').title=next.bookSection.title||'Shared reference';
   if(next.bookSection&&$('bookSection').getAttribute('src')!==next.bookSection.url)$('bookSection').src=next.bookSection.url;
-  if(next.overlay)await showPicture(next.overlay.path,next);else pictureRequest++;
+  if(next.overlay)await showPicture(next.overlay.path,next,revision);else pictureRequest++;
+  if(revision!==updateRevision)return;
   if(next.guideCard){const card=next.guideCard;$('guideTitle').textContent=card.title;$('guideSummary').textContent=card.summary||'';$('guidePrompt').textContent=card.prompt||'';const path=card.picture?assetUrl(card.picture):'';if(path){if($('guideImage').firstChild?.getAttribute('src')!==path){const img=new Image();img.src=path;img.alt='';$('guideImage').replaceChildren(img);}}else $('guideImage').replaceChildren();}
   $('location').hidden=!next.location||!!next.overlay||!!next.guideCard||!!next.bookSection;
   if(next.location){$('title').textContent=next.location.name;$('summary').textContent=next.location.summary;}
   showNotebook();await atlas.set(next.map,next);
+  if(revision!==updateRevision)return;
   if(sceneChanged){atlas.resize();atlas.fit();}
   else if(mapChanged&&next.map.kind==='dungeon')atlas.fit();
   if(!next.overlay&&!next.guideCard&&!next.bookSection&&!next.emptyState)atlas.followReveal(next.playerFocus);

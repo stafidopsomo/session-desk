@@ -125,6 +125,15 @@ def run(exe=None, artifacts=None):
             page.get_by_role('button',name='Install and validate',exact=True).click()
             expect(page.locator('#source-status')).to_contain_text('Installation stopped')
             expect(page.locator('#source-status progress')).to_have_count(0)
+            page.unroute('**/api/import/status')
+            warning='Original setup warning. <b>Automatic images stay disabled.</b>'
+            page.route('**/api/import/status',lambda route:route.fulfill(json={
+                'id':'synthetic-install','kind':'install','state':'complete',
+                'result':{'path':str(source),'warnings':[warning]}}))
+            page.get_by_role('button',name='Install and validate',exact=True).click()
+            expect(page.locator('#source-status')).to_contain_text('Local 5e.tools copy found')
+            expect(page.locator('#source-status')).to_contain_text(warning)
+            expect(page.locator('#source-status b')).to_have_count(0)
             page.unroute('**/api/library/install');page.unroute('**/api/import/status')
             page.get_by_role('button',name='Use existing copy',exact=True).click()
             page.get_by_role('button',name='Choose folder',exact=True).click()

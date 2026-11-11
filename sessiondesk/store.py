@@ -436,13 +436,14 @@ class Store:
         # Snapshot metadata briefly; immutable hashed assets can be read without
         # holding the write lock, so a backup doesn't freeze live fog/notes.
         with self.lock, self.db(wid) as conn:
-            from .workspace_modules import sync
-            sync(self, wid, conn)
+            from .workspace_modules import sync, backup_assets
+            sync(self, wid, conn, cancelled)
             raw_size = conn.execute('SELECT COALESCE(SUM(length(CAST(value AS BLOB))),0) FROM documents').fetchone()[0]
             if raw_size > MAX_METADATA:
                 raise UserError('Workspace metadata exceeds the supported backup size (64 MB).')
             documents = {k: json.loads(v) for k, v in conn.execute("SELECT key,value FROM documents")}
             assets = {h: {"mime": m, "size": s} for h, m, s in conn.execute("SELECT * FROM assets")}
+            assets = backup_assets(documents, assets)
         metadata = json.dumps({"format": "sessiondesk-workspace", "version": SCHEMA,
             "documents": documents, "assets": assets}, ensure_ascii=False).encode('utf-8')
         total = sum(x['size'] for x in assets.values()) + len(metadata)

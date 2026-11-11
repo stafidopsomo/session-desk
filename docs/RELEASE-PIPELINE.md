@@ -80,3 +80,8 @@ All other import, storage/backup, privacy, frozen-browser and package checks rem
 After the build job succeeds, the publishing job downloads only its same-run ZIP/checksum. It verifies version, clean source, exact commit/tree, Windows x64 target, AI Off, archive paths and every file hash before release creation. The checksum and application ZIP are the only binary assets; private migration backups/reports never enter the repository or release.
 
 After publication, independently download the public asset without GitHub credentials, verify its checksum/provenance and smoke-test the extracted EXE. The README links directly to the versioned application ZIP, not an expiring Actions artifact or GitHub’s source-code ZIP. Later alphas still require the complete normal hardware/acceptance record.
+
+
+## Reviewed correction prerelease
+
+The November 12 owner request for review/corrections/rebuild authorizes the version-scoped product-v0.1.0-preview.2 deliverable for next-day testing. It repeats all automated/privacy/package requirements and retains hardware/full visual deferrals. The prior first-preview decision does not implicitly authorize it: the release policy and acceptance record require its own reviewed_windows_preview scope. Future preview.3 is still rejected without a new scoped decision; full alpha gates are unchanged. Published preview.1 files/tags are never replaced.

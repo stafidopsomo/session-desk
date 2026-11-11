@@ -236,14 +236,14 @@ class TransferHttpTests(WorkspaceCase):
         with self.assertRaises(HTTPError):
             self.upload(job['id'], b'not uploaded')
         self.assertEqual(len(self.store.listing()), 1)
-        self.assertFalse(list(self.app.transfer_root.glob('_transfer-*')))
+        self.assertFalse(list(self.app.transfers.transfer_root.glob('_transfer-*')))
         self.assertEqual(self.wait(self.call('backup/export/start')['id'])['state'], 'complete')
 
     def test_short_upload_fails_cleanly_and_retry_can_complete(self):
         data = self.store.backup(self.wid)
         job = self.call('backup/restore/start', {'size': len(data)})
         with self.assertRaises(UserError):
-            self.app.receive_restore(job['id'], io.BytesIO(data[:10]), len(data))
+            self.app.transfers.receive_restore(job['id'], io.BytesIO(data[:10]), len(data))
         self.assertEqual(self.call('job/status', {'job': job['id']})['state'], 'failed')
         self.assertEqual(len(self.store.listing()), 1)
         retry = self.call('backup/restore/start', {'size': len(data)})
@@ -263,7 +263,7 @@ class TransferHttpTests(WorkspaceCase):
             self.upload(job['id'], data)
             self.call('job/cancel', {'job': job['id']})
             self.assertEqual(self.wait(job['id'])['state'], 'cancelled')
-        self.assertFalse(list(self.app.transfer_root.glob('_transfer-*')))
+        self.assertFalse(list(self.app.transfers.transfer_root.glob('_transfer-*')))
         self.assertEqual(len(self.store.listing()), 1)
 
     def test_transfers_are_dm_only_and_pending_upload_prevents_quit(self):

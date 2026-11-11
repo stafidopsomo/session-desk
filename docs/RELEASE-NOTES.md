@@ -1,29 +1,26 @@
-# Session Desk 0.1.0-preview.1
+# Session Desk 0.1.0-preview.2
 
-First public **Windows x64 preview prerelease**.
+Reviewed Windows x64 preview prerelease. Download the application ZIP, extract it completely and run **SessionDesk.exe** with _internal beside it. No Python, Git, Node or AI account is required.
 
-Download the application ZIP, extract it completely, then run **SessionDesk.exe**. Keep the _internal folder beside it. Python, Git, Node and an AI account are not required.
+## Corrections since preview.1
 
-## Included
+- File cleanup locks no longer strand operations or report a successfully restored workspace as failed.
+- Interrupted prepared-file copying publishes no incomplete workspace; cancelling large prepared snapshots stops promptly.
+- Portable backups omit obsolete asset versions while preserving originals, unknown modules and current edits.
+- HP/resources remain editable without the local rules library; existing character choices are retained.
+- Slow image loading cannot replace a newer player view. Token controls hide over pictures/reference pages.
+- Metadata-free local data-folder selection resolves correctly. Completed source installations remain usable if preferences cannot be saved, with an explicit warning and automatic downloads kept Off.
+- Fog/tab limits are checked before changing state, so ordinary actions cannot create a save that later fails its own backup validation.
+- Guide sharing supports validated local book sources beyond a single hardcoded book.
 
-- Independent workspaces; import an adventure from a selected local 5e.tools library, or explicitly install the supported local 2014 copy.
-- Source-ordered Resources, Text/Images/Maps search, pins, original book formatting and editable narration/private DM notes.
-- Reviewed image/map presentation, separate player window, shared tabs/notes, room/brush fog, boundary correction, zoom and temporary drawing.
-- Verified, cancellable backup/restore. Supported prepared-campaign backups activate their character sheets, story guides and shops in the same EXE. Fresh workspaces have no empty optional panels.
-- Saves outside the application folder, so replacing the application preserves them.
+Background work and transfer lifecycle are now separated from HTTP routing. Existing workspace formats and API paths remain compatible. The full [review report](https://github.com/stafidopsomo/session-desk/blob/product-v0.1.0-preview.2/docs/reviews/2026-11-12/REVIEW.md) lists findings, corrections and follow-ups.
 
-## Validation and limits
+## Testing and limits
 
-Automated unit, browser and extracted-EXE tests run on the maintainer's Windows 11 x64 PC and in Windows GitHub Actions. Tests cover fresh startup, imports, preparation, DM/player separation, fog/drawing, restart, cancellation, backup/restore, relocation and shutdown. Generic import/roundtrip checks also exercised 80 available local 2014 adventures; owned source data is excluded from source, CI and releases.
+Automated unit, browser and extracted-EXE checks cover imports, storage/cancellation/fault recovery, DM/player separation, sheets, fog/drawing, tabs, restart, backup/restore, relocation, shutdown and package provenance. CI uses original synthetic content; private campaign/source tests remain local and are never release assets.
 
-**The owner's laptop and a friend's PC have not been tested.** The owner requested this first preview using automated tests while laptop access is unavailable. Hardware compatibility and complete visual review of every source map remain pending; this is not a completed alpha or stable release.
+**Physical laptop/friend-PC compatibility and complete visual review of every source map remain pending.** This is an unsigned preview, not a completed alpha or stable release. AI is Off/unavailable. PDF/OCR, remote/LAN players and automatic geometry inference remain deferred.
 
-- Unsigned Windows package; no signing certificate is claimed.
-- AI remains Off/unavailable. No provider installation, login, quota polling or generation.
-- No books, official artwork, campaigns, characters, credentials or personal data are bundled.
-- Same-computer/TV presentation only; no remote/LAN players, PDF/OCR or automatic geometry inference.
-- Review maps for spoilers and incorrect source boundaries before presenting them. Imported source geometry is not a guarantee of complete room outlines.
-- Temporary drawings, token positions and camera/ping are not persisted.
-- Restoring a backup creates a separate workspace. Reconnect your local 2014 library on another computer. Workspace schema 1 upgrades with a recovery copy; preview 5 cannot open schema 2.
+No books, official artwork, campaign data, characters, credentials or provider tools are bundled. Temporary drawings/token positions/camera are not saved. Browser display preferences may reset between launches; campaign/session data stays persistent.
 
-Before upgrading or moving computers, **Export backup** and keep that ZIP private. Close DM/player windows before replacing the extracted application folder. Report the app version, Windows version and reproducible steps through GitHub Issues; do not upload private campaigns or source books.
+Before upgrading, Export backup and keep it private. Close DM/player windows, then extract this version into a separate application folder. Existing workspace data lives outside the application. Restore creates a new workspace; reconnect your local 2014 library on a different PC. Preview.1 remains available as rollback.
