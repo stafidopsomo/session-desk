@@ -41,3 +41,6 @@ The root Windows job runs Python unit/contracts, Node renderer/syntax checks, bo
 Deliver preview.2 as a new version; never replace preview.1 assets. Laptop/friend-PC compatibility and complete visual review of every imported map remain unverified. AI remains Off; the package is unsigned. Record completed CI/package checks in BUILD-STATUS and the versioned acceptance record, not as invented hardware results.
 
 No architecture decisions, dependency installation or document approval are required from the owner. Tomorrow: extract the complete reviewed ZIP, run SessionDesk.exe, try Add adventure or Restore backup, check one map/player-tab/notes/fog workflow, close/reopen, and report any unexpected result with the app version and steps. Export a workspace backup before replacing an older installation.
+
+
+Completed candidate evidence: b952549, Windows CI run 43119376138, all 109 Python tests and Node checks passed; both source/frozen browser flows and extracted-ZIP lifecycle passed. Seven local owned adventures passed roundtrip checks with zero warnings, and the private campaign/fog roundtrip passed. Independent post-fix storage/job review found no new data-loss/release blocker. Final publication verifies a fresh same-tag build and public-download checks; hardware/full visual deferrals are unchanged.

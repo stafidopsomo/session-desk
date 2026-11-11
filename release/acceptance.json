@@ -1,12 +1,12 @@
 {
   "version": "0.1.0-preview.2",
   "alpha_ready": false,
-  "product_digest": null,
+  "product_digest": "15b07981df6cea1069f229f5af90619eb2aaa7bce5ece9168d5d0faf66bca65b",
   "checks": {
     "owned_library_import": {
       "passed": true,
       "basis": "local_owned_library_acceptance",
-      "evidence": "All 80 available local 2014 sources completed import/portable roundtrip checks in prior isolated runs. Preview candidate 93d17de additionally passed seven real adventures through frozen import/export/restore, with zero importer warnings. Full source-map visual acceptance remains deferred."
+      "evidence": "The prior generic sweep covered 80 available local 2014 adventures. Reviewed candidate b952549 additionally passed seven owned-adventure import/export/restore checks on its frozen EXE with zero importer warnings. Full visual/geometry acceptance remains deferred."
     },
     "clean_standard_user": {
       "passed": true,
@@ -21,15 +21,15 @@
     "backup_restore": {
       "passed": true,
       "basis": "synthetic_ci_and_private_local_acceptance",
-      "evidence": "Preview candidate 93d17de: full private campaign file/hash and rendered-fog comparison, frozen browser controls, export and restore into a separate data root passed. GitHub run 43102202769 independently passed synthetic source/frozen backup/browser checks. No private inputs/reports are distributed."
+      "evidence": "Reviewed candidate b952549: synthetic failure/cancellation/cleanup-lock/materialization/export-reachability regressions passed. Full private campaign files and pixel-identical fog survived frozen export/restore into another data root. Private reports/data remain outside Git/CI."
     },
     "privacy_audit": {
       "passed": true,
-      "evidence": "Candidate 93d17de and GitHub run 43102202769: 82 allowlisted source text files with independent history, explicit frozen asset allowlist, 1036 packaged-file hashes, license/dependency notices and developer-path scan; no bundled campaigns/books/credentials/providers. Clean archive provenance and checksums independently verified before tagging."
+      "evidence": "Reviewed candidate b952549 and GitHub run 43119376138: 89 allowlisted text source files with independent history; explicit frozen assets, 1036 package file hashes, license/dependency notices and developer-path scan. No campaigns, source books, credentials or provider runtime bundled. Clean package provenance/checksums checked before tagging."
     },
     "frozen_browser_e2e": {
       "passed": true,
-      "evidence": "GitHub run 43102202769 and local root ci.ps1: 84 Python tests, Node renderer tests, core/prepared browser E2E from source and frozen EXE, extracted-ZIP relocation/restart/shutdown checks, isolated profiles with developer tools hidden, AI Off and external browser requests blocked/asserted absent."
+      "evidence": "Local root ci.ps1 and GitHub run 43119376138: 109 Python tests, Node renderer tests, source/frozen core and prepared browser E2E (including delayed-picture ordering and hidden token controls), extracted-ZIP relocation/import/restart/restore/shutdown. Isolated profiles, developer PATH hidden, AI Off; external browser requests blocked/asserted absent."
     }
   },
   "milestones": {
@@ -44,7 +44,7 @@
     "gate_3": "pending_visual_acceptance",
     "gate_4": "pending"
   },
-  "preview_ready": false,
+  "preview_ready": true,
   "publication": {
     "channel": "preview",
     "kind": "prerelease",
