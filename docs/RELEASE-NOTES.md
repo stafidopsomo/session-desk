@@ -16,7 +16,7 @@ Windows x64 desktop release. Extract the entire application ZIP and run **Sessio
 ## In-app updates
 Use **Settings → Check for updates → Download and install → Restart into update** for future regular releases. Updates verify the official GitHub release ZIP checksum and every packaged file, install side by side, and keep the same user-data folder. Imported adventures, preparation, notes, images and fog are retained; no automatic re-import replaces authored work. Downloads are user-triggered, cancellable before commit and recoverable after interruption. Save open edits before restarting.
 
-Older preview builds need this one manual download to gain the updater. Keep old application folders as rollback; never replace your workspace folder with release files.
+Older preview builds need this one manual download to gain the updater. Users of 0.1.0 also need to launch the extracted 0.1.1 EXE and point their shortcut to it once to gain persistent launch forwarding. Keep old application folders as rollback; never replace your workspace folder with release files.
 
 ## Validation and limits
 Automated Python, Node, source/frozen browser, archive/provenance and lifecycle tests run locally and in Windows CI with original synthetic fixtures. Private/source-library acceptance runs remain local and are excluded from releases. The owner reported successful main-PC installation/testing; physical laptop/friend-PC coverage and full visual review of every source map remain incomplete.
@@ -25,4 +25,4 @@ The package is unsigned. AI stays Off/unavailable. No books, official artwork, c
 
 Export backup before moving computers or upgrading, and keep backups private. Report the app version, Windows version and steps when giving feedback.
 
-0.1.1 finalizes the persistent launch handoff: after choosing Restart into update, the original EXE/desktop shortcut forwards to the newer verified installation on subsequent launches. Invalid or modified launch targets fall back to the original working build.
+Starting with a 0.1.1 launcher, choosing Restart into update records the newer verified installation; that launcher and shortcuts pointing to it then forward on subsequent launches. Executables from 0.1.0 or earlier cannot forward and must be replaced or their shortcut changed once. Invalid or modified launch targets fall back to the original working build.

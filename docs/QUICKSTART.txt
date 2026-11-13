@@ -1,4 +1,4 @@
-SESSION DESK 0.1.1 — WINDOWS X64 PREVIEW
+SESSION DESK 0.1.1 — WINDOWS X64 DESKTOP RELEASE
 
 Have a supported prepared-campaign or Session Desk backup? Choose Restore
 backup on the home screen. A new workspace is created; your original stays
@@ -16,8 +16,8 @@ Scripts in backups are retained as files only; AI/generation stays Off.
    empty folder you choose. Optional adventure images download during import
    for that installed copy; this is not the complete image archive.
    No books or pictures are bundled in the Session Desk ZIP.
-4. Read import warnings. Review images for secrets before marking them safe
-   to share. Source room boundaries can be used directly. If one is wrong,
+4. Read import warnings. Review images for secrets before presenting them.
+   Present to players with fog sends a map fully covered. Source room boundaries can be used directly. If one is wrong,
    select the room, choose Draw boundary, drag around its complete edge and
    Save boundary. There are no coordinate fields or verification steps.
    Selecting or reading an entry/room never reveals it.
@@ -27,15 +27,18 @@ Scripts in backups are retained as files only; AI/generation stays Off.
    Choosing text opens its book reader and narration/private-notes form;
    choosing an image/map opens its preview. Room source/preparation stays
    beside the map. Selecting resources does not share them automatically.
-   Present sends reviewed media to the player screen. On player screen
+   Present sends selected media to the player screen. On player screen
    lists the shared tabs, which either window can select or close. Player
    zoom, temporary drawing and shared notes work on the same computer/TV.
    Reveal/Hide have a brush circle matching the size slider and map zoom.
    Space temporarily switches to pan; the circle disappears while panning.
 
-If upgrading an older imported adventure, import that same adventure once
-more to add its original book structure. Notes, pins, manually drawn edges,
-custom pictures and the existing session/fog are preserved.
+App updates retain imported adventures and authored work without re-import.
+Use Settings > Check for updates > Download and install > Restart into update.
+Updates verify the official release checksum and packaged files. Starting
+with a 0.1.1 launcher, existing shortcuts keep opening the verified update.
+Preview/0.1.0 users must launch this extracted EXE and repoint their shortcut
+once; older executable code cannot learn the forwarding behavior.
 
 Your workspaces are saved in %LOCALAPPDATA%\SessionDesk\workspaces,
 outside this application folder. Export a workspace backup before moving

@@ -1,6 +1,6 @@
 # Windows core build status
 
-Updated November 11, 2026. Version **0.1.0**, unsigned initial Windows desktop release. No completed alpha is claimed.
+Updated November 13, 2026. Version **0.1.1**, unsigned initial Windows desktop release. No completed alpha is claimed.
 
 ## Implemented
 
@@ -17,7 +17,7 @@ Updated November 11, 2026. Version **0.1.0**, unsigned initial Windows desktop r
 
 Host: Windows 11 Pro x64 build 26300, Python 3.12.10. Synthetic automated tests use isolated app data and original fixtures. No owned books/private data run in CI or enter its artifacts.
 
-- 130 offline unit/contract tests cover generic import/storage/HTTP, schema upgrades, prepared-file preservation, unknown-module roundtrip, failed/cancelled imports, DM/player separation, 2014 rules, attachment safety and AI rejection.
+- 132 offline unit/contract tests cover generic import/storage/HTTP, schema upgrades, prepared-file preservation, unknown-module roundtrip, failed/cancelled imports, DM/player separation, 2014 rules, attachment safety and AI rejection.
 - Core browser E2E covers first run/import, preparation, book formatting, pins/folds/scroll, boundaries, reveal radius, Space-pan, player tabs/notes/drawing, cancellation, native backup download and restored state.
 - Prepared browser E2E uses Restore, connects a synthetic rules library, edits a sheet, opens guides/shops, shares notes/draws, exports and restores into another data root. It checks that a fresh workspace has no optional panels and blocks/asserts external requests.
 - Frozen smoke/E2E use an isolated profile and hide developer tools from PATH. Extracted-ZIP checks verify hashes, Unicode relocation, persistence, last-window shutdown and unchanged install files. This is not a clean VM or another physical computer.
@@ -56,3 +56,10 @@ November 13: owner main-PC installation/testing report is positive. The requeste
 
 
 Candidate 48184d6 passed [Windows CI 43338252359](https://github.com/stafidopsomo/session-desk/actions/runs/43338252359) and the local root job:130 Python tests,7 Node tests,all three source/frozen browser workflows and extracted-ZIP smoke. Six owned adventures including Tomb of Annihilation completed frozen portable roundtrips with zero warnings; the private full-file/fog roundtrip and actual local 2014 statblock viewer passed. Only aggregate evidence is committed. The regular release tag repeats all checks, verifies its same-run package, then publishes as Latest. The public download and real updater transport are checked after publication.
+
+
+## Persistent desktop update handoff 0.1.1
+
+Candidate 2c3b83b passed [Windows CI 43341009359](https://github.com/stafidopsomo/session-desk/actions/runs/43341009359) and the full local root job: 132 Python tests, 7 Node tests, all three source/frozen browser workflows and extracted-ZIP smoke. A verified activation pointer keeps explicit installed updates active through shortcuts pointing to 0.1.1-or-newer launchers on subsequent cold starts. Preview/0.1.0 executable code cannot forward; those users need one manual download and shortcut change. Newer builds verify the exact managed target, manifest and file hashes before forwarding; damaged pointers fall back to the current build. Equal-version launches do not loop. Source code and user workspace files remain separate.
+
+The preceding public 0.1.0 ZIP and real GitHub updater download/install were independently verified, including installed-EXE startup and preservation of synthetic workspace/settings sentinels. Its six real-adventure roundtrips and private full-file/fog migration evidence remain applicable to the unchanged import/session data code. The 0.1.1 tag pipeline repeats the exact package checks before regular publication. No laptop/full geometry result is claimed.

@@ -34,3 +34,5 @@
 
 - November 13 owner report/request: the main-PC installation and tests were successful. Implement the supplied Canvas cross-art home, source reuse, readable/resizable preparation, direct covered map presentation, live brush feedback, source entity links, tutorials and player presence. Add explicit Settings update checks/install/restart using verified official regular releases, preserving imported workspaces with no automatic re-import.
 - The owner explicitly requested a regular GitHub release. The scoped initial product-v0.1.0 desktop release may publish after exact-tree automated/package evidence is complete, with owner_main_pc recorded from the report. Laptop/full source geometry testing remains deferred, never invented; alpha_ready stays false. This decision changes the release-channel label, not the validation/privacy requirements. Keep prior previews immutable.
+
+- The same November 13 internal-update request includes product-v0.1.1 to complete verified persistent launch forwarding through existing shortcuts. Repeat exact-tree/package checks and preserve 0.1.0 immutable; no additional campaign/data migration or hardware acceptance is implied.

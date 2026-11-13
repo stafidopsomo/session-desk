@@ -19,15 +19,15 @@
     },
     "backup_restore": {
       "passed": true,
-      "evidence": "Candidate 48184d6 preserved every private campaign file and rendered-fog raster through frozen export/restore. All synthetic cancellation/recovery and update-preservation tests passed; machine-local preferences remain outside workspace exports."
+      "evidence": "Candidate 48184d6 preserved every private campaign file and rendered-fog raster through frozen export/restore. All synthetic cancellation/recovery and update-preservation tests passed; machine-local preferences remain outside workspace exports. Pointer-only candidate 2c3b83b repeats synthetic backup/recovery/preservation checks; no workspace schema changes or automatic source re-import."
     },
     "privacy_audit": {
       "passed": true,
-      "evidence": "Candidate 48184d6/GitHub run 43338252359: independent product history,97 allowlisted source text files,1039 packaged-file hashes, explicit local artwork/static assets, dependency notices and developer-path scan. No books/campaigns/credentials/providers bundled."
+      "evidence": "Candidate 2c3b83b / GitHub Windows run 43341009359: independent product history, 97 allowlisted source text files, 1039 reviewed package files, explicit local artwork/static assets, dependency notices and developer-path scan. No books/campaigns/credentials/providers bundled."
     },
     "frozen_browser_e2e": {
       "passed": true,
-      "evidence": "Candidate 48184d6 local root CI and GitHub run 43338252359:130 Python tests,7 Node renderer tests,source/frozen core/prepared/experience browser workflows,ZIP smoke/relocation/restart/restore. Actual tutorial/default-source/connection-LED/live-fog/resize/text-scaling behavior exercised; update integrity/retry/native wait tested with isolated fixtures."
+      "evidence": "Candidate 2c3b83b local root CI and GitHub run 43341009359: 132 Python tests, 7 Node tests, source/frozen core/prepared/experience browser workflows and extracted-ZIP smoke. Two new verified launch-pointer tests cover old/equal/new version forwarding, tampering and escaped targets. Prior public 0.1.0 download, actual updater transport/install and frozen HTTPS check passed; its data handling and UI are unchanged."
     },
     "owner_main_pc": {
       "passed": true,
