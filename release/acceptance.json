@@ -1,11 +1,11 @@
 {
   "version": "0.1.3",
   "alpha_ready": false,
-  "product_digest": null,
+  "product_digest": "4cc588ef4685127c056c256cb679a2706153771f4e04e96f43c7e7250220a0f5",
   "checks": {
     "owned_library_import": {
       "passed": true,
-      "evidence": "Historical sweep imported 80 local 2014 adventures. Candidate 48184d6 completed six frozen real-adventure roundtrips including Tomb of Annihilation with zero warnings; local exact 2014 statblock viewer rendered with zero script errors. Private data/logs excluded from Git/CI."
+      "evidence": "Historical 80-adventure sweep and representative frozen roundtrips passed. For candidate 4c01854, all 875 files in the actual restored campaign were verified present read-only; all 15 maps including the reported Grove rendered in separate source and frozen copies with unchanged fog and zero script errors. Private sources/reports remain outside Git and CI."
     },
     "clean_standard_user": {
       "passed": true,
@@ -19,15 +19,15 @@
     },
     "backup_restore": {
       "passed": true,
-      "evidence": "Historical private full-file campaign migration and exact fog raster comparison passed; current 875 campaign files match that verified recovery snapshot. Candidate 5278c22 repeats synthetic full backup/restore, source/frozen prepared roundtrips and cancellation checks. No workspace schema change or automatic re-import; new removal operations are tested only with synthetic content."
+      "evidence": "Candidate 4c01854 repeats synthetic backup/restore and source/frozen prepared-campaign roundtrips. The real campaign isolated restore preserves its complete saved fog while browsing all 15 rendered maps. Live workspace files were inspected read-only; no repeat restore or data/schema change is needed for the fix."
     },
     "privacy_audit": {
       "passed": true,
-      "evidence": "Candidate 5278c22 / GitHub Windows run 43523309838 and local root CI: independent product history, 97 allowlisted source files, 1039 reviewed packaged files, explicit original artwork/static assets, dependency notices and developer-path audit. No campaign, source book, credentials or provider code bundled."
+      "evidence": "Candidate 4c01854 / GitHub Windows run 43525828312 and local root CI: independent history, 97 allowlisted source files, 1039 reviewed package files, developer-path and dependency audits. Only a trusted-renderer correction is shipped; no personal/source data or AI tools bundled."
     },
     "frozen_browser_e2e": {
       "passed": true,
-      "evidence": "Candidate 5278c22 passed GitHub Windows run 43523309838 and full local root CI: 134 Python tests, 7 Node tests, all three source/frozen browser suites and ZIP smoke/relocation/restart/restore. New checks cover removal confirmation/cancellation, shared assets, local recovery, active-transfer blocking, guided spotlight geometry/contrast, all tutorial steps, unchanged player session and compact responsive home/import styling."
+      "evidence": "Candidate 4c01854 passed GitHub Windows run 43525828312 and full local root CI: 134 Python tests, 7 Node tests, source/frozen core/prepared/experience browser suites and extracted-ZIP smoke. New prepared-map regression first reproduced the exact null.hidden error, then required hidden loading panels, painted canvas pixels and expected room lists on initial load and regional/dungeon switching."
     },
     "owner_main_pc": {
       "passed": true,
@@ -60,5 +60,5 @@
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": false
+  "release_ready": true
 }

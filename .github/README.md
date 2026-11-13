@@ -45,6 +45,8 @@ The root [ci.ps1](../ci.ps1) is the canonical Windows job; GitHub's wrapper is u
 [Developer guide](../docs/README.md) · [Short instructions](../docs/QUICKSTART.txt) · [Build status](../docs/BUILD-STATUS.md) · [Migration](../docs/MIGRATION.md) · [Release process](../docs/RELEASE-PIPELINE.md)
 
 
+0.1.3 fixes blank maps in restored prepared campaigns. Existing imported workspaces, fog and notes are retained; no repeat restore is needed.
+
 ## Current features
 
 Remove a workspace from its home card or an individual adventure from inside a workspace, with confirmation. The home uses minimal larger labels, and the workspace/import flow shares its beige glass style. Guided tutorials now highlight the actual controls with arrows, adapt to available content, and leave the player session unchanged. The offline animated cross artwork remains. The source library is remembered for later imports. Drag the preparation divider, scale both reader/panel text, and present maps covered with fog using one button. Live DM brush feedback and the player-connection LED make sharing state visible. Source creature/spell/background references link directly to the selected local 5e.tools copy.
