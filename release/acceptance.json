@@ -1,12 +1,11 @@
 {
-  "version": "0.1.0-preview.2",
+  "version": "0.1.0",
   "alpha_ready": false,
-  "product_digest": "15b07981df6cea1069f229f5af90619eb2aaa7bce5ece9168d5d0faf66bca65b",
+  "product_digest": "480c8f7c1d526bcc044f7b6a5a3073fd38ad2ea1b775dcdc18a235ce1323600a",
   "checks": {
     "owned_library_import": {
       "passed": true,
-      "basis": "local_owned_library_acceptance",
-      "evidence": "The prior generic sweep covered 80 available local 2014 adventures. Reviewed candidate b952549 additionally passed seven owned-adventure import/export/restore checks on its frozen EXE with zero importer warnings. Full visual/geometry acceptance remains deferred."
+      "evidence": "Historical sweep imported 80 local 2014 adventures. Candidate 48184d6 completed six frozen real-adventure roundtrips including Tomb of Annihilation with zero warnings; local exact 2014 statblock viewer rendered with zero script errors. Private data/logs excluded from Git/CI."
     },
     "clean_standard_user": {
       "passed": true,
@@ -20,16 +19,20 @@
     },
     "backup_restore": {
       "passed": true,
-      "basis": "synthetic_ci_and_private_local_acceptance",
-      "evidence": "Reviewed candidate b952549: synthetic failure/cancellation/cleanup-lock/materialization/export-reachability regressions passed. Full private campaign files and pixel-identical fog survived frozen export/restore into another data root. Private reports/data remain outside Git/CI."
+      "evidence": "Candidate 48184d6 preserved every private campaign file and rendered-fog raster through frozen export/restore. All synthetic cancellation/recovery and update-preservation tests passed; machine-local preferences remain outside workspace exports."
     },
     "privacy_audit": {
       "passed": true,
-      "evidence": "Reviewed candidate b952549 and GitHub run 43119376138: 89 allowlisted text source files with independent history; explicit frozen assets, 1036 package file hashes, license/dependency notices and developer-path scan. No campaigns, source books, credentials or provider runtime bundled. Clean package provenance/checksums checked before tagging."
+      "evidence": "Candidate 48184d6/GitHub run 43338252359: independent product history,97 allowlisted source text files,1039 packaged-file hashes, explicit local artwork/static assets, dependency notices and developer-path scan. No books/campaigns/credentials/providers bundled."
     },
     "frozen_browser_e2e": {
       "passed": true,
-      "evidence": "Local root ci.ps1 and GitHub run 43119376138: 109 Python tests, Node renderer tests, source/frozen core and prepared browser E2E (including delayed-picture ordering and hidden token controls), extracted-ZIP relocation/import/restart/restore/shutdown. Isolated profiles, developer PATH hidden, AI Off; external browser requests blocked/asserted absent."
+      "evidence": "Candidate 48184d6 local root CI and GitHub run 43338252359:130 Python tests,7 Node renderer tests,source/frozen core/prepared/experience browser workflows,ZIP smoke/relocation/restart/restore. Actual tutorial/default-source/connection-LED/live-fog/resize/text-scaling behavior exercised; update integrity/retry/native wait tested with isolated fixtures."
+    },
+    "owner_main_pc": {
+      "passed": true,
+      "basis": "owner_report",
+      "evidence": "Owner reported 2026-11-13 main-PC installation/testing was pretty good. This is not an invented laptop or new OS-build test."
     }
   },
   "milestones": {
@@ -44,17 +47,18 @@
     "gate_3": "pending_visual_acceptance",
     "gate_4": "pending"
   },
-  "preview_ready": true,
+  "preview_ready": false,
   "publication": {
-    "channel": "preview",
-    "kind": "prerelease",
+    "channel": "desktop",
+    "kind": "release",
     "basis": "owner_request",
-    "scope": "reviewed_windows_preview",
-    "date": "2026-11-12",
-    "reason": "Owner requested full independent code/architecture review, corrections and a rebuilt version for next-day testing.",
+    "scope": "initial_desktop_release",
+    "date": "2026-11-13",
+    "reason": "Owner reported successful main-PC installation/testing and requested the new experience and internal updater as a regular GitHub release.",
     "deferred": {
       "laptop_compatibility": "Physical laptop/friend-PC access is unavailable; no hardware result is claimed.",
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
-  }
+  },
+  "release_ready": true
 }
