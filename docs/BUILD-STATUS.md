@@ -1,6 +1,6 @@
 # Windows core build status
 
-Updated November 14, 2026. Version **0.1.2**, unsigned initial Windows desktop release. No completed alpha is claimed.
+Updated November 14, 2026. Version **0.1.3**, unsigned initial Windows desktop release. No completed alpha is claimed.
 
 ## Implemented
 
@@ -76,3 +76,8 @@ Guided tours point at rendered controls, adapt to available text/maps and restor
 
 
 Candidate 5278c22 passed [Windows CI 43523309838](https://github.com/stafidopsomo/session-desk/actions/runs/43523309838) and the full local root job: 134 Python tests, 7 Node tests, all three source/frozen browser workflows and extracted-ZIP lifecycle/relocation/restore smoke. Synthetic screenshots verified home, mobile layout, import labels and guided control visibility. Only aggregate evidence is committed. The regular release tag rebuilds and verifies its own same-run archive before publishing; the public download and actual released-EXE updater are checked afterward.
+
+
+## Prepared map-rendering correction 0.1.3
+
+The owner reported a restored Grove map error. An obsolete lookup for the removed prepareGemini button aborted rendering. The earlier browser check saw the map heading but missed the caught exception shown in the loading panel. A new check reproduced the exact failure before the fix. The obsolete lookup is removed; tests now require actual rendered canvas pixels, a hidden loading/error panel and expected room counts on initial load and dungeon/regional switching. Existing workspaces, files and saved fog require no migration or repeat restore. Source/frozen/ZIP checks must pass before publication.

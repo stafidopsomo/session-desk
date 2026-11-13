@@ -1,3 +1,3 @@
 """Session Desk: local, provider-free adventure preparation."""
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"

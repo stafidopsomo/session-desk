@@ -79,6 +79,9 @@ class ReleaseGateTests(unittest.TestCase):
         r['version']='0.1.2';r['publication']['scope']='guided_adventure_management'
         self.assertEqual(self.check(r,version='0.1.2'),[])
         self.assertTrue(self.check(r,version='0.1.3'))
+        r['version']='0.1.3';r['publication']['scope']='prepared_map_rendering_fix'
+        self.assertEqual(self.check(r,version='0.1.3'),[])
+        self.assertTrue(self.check(r,version='0.1.4'))
 
     def test_package_requires_clean_matching_provenance_and_every_file_hash(self):
         with tempfile.TemporaryDirectory() as temp:

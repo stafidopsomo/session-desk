@@ -38,3 +38,5 @@
 - The same November 13 internal-update request includes product-v0.1.1 to complete verified persistent launch forwarding through existing shortcuts. Repeat exact-tree/package checks and preserve 0.1.0 immutable; no additional campaign/data migration or hardware acceptance is implied.
 
 - November 14 owner request: product-v0.1.2 regular release adds confirmed adventure/workspace removal, minimal larger home labels, coherent onboarding styling and control-anchored tutorials. Test and install it on this PC before campaign adoption. Exact-tree/package/privacy gates remain required; keep previous releases immutable and do not touch the personal campaign during product development.
+
+- November 14 restored-campaign defect: publish/install the bounded product-v0.1.3 correction after exact-tree checks. Remove the obsolete prepareGemini lookup that aborts map rendering. Source/frozen browser acceptance must require real canvas pixels, completed image loading and room lists, including map switching; a heading alone is insufficient. Preserve the existing restored workspace and live fog; no repeat import or campaign rewrite.

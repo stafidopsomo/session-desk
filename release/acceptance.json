@@ -1,7 +1,7 @@
 {
-  "version": "0.1.2",
+  "version": "0.1.3",
   "alpha_ready": false,
-  "product_digest": "d8c81f3181f9fa165294851cc26260eb0ccd6dab1f7f9a4d3a3fd459c2226d18",
+  "product_digest": null,
   "checks": {
     "owned_library_import": {
       "passed": true,
@@ -52,13 +52,13 @@
     "channel": "desktop",
     "kind": "release",
     "basis": "owner_request",
-    "scope": "guided_adventure_management",
+    "scope": "prepared_map_rendering_fix",
     "date": "2026-11-14",
-    "reason": "Owner requested a regular additional release and local update for adventure/workspace removal, consistent minimal onboarding and guided tutorials before campaign migration.",
+    "reason": "Repair the reported restored-campaign rendering defect in the installed product, preserve the existing workspace and verify actual rendered maps before publication.",
     "deferred": {
       "laptop_compatibility": "Physical laptop/friend-PC access is unavailable; no hardware result is claimed.",
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": true
+  "release_ready": false
 }

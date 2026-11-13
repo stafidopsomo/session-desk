@@ -86,7 +86,6 @@ function renderState(){
   $('returnPlayerMap').hidden=!state.overlay;
   document.querySelector('.live-badge').innerHTML='<span></span> '+(state.blackout?'TV BLACKOUT':state.overlay?'PICTURE ON TV':'PLAYER MAP');
   $('fogStatus').textContent=dungeon?`${state.revealed?.length||0} areas revealed · changes saved`:(state.overlay?'Picture is on the player screen':'Click a place to discover more');
-  $('prepareGemini').hidden=true;
   
   $('undoFog').disabled=!(state.fogState?.operations?.length);
   atlas.set(m,state);

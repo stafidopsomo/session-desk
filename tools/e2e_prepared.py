@@ -15,6 +15,19 @@ from sessiondesk.workspace_modules import MODULE_ID
 from tools.smoke_core import call, launch
 
 
+def expect_rendered_map(page, title, count):
+    expect(page.locator('#mapTitle')).to_have_text(title)
+    expect(page.locator('#mapLoading')).to_be_hidden()
+    expect(page.locator('#locationList [data-location]')).to_have_count(count)
+    page.wait_for_function("""() => {
+        const canvas=document.querySelector('#mapCanvas');
+        if(!canvas?.width||!canvas?.height)return false;
+        const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+        for(let i=3;i<pixels.length;i+=4)if(pixels[i]>0)return true;
+        return false;
+    }""")
+
+
 def prepared_action(page, body):
     page.evaluate("""async body => {
       const response=await fetch('api/action',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -99,6 +112,16 @@ def run(exe=None,artifacts=None):
             wid=next(w['id'] for w in call(ready,'bootstrap')['workspaces'] if w['name']=='Prepared example')
             page.get_by_role('button',name='Open prepared campaign',exact=True).click()
             expect(page.get_by_role('heading',name='Practice floor',exact=True)).to_be_visible(timeout=20000)
+            # A heading alone is not proof that the map rendered: caught renderer
+            # exceptions appear in the loading panel without a pageerror event.
+            expect_rendered_map(page,'Practice floor',2)
+            expect(page.locator('#prepareGemini')).to_have_count(0)
+            page.locator('#mapNav details').evaluate_all('(nodes)=>nodes.forEach(n=>n.open=true)')
+            page.locator('#mapNav [data-map=realm]').click()
+            expect_rendered_map(page,'Practice region',1)
+            page.locator('#mapNav details').evaluate_all('(nodes)=>nodes.forEach(n=>n.open=true)')
+            page.locator('#mapNav [data-map=practice]').click()
+            expect_rendered_map(page,'Practice floor',2)
             expect(page.locator('#charactersNav')).to_be_visible()
             expect(page.locator('#shoppingNav')).to_be_visible()
             expect(page.locator('#generateRoomScenes')).to_have_count(0)
