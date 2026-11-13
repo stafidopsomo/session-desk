@@ -1,7 +1,7 @@
 {
   "version": "0.1.2",
   "alpha_ready": false,
-  "product_digest": null,
+  "product_digest": "d8c81f3181f9fa165294851cc26260eb0ccd6dab1f7f9a4d3a3fd459c2226d18",
   "checks": {
     "owned_library_import": {
       "passed": true,
@@ -19,15 +19,15 @@
     },
     "backup_restore": {
       "passed": true,
-      "evidence": "Candidate 48184d6 preserved every private campaign file and rendered-fog raster through frozen export/restore. All synthetic cancellation/recovery and update-preservation tests passed; machine-local preferences remain outside workspace exports. Pointer-only candidate 2c3b83b repeats synthetic backup/recovery/preservation checks; no workspace schema changes or automatic source re-import."
+      "evidence": "Historical private full-file campaign migration and exact fog raster comparison passed; current 875 campaign files match that verified recovery snapshot. Candidate 5278c22 repeats synthetic full backup/restore, source/frozen prepared roundtrips and cancellation checks. No workspace schema change or automatic re-import; new removal operations are tested only with synthetic content."
     },
     "privacy_audit": {
       "passed": true,
-      "evidence": "Final candidate 26beffc / GitHub Windows run 43341919290: independent product history, 97 allowlisted source text files, 1039 reviewed package files, explicit artwork/static assets, dependency notices and developer-path scan. No books/campaigns/credentials/providers bundled."
+      "evidence": "Candidate 5278c22 / GitHub Windows run 43523309838 and local root CI: independent product history, 97 allowlisted source files, 1039 reviewed packaged files, explicit original artwork/static assets, dependency notices and developer-path audit. No campaign, source book, credentials or provider code bundled."
     },
     "frozen_browser_e2e": {
       "passed": true,
-      "evidence": "Final candidate 26beffc local root CI and GitHub run 43341919290: 132 Python tests, 7 Node tests, source/frozen core/prepared/experience browser workflows and extracted-ZIP smoke. Verified launch-pointer tests cover old/equal/new version choice, tampering and escaped targets. Independent review found no remaining blocker after documentation scoped forwarding to 0.1.1+ launchers; older executables require one manual download/shortcut change."
+      "evidence": "Candidate 5278c22 passed GitHub Windows run 43523309838 and full local root CI: 134 Python tests, 7 Node tests, all three source/frozen browser suites and ZIP smoke/relocation/restart/restore. New checks cover removal confirmation/cancellation, shared assets, local recovery, active-transfer blocking, guided spotlight geometry/contrast, all tutorial steps, unchanged player session and compact responsive home/import styling."
     },
     "owner_main_pc": {
       "passed": true,
@@ -60,5 +60,5 @@
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": false
+  "release_ready": true
 }
