@@ -1,6 +1,6 @@
 # Windows core build status
 
-Updated November 13, 2026. Version **0.1.1**, unsigned initial Windows desktop release. No completed alpha is claimed.
+Updated November 14, 2026. Version **0.1.2**, unsigned initial Windows desktop release. No completed alpha is claimed.
 
 ## Implemented
 
@@ -17,7 +17,7 @@ Updated November 13, 2026. Version **0.1.1**, unsigned initial Windows desktop r
 
 Host: Windows 11 Pro x64 build 26300, Python 3.12.10. Synthetic automated tests use isolated app data and original fixtures. No owned books/private data run in CI or enter its artifacts.
 
-- 132 offline unit/contract tests cover generic import/storage/HTTP, schema upgrades, prepared-file preservation, unknown-module roundtrip, failed/cancelled imports, DM/player separation, 2014 rules, attachment safety and AI rejection.
+- 134 offline unit/contract tests cover generic import/storage/HTTP, schema upgrades, prepared-file preservation, unknown-module roundtrip, failed/cancelled imports, DM/player separation, 2014 rules, attachment safety and AI rejection.
 - Core browser E2E covers first run/import, preparation, book formatting, pins/folds/scroll, boundaries, reveal radius, Space-pan, player tabs/notes/drawing, cancellation, native backup download and restored state.
 - Prepared browser E2E uses Restore, connects a synthetic rules library, edits a sheet, opens guides/shops, shares notes/draws, exports and restores into another data root. It checks that a fresh workspace has no optional panels and blocks/asserts external requests.
 - Frozen smoke/E2E use an isolated profile and hide developer tools from PATH. Extracted-ZIP checks verify hashes, Unicode relocation, persistence, last-window shutdown and unchanged install files. This is not a clean VM or another physical computer.
@@ -66,3 +66,10 @@ The preceding public 0.1.0 ZIP and real GitHub updater download/install were ind
 
 
 Final documentation/package candidate 26beffc passed [Windows CI 43341919290](https://github.com/stafidopsomo/session-desk/actions/runs/43341919290) and the repeated full local root job with the same 132 Python / 7 Node / three source-and-frozen browser suites. Independent updater review found no remaining blocker after the one-time older-launcher limitation was documented. The final 0.1.1 tag repeats CI and verifies its own artifact before publication.
+
+
+## Guided adventure management 0.1.2
+
+November 14 owner request: remove adventures and workspaces, simplify the home copy with larger labels, align workspace/import styling and replace general tutorial dialogs with control-anchored spotlight guidance. Removal is DM-only, requires explicit confirmation and waits for active transfers. Adventure removal deletes only its own documents while retaining shared assets; workspace removal moves its exact folder to local recovery outside the visible registry. Tests cover cancellation in the UI, scope/privacy, preserved shared images, recovery, active-job blocking and rejected stale player requests.
+
+Guided tours point at rendered controls, adapt to available text/maps and restore the initial DM selection. Synthetic browser checks walk every step, check card placement and contrast, and assert that the player session is unchanged. Local screenshots use original synthetic material only. Exact-tree local/frozen/CI checks must complete before publication; no new hardware/alpha acceptance is claimed.

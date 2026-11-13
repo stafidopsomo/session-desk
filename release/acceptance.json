@@ -1,7 +1,7 @@
 {
-  "version": "0.1.1",
+  "version": "0.1.2",
   "alpha_ready": false,
-  "product_digest": "e6f454119a71ac9a1be8a0403e15786044d009203650bff2e631d50ae3f31597",
+  "product_digest": null,
   "checks": {
     "owned_library_import": {
       "passed": true,
@@ -52,13 +52,13 @@
     "channel": "desktop",
     "kind": "release",
     "basis": "owner_request",
-    "scope": "desktop_update_handoff",
-    "date": "2026-11-13",
-    "reason": "Complete the owner-requested internal upgrade including persistent cold launches through existing shortcuts, after final updater review.",
+    "scope": "guided_adventure_management",
+    "date": "2026-11-14",
+    "reason": "Owner requested a regular additional release and local update for adventure/workspace removal, consistent minimal onboarding and guided tutorials before campaign migration.",
     "deferred": {
       "laptop_compatibility": "Physical laptop/friend-PC access is unavailable; no hardware result is claimed.",
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": true
+  "release_ready": false
 }

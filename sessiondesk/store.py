@@ -151,6 +151,33 @@ class Store:
                 {"maps": sum(x.get("image_type") != "mapPlayer" for x in a["maps"]), "pictures": len(a["pictures"]), "warnings": len(a["warnings"])}
                 for a in adventures]}
 
+    def remove_adventure(self, wid, aid):
+        aid = identifier(aid)
+        with self.lock, self.db(wid) as conn:
+            if not self.get(conn, 'adventure:' + aid):
+                raise UserError('Adventure not found in this workspace.')
+            # Shared content-addressed images may belong to another adventure/module.
+            # Remove only this adventure's documents; never unlink shared assets.
+            for prefix in ('adventure:', 'prep:', 'session:', 'pins:'):
+                conn.execute('DELETE FROM documents WHERE key=?', (prefix + aid,))
+        return {'removed': True}
+
+    def remove_workspace(self, wid):
+        with self.lock:
+            source = self.folder(wid)
+            if source.is_junction():
+                raise UserError('Workspace folder cannot be linked.')
+            recovery = self.root / 'removed-workspaces'
+            if recovery.is_symlink() or recovery.is_junction():
+                raise UserError('Workspace recovery folder cannot be linked.')
+            recovery.mkdir(exist_ok=True)
+            target = recovery / (identifier(wid) + '-' + str(uuid.uuid4()))
+            if (source.resolve().parent != self.workspaces.resolve()
+                    or target.resolve().parent != recovery.resolve()):
+                raise UserError('Invalid workspace removal location.')
+            source.rename(target)
+        return {'removed': True}
+
     def adventure(self, wid, aid):
         with self.db(wid) as conn:
             graph = self.get(conn, "adventure:" + identifier(aid))
@@ -314,6 +341,8 @@ class Store:
     def session(self, wid, aid, player=False):
         graph = self.adventure(wid, aid)
         with self.db(wid) as conn:
+            if not self.get(conn, 'adventure:' + identifier(aid)):
+                raise UserError('Adventure not found in this workspace.')
             state = self.get(conn, "session:" + aid, self.empty_session())
         if not player:
             return state

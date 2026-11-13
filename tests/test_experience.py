@@ -9,6 +9,41 @@ from sessiondesk.server import Application,make_server
 from sessiondesk.importer import UserError
 
 class ExperienceTests(WorkspaceCase):
+    def test_adventure_removal_is_confirmed_scoped_and_keeps_shared_assets(self):
+        import copy, uuid
+        media=self.imported()
+        other=copy.deepcopy(self.graph);other['id']=str(uuid.uuid4());other['source']='SECOND';other['fingerprint']='second'
+        self.store.import_graph(self.wid,other,self.blobs)
+        entry=self.graph['entries'][1]['id']
+        self.store.prepare(self.wid,self.aid,entry,{'notes':'Remove this preparation','translation':'','status':'draft'})
+        self.store.pin(self.wid,self.aid,'entry',entry,True)
+        self.store.session_action(self.wid,self.aid,{'action':'present','media':media['id'],'with_fog':True})
+        app=Application(self.store);body={'workspace':self.wid,'adventure':self.aid}
+        with self.assertRaises(UserError):app.api('/api/adventure/remove',body,False,'POST')
+        with self.assertRaises(PermissionError):app.api('/api/adventure/remove',body|{'confirm':True},True,'POST')
+        app.api('/api/adventure/remove',body|{'confirm':True},False,'POST')
+        self.assertEqual([a['id'] for a in self.store.overview(self.wid)['adventures']],[other['id']])
+        with self.store.db(self.wid) as conn:
+            for prefix in ('adventure:','prep:','session:','pins:'):self.assertIsNone(self.store.get(conn,prefix+self.aid))
+        self.assertTrue(self.store.adventure(self.wid,other['id'])['maps'])
+        self.assertTrue(all((self.store.folder(self.wid)/'assets'/digest).is_file() for digest in self.blobs))
+        with self.assertRaises(UserError):self.store.session(self.wid,self.aid,True)
+        self.assertTrue((self.lib/'data'/'adventures.json').is_file())
+
+    def test_workspace_removal_retains_recovery_and_blocks_active_operations(self):
+        self.imported();app=Application(self.store);body={'workspace':self.wid,'confirm':True}
+        other=self.store.create('Keep this workspace')['id']
+        with self.assertRaises(PermissionError):app.api('/api/workspace/remove',body,True,'POST')
+        job=app.transfers._new_job('synthetic')
+        with self.assertRaises(UserError):app.api('/api/workspace/remove',body,False,'POST')
+        job['state']='complete'
+        app.api('/api/workspace/remove',body,False,'POST')
+        self.assertEqual([w['id'] for w in self.store.listing()],[other])
+        copies=list((self.store.root/'removed-workspaces').iterdir())
+        self.assertEqual(len(copies),1);self.assertTrue((copies[0]/'workspace.sqlite3').is_file())
+        with self.assertRaises(UserError):self.store.overview(self.wid)
+        with self.assertRaises(UserError):self.store.remove_workspace('../outside')
+
     def test_explicit_present_with_fog_keeps_map_covered_and_player_variant(self):
         media=self.imported()
         self.assertFalse(self.store.adventure(self.wid,self.aid)['maps'][0]['player_safe'])

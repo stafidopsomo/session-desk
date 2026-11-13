@@ -53,7 +53,7 @@ function capturePreparation() {
 const button = (action, text, klass = '', extra = '') => `<button type="button" data-action="${action}" class="${klass}" ${extra}>${text}</button>`;
 function header() {
   return `<header class="top"><div class="brand"><img src="/icon.svg" alt="">Session Desk</div>
-    ${S.overview ? button('home', 'Workspaces', 'quiet') : ''}<span class="title muted">${esc(S.overview?.meta.name || 'Your table, locally')}</span>
+    ${S.overview ? button('home', 'Workspaces', 'quiet') : ''}<span class="title muted">${esc(S.overview?.meta.name || 'Local workspace')}</span>
     <span class="grow"></span>${button('player', 'Open player screen', '', S.aid ? '' : 'disabled')}<span id="player-presence" class="player-presence" role="status" aria-label="Player screen offline" title="Player screen offline"><i></i></span>
     ${button('settings', 'Settings', 'quiet', 'aria-expanded="false"')}</header>`;
 }
@@ -108,25 +108,65 @@ function visibilityStatus(){
 async function showTour(phase,force=false){
   if(isPlayer||!S.wid||(!force&&params.get('tutorial')==='off')||sourceJob||transferJob||$('#dialog')?.open)return;
   if(!force){try{const result=await request('tutorial',{phase,action:'get'});if(result.completed!==false)return;}catch{return;}}
-  closeSettings();activeTour={phase,index:0,wid:S.wid,aid:S.aid};renderTour();
+  clearTour();closeSettings();activeTour={phase,index:0,wid:S.wid,aid:S.aid,restore:{media:S.media,entry:S.entry,region:S.region,view:S.view,sourceOpen:S.sourceOpen},steps:tourSteps[phase].filter(step=>step.view==='map'?dmMedia().some(m=>m.kind==='map'):step.view==='text'?!!S.graph?.entries.length:true)};renderTour();
 }
 const tourSteps={workspace:[
- ['Your workspace','A workspace keeps your own adventures, preparation and saved table together. New workspaces start empty.'],
- ['Connect your books once','Choose Add adventure and select your local 5e.tools copy, or install one. Your last valid library is ready for the next import; you can change it.'],
- ['Pick an adventure','Import an adventure to bring in its chapters, pictures and maps. Your sources stay on this computer. Export backup moves your work to another PC.']
+ {target:'[data-action=import]',title:'Add a book',copy:'Add adventure connects your local 5e.tools folder. You can also install a copy in a location you choose.'},
+ {target:'[data-action=backup]',title:'Keep a portable backup',copy:'Export backup includes this workspace’s imported images, preparation and saved fog. Restore backup on the home page creates a separate workspace.'},
+ {target:'[data-action=settings]',title:'Display and updates',copy:'Settings contains text size, layout, updates and Quick tour. AI is unavailable. Next, choose Add adventure to import a book.'}
 ],adventure:[
- ['Browse your adventure','Resources follows the book chapters. Open category arrows or search Text, Images and Maps. Collapse all returns to closed chapters.'],
- ['Keep useful resources close','Pin an entry or image to keep it above search. Selecting or reading a resource does not show it to players.'],
- ['Read and prepare','Text opens in the center. Use the right panel for narration and private notes. Drag its divider to change its width. Save preparation keeps your edits.'],
- ['Open the player screen','Open player screen creates the separate TV window. The small green light means a player window is connected; red means none is connected.'],
- ['Present with fog','Present a map to players with fog covering it. Shared tabs stay open until either screen closes them. Pictures are shown only when you press Present.'],
- ['Reveal while you play','Reveal and Hide paint fog; the circle shows brush size. Your stroke previews while dragging, then saves on release. Space + drag pans. Room selection never reveals it; Reveal room does.'],
- ['Settings and shared notes','Settings changes DM text size and layout. Shared player notes appear on the TV; DM notes stay private. Player zoom and drawings are temporary. AI stays Off.'],
- ['Keep a backup','Your preparation and fog save automatically as you use their controls. Export backup before moving computers or upgrading. Replay this guide from Settings → Quick tour.']
+ {target:'#search',title:'Find a resource',copy:'Search book entries here. Opening a result changes only your DM view.'},
+ {target:'#resource-type',title:'Choose a resource type',copy:'Use Text, Images or Maps to narrow the results. Collapse all clears the search and closes chapter groups.'},
+ {target:'#translation',view:'text',title:'Prepare narration',copy:'Write narration here. DM notes below stay private. Press Save preparation to keep edits; this form does not send text to players.'},
+ {target:'#inspector [data-action=pin]',view:'text',title:'Keep this entry nearby',copy:'Pin resource keeps this entry above search, even when you change the search text.'},
+ {target:'#inspector-divider',view:'text',title:'Resize your reading space',copy:'Drag this divider left or right. Focus it and use the arrow keys for smaller adjustments.'},
+ {target:'[data-action=player]',title:'Open the TV window',copy:'Open player screen creates the separate player window. The adjacent light turns green while that window is connected. The tour does not open it for you.'},
+ {target:'[data-action=present]',view:'map',title:'Present this map',copy:'This sends the selected map to a player tab with its saved fog. A new map starts covered. Existing revealed areas stay revealed. Nothing is presented by this tour.'},
+ {target:'[data-action=mode-reveal]',view:'map',title:'Reveal or cover areas',copy:'Reveal removes fog; Hide puts it back. Drag to preview a stroke, then release to save and share it. Space + drag pans instead.'},
+ {target:'#brush',view:'map',title:'Set the brush size',copy:'This slider changes the radius shown by the map cursor. It follows the map zoom. Selecting a room never reveals it.'},
+ {target:'#region-select',view:'map',title:'Choose a room',copy:'Choose a room to read and prepare it beside the map. Reveal room is a separate action. Draw boundary replaces an incorrect room edge.'},
+ {target:'#dm-tabs',view:'map',title:'Manage the player tabs',copy:'Presented maps and pictures stay here. Select a tab to change the TV view, close one tab with ×, or use Close all. Players can select and close tabs too.'},
+ {target:'[data-action=settings]',title:'Adjust display or replay',copy:'Settings changes DM text size and layout. Quick tour replays this guide. Return to Workspace to export a backup before moving computers.'}
 ]};
-function renderTour(){const t=activeTour;if(!t)return;const steps=tourSteps[t.phase]||tourSteps.adventure,[title,copy]=steps[t.index];modal(`<div class="tour"><p class="eyebrow">Quick tour · ${t.index+1} of ${steps.length}</p><h2>${esc(title)}</h2><p>${esc(copy)}</p><progress value="${t.index+1}" max="${steps.length}" aria-label="Tour progress"></progress><div class="row">${button('tour-close','Skip tour','quiet')}${t.index?button('tour-back','Back','quiet'):''}${button('tour-next',t.index===steps.length-1?'Start exploring':'Next','primary')}</div></div>`);}
-async function finishTour(){const t=activeTour;activeTour=null;$('#dialog').close();if(t)await request('tutorial',{workspace:t.wid,adventure:t.aid,phase:t.phase,action:'complete'}).catch(()=>{});}
-
+let tourFrame=0;
+function clearTour(){cancelAnimationFrame(tourFrame);tourFrame=0;$('#tour-layer')?.remove();document.removeEventListener('scroll',queueTourPosition,true);window.removeEventListener('resize',queueTourPosition);}
+function queueTourPosition(){cancelAnimationFrame(tourFrame);tourFrame=requestAnimationFrame(positionTour);}
+function positionTour(){
+  const layer=$('#tour-layer'),t=activeTour;if(!layer||!t)return;
+  const step=t.steps[t.index],target=$(step.target),card=$('.tour',layer),spot=$('.tour-focus',layer),arrow=$('svg',layer);
+  if(!target||!target.getClientRects().length){spot.hidden=true;arrow.hidden=true;Object.assign(card.style,{left:'12px',top:'80px'});return;}
+  const r=target.getBoundingClientRect(),w=innerWidth,h=innerHeight,cw=Math.min(350,w-24);card.style.width=cw+'px';
+  const ch=card.getBoundingClientRect().height,gap=24;
+  let x,y;
+  if(w-r.right>=cw+gap+12){x=r.right+gap;y=r.top;}
+  else if(r.left>=cw+gap+12){x=r.left-cw-gap;y=r.top;}
+  else{x=(w-cw)/2;y=h-r.bottom>=ch+gap+12?r.bottom+gap:r.top-ch-gap;}
+  x=Math.max(12,Math.min(w-cw-12,x));y=Math.max(12,Math.min(h-ch-12,y));Object.assign(card.style,{left:x+'px',top:y+'px'});
+  const left=Math.max(4,r.left-5),top=Math.max(4,r.top-5),right=Math.min(w-4,r.right+5),bottom=Math.min(h-4,r.bottom+5);
+  spot.hidden=false;Object.assign(spot.style,{left:left+'px',top:top+'px',width:Math.max(1,right-left)+'px',height:Math.max(1,bottom-top)+'px'});
+  const tx=(left+right)/2,ty=(top+bottom)/2,cx=x+cw/2,cy=y+ch/2;
+  const dx=tx-cx,dy=ty-cy,ratio=1/Math.max(Math.abs(dx)/(cw/2+6),Math.abs(dy)/(ch/2+6),1),sx=cx+dx*ratio,sy=cy+dy*ratio;
+  const tr=1/Math.max(Math.abs(dx)/Math.max(6,(right-left)/2+10),Math.abs(dy)/Math.max(6,(bottom-top)/2+10),1),ex=tx-dx*tr,ey=ty-dy*tr;
+  arrow.hidden=false;arrow.setAttribute('viewBox',`0 0 ${w} ${h}`);$('path',arrow).setAttribute('d',`M ${sx} ${sy} L ${ex} ${ey}`);
+}
+function renderTour(){
+  const t=activeTour;if(!t)return;clearTour();const steps=t.steps,step=steps[t.index];
+  if(step.view==='text'&&S.graph?.entries.length&&S.view!=='text')openEntry(S.entry||S.graph.entries[0].id);
+  if(step.view==='map'&&(S.view!=='media'||selectedMedia()?.kind!=='map')){const m=dmMedia().find(m=>m.kind==='map');if(m)openMedia(m.id);}
+  const target=$(step.target);
+  if(!target||!target.getClientRects().length){if(t.index<steps.length-1){t.index++;return renderTour();}return finishTour();}
+  target.scrollIntoView({block:'nearest',inline:'nearest',behavior:'instant'});
+  const layer=document.createElement('div');layer.id='tour-layer';layer.setAttribute('popover','manual');
+  layer.innerHTML=`<div class="tour-focus" aria-hidden="true"></div><svg class="tour-arrow" aria-hidden="true"><defs><marker id="tour-head" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 6 3, 0 6" fill="#fff1bf"/></marker></defs><path marker-end="url(#tour-head)"/></svg><section class="tour" role="dialog" aria-modal="false" aria-labelledby="tour-title"><p class="eyebrow">Quick tour · ${t.index+1} of ${steps.length}</p><h2 id="tour-title">${esc(step.title)}</h2><p>${esc(step.copy)}</p><div class="row">${button('tour-close','Skip tour','quiet')}${t.index?button('tour-back','Back','quiet'):''}${button('tour-next',t.index===steps.length-1?'Done':'Next','primary')}</div></section>`;
+  document.body.append(layer);layer.showPopover();positionTour();queueTourPosition();
+  document.addEventListener('scroll',queueTourPosition,true);window.addEventListener('resize',queueTourPosition);$('[data-action=tour-next]',layer).focus({preventScroll:true});
+}
+async function finishTour(){
+  const t=activeTour;activeTour=null;clearTour();
+  if(t?.restore&&S.graph&&S.wid===t.wid&&S.aid===t.aid){capturePreparation();Object.assign(S,t.restore);renderContent();}
+  if(t)await request('tutorial',{workspace:t.wid,adventure:t.aid,phase:t.phase,action:'complete'}).catch(()=>{});
+}
+document.addEventListener('keydown',e=>{if(activeTour&&e.key==='Escape'){e.preventDefault();finishTour();}});
 let disposeHome = null;
 function disposeStage() { disposeHome?.(); disposeHome=null; S.stage?.dispose(); S.stage = null; }
 function home() {
@@ -137,13 +177,13 @@ function home() {
 
 async function openWorkspace(wid) {
   S.wid = wid; S.overview = await request('workspace'); S.graph = null; S.aid = null; disposeStage();
-  $('#app').innerHTML = header() + `<main class="home"><p class="eyebrow">Workspace</p><h1>${esc(S.overview.meta.name)}</h1>
+  $('#app').innerHTML = header() + `<main class="home workspace-home"><p class="eyebrow">Workspace</p><h1>${esc(S.overview.meta.name)}</h1>
     <p>${esc(S.overview.meta.rules)} · Preparation language: ${esc(S.overview.meta.language)}</p>
     <div class="row">${button('import','Add adventure','primary')}${button('backup','Export backup','quiet')}</div>
     ${(S.overview.modules||[]).filter(m=>m.enabled&&m.kind==='campaign-desk-v1'&&m.schema===1).map(m=>`<section class="card prepared-workspace"><h2>${esc(m.title)}</h2><p>Prepared campaign · ${m.summary?.maps||0} maps · ${m.summary?.characters||0} characters · authored scenes, resources and saved table state.</p><p>${S.overview.rules_connected?'2014 rules library connected.':'Connect your local 2014 library to use source links and character rules. Your campaign files are already imported.'}</p><div class="row">${button('prepared','Open prepared campaign','primary')}${button('connect-rules',S.overview.rules_connected?'Change rules library':'Connect 2014 library','quiet')}${button('workspace-files','Browse files','quiet')}</div></section>`).join('')}
     <div class="cards">${S.overview.adventures.map(a => `<article class="card"><h2>${esc(a.name)}</h2>
       <p class="count">${a.maps} maps · ${a.pictures} pictures${a.warnings ? ` · ${a.warnings} import warnings` : ''}</p>
-      ${button('adventure','Open adventure','',`data-id="${a.id}"`)}</article>`).join('')}</div>
+      <div class="row">${button('adventure','Open adventure','primary',`data-id="${a.id}"`)}${button('remove-adventure','Remove','quiet',`data-id="${a.id}"`)}</div></article>`).join('')}</div>
     ${!S.overview.adventures.length&&!S.overview.modules?.length ? '<div class="empty"><h2>Add your first adventure</h2><p>Use your existing local 5e.tools copy, or install one at a location you choose.</p></div>' : ''}</main>`;
 }
 async function openAdventure(aid) {
@@ -413,10 +453,11 @@ async function exportBackup(){
   if(result)$('#backup-download')?.click();
 }
 async function onAction(b) {
+  if(activeTour&&!b.dataset.action.startsWith('tour-')&&['home','workspace','adventure','import','restore','new-workspace','remove-workspace','remove-adventure'].includes(b.dataset.action))await finishTour();
   if(b.dataset.action==='quick-tour'){closeSettings();return showTour(S.aid?'adventure':'workspace',true);}
   if(b.dataset.action==='tour-close')return finishTour();
   if(b.dataset.action==='tour-back'&&activeTour){activeTour.index=Math.max(0,activeTour.index-1);return renderTour();}
-  if(b.dataset.action==='tour-next'&&activeTour){if(activeTour.index===(tourSteps[activeTour.phase]||tourSteps.adventure).length-1)return finishTour();activeTour.index++;return renderTour();}
+  if(b.dataset.action==='tour-next'&&activeTour){if(activeTour.index===activeTour.steps.length-1)return finishTour();activeTour.index++;return renderTour();}
   const a = b.dataset.action, m = selectedMedia();
   if(a==='check-update'){
     b.disabled=true;const info=$('#update-info');info.textContent='Checking GitHub releases…';
@@ -446,7 +487,21 @@ async function onAction(b) {
   }
   if (a === 'adventure') return openAdventure(b.dataset.id);
   if (a === 'dismiss') return activeTour?finishTour():dismiss();
-  if (a === 'new-workspace') return modal(`<h2>New workspace</h2><form data-form="workspace"><label for="workspace-name">Name</label><input name="name" id="workspace-name" required maxlength="100" autofocus>
+  if (a === 'remove-workspace' || a === 'remove-adventure') {
+    const workspace=a==='remove-workspace',item=(workspace?S.boot.workspaces:S.overview.adventures).find(x=>x.id===b.dataset.id);
+    if(!item)return;
+    return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Cancel removal"')}<h2>Remove ${esc(item.name)}?</h2><p>${workspace?'This workspace leaves My adventures. A local recovery copy is kept on this computer.':'This removes the adventure, its preparation, pins and saved session from this workspace. Export a backup first if you want to keep them.'}</p><p>Original source files stay unchanged.</p><div class="row">${button(workspace?'confirm-remove-workspace':'confirm-remove-adventure','Remove','danger',`data-id="${item.id}"`)}${button('dismiss','Cancel','quiet')}</div>`);
+  }
+  if(a==='confirm-remove-workspace'||a==='confirm-remove-adventure'){
+    b.disabled=true;
+    try{
+      if(a==='confirm-remove-workspace'){
+        await request('workspace/remove',{workspace:b.dataset.id,confirm:true});dismiss();S.boot=await request('bootstrap');home();
+      }else{await request('adventure/remove',{adventure:b.dataset.id,confirm:true});dismiss();await openWorkspace(S.wid);}
+      toast('Removed.');
+    }catch(e){b.disabled=false;throw e;}return;
+  }
+  if (a === 'new-workspace') return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close new workspace"')}<h2>New adventure</h2><form data-form="workspace"><label for="workspace-name">Name</label><input name="name" id="workspace-name" required maxlength="100" autofocus>
     <label>Preparation language</label><input name="language" value="English" maxlength="80"><label>Rules profile</label><select name="rules"><option>Unspecified</option><option>2014</option><option>2024</option><option>Other</option></select>
     <div class="row"><button type="submit" class="primary">Create workspace</button>${button('dismiss','Cancel','quiet')}</div></form>`);
   if (a === 'import') return importDialog();

@@ -1,28 +1,19 @@
-# Session Desk 0.1.1
+# Session Desk 0.1.2
 
-Windows x64 desktop release. Extract the entire application ZIP and run **SessionDesk.exe**; keep _internal beside it. No Python, Git, Node or AI account is required.
+Windows x64 regular desktop release. Extract the whole ZIP and run SessionDesk.exe; keep _internal beside it. Existing 0.1.1 users can update through Settings.
 
-## New experience
-- Animated offline Canvas cross-art landscape with a translucent beige workspace home and a clearer loading screen.
-- Last validated/installed 5e.tools library is ready for the next adventure or workspace, with an option to change it.
-- Guided workspace/import tours, with replay in Settings.
-- Draggable right preparation panel; DM text scaling includes the central reader. Settings closes on outside click or Escape.
-- Cleaner book navigation: page subtitles, image captions and source codes.
-- Precise 5e.tools links for creature statblocks, spells, backgrounds, classes and other supported reference tags.
-- Direct **Present to players · with fog**, without an image-review checkbox. Maps open covered; the DM reveals what players can see.
-- Clear hidden/revealed indicators, immediate brush preview during drag, and opaque textured player fog.
-- Green/red player-window connection indicator.
+## Changes
+- Remove workspaces from My adventures, or remove individual imported adventures from a workspace, with confirmation and Cancel.
+- Workspace removal keeps a local recovery copy under the app data folder. Adventure removal clears its preparation, pins and saved session; export a backup first. Other adventures, shared images and original source libraries stay intact. Removal waits for active imports/backups/downloads to finish.
+- Minimal home text with larger labels. Workspace, new-adventure and import windows share the warm glass style.
+- A guided tutorial highlights the actual control and points to it with an arrow. Steps adapt to available text/maps, move through the reading and map views, and restore the initial DM selection afterward. Back, Next, Skip and Escape work; replay from Settings. The tutorial never presents media or changes saved fog. The new guide is offered once even if an older tour was completed.
 
-## In-app updates
-Use **Settings → Check for updates → Download and install → Restart into update** for future regular releases. Updates verify the official GitHub release ZIP checksum and every packaged file, install side by side, and keep the same user-data folder. Imported adventures, preparation, notes, images and fog are retained; no automatic re-import replaces authored work. Downloads are user-triggered, cancellable before commit and recoverable after interruption. Save open edits before restarting.
+## Updates and data
+Use Settings → Check for updates → Download and install → Restart into update. The verified release installs side by side and uses the same workspace data. No re-import replaces authored work. Save edits and export a private backup before updating.
 
-Older preview builds need this one manual download to gain the updater. Users of 0.1.0 also need to launch the extracted 0.1.1 EXE and point their shortcut to it once to gain persistent launch forwarding. Keep old application folders as rollback; never replace your workspace folder with release files.
+Launchers from 0.1.1 onward forward to verified installed updates on future starts. Preview/0.1.0 users need one manual download and shortcut change. Prior releases remain available for rollback. No workspace schema change is introduced.
 
 ## Validation and limits
-Automated Python, Node, source/frozen browser, archive/provenance and lifecycle tests run locally and in Windows CI with original synthetic fixtures. Private/source-library acceptance runs remain local and are excluded from releases. The owner reported successful main-PC installation/testing; physical laptop/friend-PC coverage and full visual review of every source map remain incomplete.
+Synthetic Python/Node tests, source and frozen browser workflows, checksum/provenance audits and extracted-EXE smoke checks run locally and in Windows CI. Private/source-library checks stay outside the public repository and releases. The owner reported successful main-PC use of the preceding release. Physical laptop/friend-PC coverage and complete source-map geometry acceptance remain deferred.
 
-The package is unsigned. AI stays Off/unavailable. No books, official artwork, campaigns, characters or credentials are bundled. The home landscape is original app artwork. PDF/OCR, remote/LAN players and AI generation remain deferred. Temporary drawing/token positions/camera remain temporary.
-
-Export backup before moving computers or upgrading, and keep backups private. Report the app version, Windows version and steps when giving feedback.
-
-Starting with a 0.1.1 launcher, choosing Restart into update records the newer verified installation; that launcher and shortcuts pointing to it then forward on subsequent launches. Executables from 0.1.0 or earlier cannot forward and must be replaced or their shortcut changed once. Invalid or modified launch targets fall back to the original working build.
+Unsigned Windows x64 package. AI stays Off. No books, source artwork, campaigns, characters or credentials are bundled. PDF/OCR, remote/LAN play and AI generation remain deferred. Temporary drawings, token positions and camera state retain their temporary behavior.

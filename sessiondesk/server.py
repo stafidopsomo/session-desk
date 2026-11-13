@@ -229,6 +229,15 @@ class Application:
             return self.transfers.start_job('update', install)
         if path == '/api/update/restart':
             return self.restart_update()
+        if path in ('/api/workspace/remove', '/api/adventure/remove'):
+            if body.get('confirm') is not True:
+                raise UserError('Confirm removal first.')
+            with self.transfers.lock:
+                if self.transfers.busy():
+                    raise UserError('Wait for the current import, backup or download before removing content.')
+                if path == '/api/workspace/remove':
+                    return store.remove_workspace(body['workspace'])
+                return store.remove_adventure(body['workspace'], body['adventure'])
         if path == "/api/workspace/create":
             return store.create(body.get("name", ""), body.get("language", "English"), body.get("rules", "Unspecified"))
         if path == "/api/workspace":

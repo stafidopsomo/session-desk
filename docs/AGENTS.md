@@ -36,3 +36,5 @@
 - The owner explicitly requested a regular GitHub release. The scoped initial product-v0.1.0 desktop release may publish after exact-tree automated/package evidence is complete, with owner_main_pc recorded from the report. Laptop/full source geometry testing remains deferred, never invented; alpha_ready stays false. This decision changes the release-channel label, not the validation/privacy requirements. Keep prior previews immutable.
 
 - The same November 13 internal-update request includes product-v0.1.1 to complete verified persistent launch forwarding through existing shortcuts. Repeat exact-tree/package checks and preserve 0.1.0 immutable; no additional campaign/data migration or hardware acceptance is implied.
+
+- November 14 owner request: product-v0.1.2 regular release adds confirmed adventure/workspace removal, minimal larger home labels, coherent onboarding styling and control-anchored tutorials. Test and install it on this PC before campaign adoption. Exact-tree/package/privacy gates remain required; keep previous releases immutable and do not touch the personal campaign during product development.

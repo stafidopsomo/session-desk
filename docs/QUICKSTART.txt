@@ -1,4 +1,4 @@
-SESSION DESK 0.1.1 — WINDOWS X64 DESKTOP RELEASE
+SESSION DESK 0.1.2 — WINDOWS X64 DESKTOP RELEASE
 
 Have a supported prepared-campaign or Session Desk backup? Choose Restore
 backup on the home screen. A new workspace is created; your original stays
@@ -75,3 +75,14 @@ Changed source snapshots must be imported into a new workspace to preserve
 existing preparation. Backup ZIPs contain your imported source content;
 keep them private. Temporary drawings are not saved. Native folder selection
 is optional; pasting the folder path works as well.
+
+Use Remove on a home card to remove a workspace from the list. A local
+recovery copy stays under removed-workspaces in the app data directory.
+Inside a workspace, Remove on a book card deletes that adventure’s
+preparation, pins and saved session after confirmation. Export backup first.
+Original source libraries and other adventures stay unchanged. Shared
+image storage is retained so other adventures keep their assets.
+
+Quick tour highlights the actual controls with an arrow and short steps.
+Use Back/Next, Skip tour or Escape; replay from Settings. The tour only
+changes the DM selection. It never presents media or changes saved fog.

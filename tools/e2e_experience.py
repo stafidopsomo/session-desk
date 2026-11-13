@@ -21,17 +21,23 @@ def run(exe=None,artifacts=None):
    expect(page.get_by_role('button',name='New workspace',exact=True)).to_be_visible()
    if artifacts:
     artifacts.mkdir(parents=True,exist_ok=True);page.screenshot(path=str(artifacts/'home.png'))
+   page.set_viewport_size({'width':390,'height':844})
+   assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+   if artifacts:page.screenshot(path=str(artifacts/'home-mobile.png'))
+   page.set_viewport_size({'width':1500,'height':1000})
    page.goto(ready['url']+'#dm='+ready['token'])
    page.get_by_role('button',name='New workspace',exact=True).click()
    page.locator('#workspace-name').fill('Original guided workspace')
    page.get_by_role('button',name='Create workspace',exact=True).click()
-   expect(page.locator('#dialog .tour')).to_be_visible()
+   expect(page.locator('#tour-layer .tour')).to_be_visible()
    page.get_by_role('button',name='Next',exact=True).click()
    expect(page.locator('.tour .eyebrow')).to_contain_text('2 of')
    page.get_by_role('button',name='Skip tour',exact=True).click()
    page.get_by_role('button',name='Add adventure',exact=True).click()
    expect(page.locator('#library-path')).to_have_value(str(lib.resolve()))
    expect(page.locator('#source-status')).to_contain_text('Local 5e.tools copy found')
+   assert page.locator('#dialog').evaluate('e=>getComputedStyle(e).color')=='rgb(41, 61, 50)'
+   if artifacts:page.screenshot(path=str(artifacts/'import.png'))
    page.get_by_role('button',name='Close Add adventure',exact=True).click()
    page.goto(ready['url']+'?workspace='+wid+'&tutorial=off#dm='+ready['token'])
    page.get_by_role('button',name='Open adventure',exact=True).click()
@@ -59,7 +65,32 @@ def run(exe=None,artifacts=None):
    page.get_by_role('button',name='Settings',exact=True).click();page.keyboard.press('Escape');expect(page.locator('#settings')).to_have_count(0)
    page.locator('.book-navigation').get_by_role('button',name='The observatory',exact=True).click();reader=page.locator('.sourceview');old=reader.evaluate('e=>parseFloat(getComputedStyle(e).fontSize)')
    page.get_by_role('button',name='Settings',exact=True).click();page.locator('#text-size').fill('135');assert reader.evaluate('e=>parseFloat(getComputedStyle(e).fontSize)')>old*1.3
-   page.get_by_role('button',name='Quick tour',exact=True).click();expect(page.locator('#dialog .tour')).to_be_visible();page.get_by_role('button',name='Next',exact=True).click();expect(page.locator('.tour .eyebrow')).to_contain_text('2 of');page.get_by_role('button',name='Skip tour',exact=True).click();expect(page.locator('#dialog')).not_to_be_visible()
+   page.get_by_role('button',name='Quick tour',exact=True).click();expect(page.locator('#tour-layer .tour')).to_be_visible();page.get_by_role('button',name='Next',exact=True).click();expect(page.locator('.tour .eyebrow')).to_contain_text('2 of');page.get_by_role('button',name='Skip tour',exact=True).click();expect(page.locator('#dialog')).not_to_be_visible()
+   page.get_by_role('button',name='Settings',exact=True).click();page.get_by_role('button',name='Quick tour',exact=True).click()
+   session_before=call(ready,'session',scope)
+   seen=[]
+   while page.locator('#tour-layer').count():
+    target=page.locator('#tour-layer .tour-focus').bounding_box();card=page.locator('#tour-layer .tour').bounding_box()
+    assert target and target['width']>0 and target['height']>0
+    assert card['x']>=0 and card['y']>=0 and card['x']+card['width']<=1501 and card['y']+card['height']<=1001,card
+    seen.append(page.locator('#tour-title').inner_text())
+    if artifacts and len(seen)==7:
+     page.wait_for_timeout(200);assert page.locator('#tour-title').evaluate('e=>getComputedStyle(e).color')=='rgb(41, 60, 49)'
+     page.screenshot(path=str(artifacts/'guided-map.png'))
+    page.locator('#tour-layer [data-action=tour-next]').click()
+   assert 'Prepare narration' in seen and 'Present this map' in seen and 'Set the brush size' in seen,seen
+   assert call(ready,'session',scope)==session_before,'Tour changed the player session'
+   player.close()
+   page.get_by_role('button',name='Workspace',exact=True).click()
+   page.locator('[data-action=remove-adventure]').click();page.get_by_role('button',name='Cancel',exact=True).click()
+   expect(page.get_by_role('button',name='Open adventure',exact=True)).to_be_visible()
+   page.locator('[data-action=remove-adventure]').click();page.locator('[data-action=confirm-remove-adventure]').click()
+   expect(page.get_by_role('button',name='Open adventure',exact=True)).to_have_count(0)
+   page.get_by_role('button',name='Workspaces',exact=True).click()
+   page.get_by_role('button',name='Remove Original UI check',exact=True).click();page.get_by_role('button',name='Cancel',exact=True).click()
+   expect(page.get_by_role('button',name='Remove Original UI check',exact=True)).to_be_visible()
+   page.get_by_role('button',name='Remove Original UI check',exact=True).click();page.locator('[data-action=confirm-remove-workspace]').click()
+   expect(page.get_by_role('button',name='Remove Original UI check',exact=True)).to_have_count(0)
    if artifacts:page.screenshot(path=str(artifacts/'session.png'))
    assert not errors,errors
    context.close();browser.close();print('PASS: direct present, fog visibility/live preview, resizable inspector, settings close/central scaling, LED and tutorial replay; zero JS errors.')

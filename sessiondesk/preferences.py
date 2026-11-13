@@ -38,7 +38,7 @@ class Preferences:
     def tutorial(self, workspace, phase, adventure, action):
         if phase not in ('workspace','adventure') or action not in ('get','complete'):
             raise UserError('Unknown tutorial action.')
-        key = ':'.join((workspace, phase, adventure or ''))
+        key = ':'.join((workspace, phase, adventure or '', 'guided-v2'))
         with self.lock:
             tours = self.read().get('tutorials', {})
             if action == 'complete':

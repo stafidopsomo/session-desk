@@ -4,9 +4,9 @@ A local Windows app for preparing a tabletop adventure and showing maps, picture
 
 [![Windows checks](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml/badge.svg?branch=main)](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml)
 
-**0.1.1 — Windows x64 desktop release.** Laptop/friend-PC testing is pending. AI is Off and unavailable.
+**0.1.2 — Windows x64 desktop release.** Laptop/friend-PC testing is pending. AI is Off and unavailable.
 
-[**Download the Windows application ZIP**](https://github.com/stafidopsomo/session-desk/releases/download/product-v0.1.1/SessionDesk-0.1.1-windows-x64.zip) · [Release notes and SHA-256 checksum](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.1.1)
+[**Download the Windows application ZIP**](https://github.com/stafidopsomo/session-desk/releases/download/product-v0.1.2/SessionDesk-0.1.2-windows-x64.zip) · [Release notes and SHA-256 checksum](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.1.2)
 
 ## Start
 
@@ -45,7 +45,7 @@ The root [ci.ps1](../ci.ps1) is the canonical Windows job; GitHub's wrapper is u
 [Developer guide](../docs/README.md) · [Short instructions](../docs/QUICKSTART.txt) · [Build status](../docs/BUILD-STATUS.md) · [Migration](../docs/MIGRATION.md) · [Release process](../docs/RELEASE-PIPELINE.md)
 
 
-## 0.1.1 workflow improvements
+## 0.1.2 workflow improvements
 
 The workspace home has offline animated cross artwork and a translucent beige panel. Guided tours explain Resources, preparation, player tabs, Settings and fog. The source library is remembered for later imports. Drag the preparation divider, scale both reader/panel text, and present maps covered with fog using one button. Live DM brush feedback and the player-connection LED make sharing state visible. Source creature/spell/background references link directly to the selected local 5e.tools copy.
 

@@ -17,3 +17,27 @@ body:has(.desk-home) .top{background:#172b29;color:#e9ebdc;border-bottom-color:#
 @media(prefers-reduced-motion:reduce){.desk-home *{scroll-behavior:auto!important;transition:none!important}.home-ascii{opacity:.75}}
 
 .startup-screen{min-height:100dvh;display:grid;place-items:center;background:#203e35;color:#263e34}.startup-card{background:#ede8d9e8;backdrop-filter:blur(18px);border:1px solid #fff9;border-radius:22px;padding:3rem;text-align:center}.startup-card h1{font-family:Georgia,serif;font-weight:400}.startup-spinner{display:inline-block;width:24px;height:24px;border:2px solid #49675544;border-top-color:#365d48;border-radius:50%;animation:startup-spin 1s linear infinite}@keyframes startup-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.startup-spinner{animation:none}}
+
+/* Shared onboarding surface, with the same landscape and warm glass as Home. */
+.home-window-top{font-size:16px}.home-local{font-size:13px}.home-intro{padding-top:30px}.home-intro h1{margin-bottom:26px;font-size:clamp(38px,4vw,54px)}
+.home-actions button{font-size:16px}.home-restore{font-size:14px!important}.home-list-title h2{font-family:inherit;font-size:22px}.home-list-title>span,.home-total{font-size:13px}
+.home-workspaces{grid-template-columns:1fr;max-height:330px}.home-workspace-copy h3{font-size:17px}.home-workspace-copy p{font-size:13px!important}.home-workspace>button{font-size:14px!important}.home-workspace .home-remove{color:#8b4d3e!important}.home-empty h3{font-size:16px}.home-foot{font-size:13px}
+body:has(.workspace-home){background:#263e38 url('./hero.svg') center/cover fixed no-repeat}
+.workspace-home{margin:40px auto;width:min(1000px,calc(100% - 32px));padding:32px;border:1px solid #fff9;border-radius:22px;background:#ede8d9e8;backdrop-filter:blur(24px);box-shadow:0 25px 85px #071f2255;color:#283d31;min-height:420px}
+.workspace-home h1{font-size:32px}.workspace-home p,.workspace-home .eyebrow{color:#5b695a}.workspace-home .card{background:#fff8e880;border-color:#84907866}.workspace-home .card h2{font-size:21px}.workspace-home .card p{font-size:15px}.workspace-home .empty{color:#596b57}.workspace-home button{font-size:15px}
+body:has(.desk-home,.workspace-home) dialog{background:#eee9dbee;backdrop-filter:blur(24px);color:#293d32;border-color:#fff9;border-radius:20px;box-shadow:0 25px 90px #0b252855;font-size:16px}
+body:has(.desk-home,.workspace-home) dialog::backdrop{background:#142f2c66;backdrop-filter:blur(5px)}
+body:has(.desk-home,.workspace-home) dialog input,body:has(.desk-home,.workspace-home) dialog select{background:#fffaf0b0;color:#293d32;border-color:#85927b90;font-size:16px}
+body:has(.desk-home,.workspace-home) button{background:#f7f1e3;color:#304b38;border-color:#89967e99}body:has(.desk-home,.workspace-home) button.primary{background:#304f3b;color:#fff7e5;border-color:#304f3b}
+body:has(.desk-home,.workspace-home) dialog .muted{color:#5d6d58}body:has(.workspace-home) .notice{background:#e0dfc7;color:#354832;border-color:#91a177}.danger{color:#f3b8a9;border-color:#ac6656}body:has(.desk-home,.workspace-home) button.danger{background:#8e4235;color:#fff7e5;border-color:#8e4235}
+#tour-layer{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;overflow:visible;background:transparent;pointer-events:none;color:#293c31}
+#tour-layer::backdrop{background:transparent;pointer-events:none}.tour-focus{position:fixed;border:2px solid #fff1bf;border-radius:7px;box-shadow:0 0 0 9999px #091820a8,0 0 20px #ffe6ac60;pointer-events:none;transition:opacity .15s}
+#tour-layer .tour{position:fixed;background:#f1ecdd;border:1px solid #fff7e5;border-radius:14px;box-shadow:0 15px 60px #071c2455;padding:20px;pointer-events:auto;max-height:calc(100dvh - 24px);overflow:auto;animation:tour-appear .16s ease-out}
+#tour-layer .tour h2{font-size:21px;margin:6px 0 12px}#tour-layer .tour p{font-size:15px;line-height:1.55;color:#50634f}#tour-layer .tour .eyebrow{font-size:12px;margin:0}#tour-layer .tour .row{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}#tour-layer button{font-size:14px;background:#e4dfce;border-color:#afbaa1;color:#304b38}#tour-layer button.primary{background:#304f3b;color:#fff7e5}#tour-layer .tour-arrow{position:fixed;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}#tour-layer .tour-arrow path{fill:none;stroke:#fff1bf;stroke-width:2}
+@keyframes tour-appear{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:650px){.workspace-home{padding:22px;margin:18px auto}.home-window-top{font-size:15px}.home-local{font-size:12px}.home-actions button{font-size:14px}.home-workspace{gap:6px;padding:12px 8px}.home-workspace-symbol{display:none}.home-workspace-copy h3{font-size:15px}.home-workspace>button{font-size:13px!important}}
+@media(prefers-reduced-motion:reduce){#tour-layer .tour{animation:none}.tour-focus{transition:none}}
+
+#tour-layer .tour h2{color:#293c31;font-family:inherit}#tour-layer .tour>p:not(.eyebrow){min-height:0}
+
+body:has(.desk-home,.workspace-home) dialog label,body:has(.desk-home,.workspace-home) dialog summary,body:has(.desk-home,.workspace-home) dialog small{color:#50634f}body:has(.desk-home,.workspace-home) .source-modes button.active{background:#304f3b;color:#fff7e5}body:has(.desk-home,.workspace-home) dialog progress{accent-color:#304f3b}
