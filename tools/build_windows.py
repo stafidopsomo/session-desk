@@ -63,7 +63,7 @@ def main():
     dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT).strip())
     manifest = {"version": __version__, "commit": commit, "dirty_source": dirty,
                 "product_digest": product_digest(),
-                "target": "windows-x64", "signing": "unsigned", "kind": "development-preview",
+                "target": "windows-x64", "signing": "unsigned", "kind": "desktop-release" if "-" not in __version__ else "development-preview",
                 "python": platform.python_version(), "ai": False, "files": records}
     (folder / "MANIFEST.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     archive = ROOT / "dist" / f"SessionDesk-{__version__}-windows-x64.zip"
@@ -73,7 +73,7 @@ def main():
                 out.write(file, file.relative_to(folder).as_posix())
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     archive.with_suffix(".zip.sha256").write_text(f"{digest}  {archive.name}\n", encoding="utf-8")
-    print(f"Development package: {archive.name}; {len(records)} reviewed files; unsigned; AI Off")
+    print(f"Windows package: {archive.name}; {len(records)} reviewed files; unsigned; AI Off")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-Session Desk - Windows x64 preview 0.1.0-preview.2
+Session Desk - Windows x64 preview 0.1.0
 
 User-facing project overview: .github/README.md
 Developer documentation and instructions: docs/README.md and docs/AGENTS.md

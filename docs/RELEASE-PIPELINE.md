@@ -85,3 +85,8 @@ After publication, independently download the public asset without GitHub creden
 ## Reviewed correction prerelease
 
 The November 12 owner request for review/corrections/rebuild authorizes the version-scoped product-v0.1.0-preview.2 deliverable for next-day testing. It repeats all automated/privacy/package requirements and retains hardware/full visual deferrals. The prior first-preview decision does not implicitly authorize it: the release policy and acceptance record require its own reviewed_windows_preview scope. Future preview.3 is still rejected without a new scoped decision; full alpha gates are unchanged. Published preview.1 files/tags are never replaced.
+
+
+## Initial regular desktop release
+
+The November 13 owner report confirms main-PC testing and explicitly requests a regular release rather than a prerelease. product-v0.1.0 therefore requires release_ready, the initial_desktop_release decision, the owner report and exact-tree automated/privacy/package checks. Hardware/full-geometry deferrals remain explicit and alpha_ready remains false. The workflow publishes stable version tags with --latest and prerelease versions with --prerelease, after the same archive verification. The in-app updater reads only the fixed official latest regular release endpoint and never silently installs previews. Existing workspaces and machine-local sources stay outside installed applications. A fresh verified archive must match every file before a staged existing version can be reused.

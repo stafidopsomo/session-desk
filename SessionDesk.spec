@@ -5,7 +5,7 @@ root = Path(SPECPATH)
 static = root / "sessiondesk" / "static"
 a = Analysis([str(root / "launcher.pyw")], pathex=[str(root)],
              binaries=[], datas=[(str(static / name), "sessiondesk/static")
-                for name in ("index.html", "app.js", "book.js", "style.css", "icon.svg")] +
+                for name in ("index.html", "app.js", "book.js", "style.css", "icon.svg", "home.js", "home.css", "hero.svg")] +
                 [(str(static / 'prepared' / name), "sessiondesk/static/prepared") for name in (
                     'index.html', 'player.html', 'shop.html', 'app.js', 'player.js', 'shop.js',
                     'after-citadel.js', 'map.js', 'tokens.js', 'characters.js', 'layout.js',

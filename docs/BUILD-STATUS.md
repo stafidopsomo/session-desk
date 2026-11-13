@@ -1,6 +1,6 @@
 # Windows core build status
 
-Updated November 11, 2026. Version **0.1.0-preview.2**, unsigned Windows preview prerelease. No completed alpha is claimed.
+Updated November 11, 2026. Version **0.1.0**, unsigned initial Windows desktop release. No completed alpha is claimed.
 
 ## Implemented
 
@@ -17,7 +17,7 @@ Updated November 11, 2026. Version **0.1.0-preview.2**, unsigned Windows preview
 
 Host: Windows 11 Pro x64 build 26300, Python 3.12.10. Synthetic automated tests use isolated app data and original fixtures. No owned books/private data run in CI or enter its artifacts.
 
-- 109 offline unit/contract tests cover generic import/storage/HTTP, schema upgrades, prepared-file preservation, unknown-module roundtrip, failed/cancelled imports, DM/player separation, 2014 rules, attachment safety and AI rejection.
+- 130 offline unit/contract tests cover generic import/storage/HTTP, schema upgrades, prepared-file preservation, unknown-module roundtrip, failed/cancelled imports, DM/player separation, 2014 rules, attachment safety and AI rejection.
 - Core browser E2E covers first run/import, preparation, book formatting, pins/folds/scroll, boundaries, reveal radius, Space-pan, player tabs/notes/drawing, cancellation, native backup download and restored state.
 - Prepared browser E2E uses Restore, connects a synthetic rules library, edits a sheet, opens guides/shops, shares notes/draws, exports and restores into another data root. It checks that a fresh workspace has no optional panels and blocks/asserts external requests.
 - Frozen smoke/E2E use an isolated profile and hide developer tools from PATH. Extracted-ZIP checks verify hashes, Unicode relocation, persistence, last-window shutdown and unchanged install files. This is not a clean VM or another physical computer.
@@ -48,3 +48,8 @@ All checks must pass for the exact reviewed tree before preview.2 publication. L
 
 
 Reviewed candidate b952549 passed [GitHub Windows run 43119376138](https://github.com/stafidopsomo/session-desk/actions/runs/43119376138) and the full local root job: 109 Python tests, Node checks, source/frozen browser regressions and extracted-package lifecycle/relocation. Seven owned adventures completed frozen import/export/restore without warnings; the private full-file campaign roundtrip and rendered-fog comparison passed. Only aggregate evidence is committed. The tag pipeline repeats the exact build checks and verifies its same-run archive before publication.
+
+
+## Initial desktop release 0.1.0
+
+November 13: owner main-PC installation/testing report is positive. The requested ordinary GitHub release is separately scoped in acceptance; untested laptop/full source-map geometry remains deferred. New browser regressions exercise the offline animated home, actual first-run tour, remembered source prefill, direct fully-covered presentation, live brush pixels before release, inspector resize, central-reader scaling, settings dismissal and real player heartbeat LED. Entity links have seven Node checks. Eleven fake-transport updater tests cover trusted URLs, content hashes, traversal, cancellation, failure, existing-install protection and verified retry. Native process-wait/restart-failure tests preserve current app availability. No startup update network polling occurs.

@@ -1,4 +1,5 @@
 import {bookContext,renderSource} from './book.js';
+import {mountHome} from './home.js';
 const $ = (s, root = document) => root.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fragment = new URLSearchParams(location.hash.slice(1));
@@ -13,7 +14,8 @@ const S = {wid:params.get('workspace'), aid:params.get('adventure'), boot:null, 
   graph:null, media:null, entry:null, region:null, view:'media', mode:'pan', radius:60,
   color:'#f3c76a', session:null, stage:null, search:'', pollBusy:false, boundary:[],
   sourceOpen:false, drafts:{}, navOpen:new Set(), resourceType:'all'};
-let toastTimer;
+let toastTimer, activeTour=null, checkedUpdate=null;
+const tourPhaseKey=phase=>`${S.wid}:${phase}:${phase==='adventure'?S.aid||'':''}`;
 function toast(text) {
   $('#toast').textContent = text; $('#toast').style.display = 'block';
   clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').style.display = 'none', 6000);
@@ -52,32 +54,87 @@ const button = (action, text, klass = '', extra = '') => `<button type="button" 
 function header() {
   return `<header class="top"><div class="brand"><img src="/icon.svg" alt="">Session Desk</div>
     ${S.overview ? button('home', 'Workspaces', 'quiet') : ''}<span class="title muted">${esc(S.overview?.meta.name || 'Your table, locally')}</span>
-    <span class="grow"></span>${button('player', 'Open player screen', '', S.aid ? '' : 'disabled')}
+    <span class="grow"></span>${button('player', 'Open player screen', '', S.aid ? '' : 'disabled')}<span id="player-presence" class="player-presence" role="status" aria-label="Player screen offline" title="Player screen offline"><i></i></span>
     ${button('settings', 'Settings', 'quiet', 'aria-expanded="false"')}</header>`;
 }
 function showSettings() {
-  if ($('#settings')) { $('#settings').remove(); return; }
+  if ($('#settings')) { closeSettings(); return; }
   const panel = document.createElement('section'); panel.id = 'settings'; panel.className = 'settings';
   panel.innerHTML = `<h2>Settings</h2><h3>Display</h3><label for="text-size">DM text size</label>
     <input id="text-size" type="range" min="85" max="150" value="${localStorage.getItem('textSize') || 100}">
     <label class="check"><input id="density" type="checkbox" ${document.body.classList.contains('dense') ? 'checked' : ''}>Compact layout</label>
     <hr><h3>AI</h3><label class="check"><input type="checkbox" role="switch" aria-label="AI" disabled>Off</label>
     <p class="muted">AI preparation is unavailable in this build. Import, edit, review and play without a provider.</p>
-    <hr><small>${esc(S.boot?.version || 'Development build')} · local Windows preview</small><p>${button('quit', 'Quit app', 'quiet')}</p>`;
+    <hr>${S.wid?`<p>${button('quick-tour','Quick tour','quiet')}</p>`:''}<h3>Updates</h3><p>${button('check-update','Check for updates','quiet')}</p><div id="update-info" role="status"></div><small>${esc(S.boot?.version || 'Development build')} · Windows desktop</small><p>${button('quit', 'Quit app', 'quiet')}</p>`;
   document.body.append(panel);
+  document.querySelector('[data-action=settings]')?.setAttribute('aria-expanded','true');
   $('#text-size').oninput = e => { document.documentElement.style.setProperty('--scale', e.target.value / 100); localStorage.setItem('textSize', e.target.value); };
   $('#density').onchange = e => { document.body.classList.toggle('dense', e.target.checked); localStorage.setItem('density', String(e.target.checked)); };
 }
-function disposeStage() { S.stage?.dispose(); S.stage = null; }
-function home() {
-  disposeStage(); S.overview = null; S.graph = null; S.aid = null; S.wid = null;
-  $('#app').innerHTML = header() + `<main class="home"><div class="intro"><p class="eyebrow">Prepare · review · play</p>
-    <h1>A place for your next adventure.</h1><p>Keep your sources, preparation and table in one workspace. Everything stays on this computer.</p>
-    <div class="row">${button('new-workspace','New workspace','primary')}${button('restore','Restore backup','quiet')}</div></div>
-    ${S.boot.workspaces.length ? `<div class="cards">${S.boot.workspaces.map(w => `<article class="card"><h2>${esc(w.name)}</h2><p class="count">${esc(w.rules || '')} · ${esc(w.language || '')}</p>
-      ${button('workspace','Open workspace','',`data-id="${w.id}" ${w.unavailable ? 'disabled' : ''}`)}</article>`).join('')}</div>` :
-      `<section class="empty"><h2>Start with a clean workspace</h2><p>No adventures, characters or books are included. Create a workspace, then select your own local source library.</p></section>`}</main>`;
+function closeSettings(){ $('#settings')?.remove();document.querySelector('[data-action=settings]')?.setAttribute('aria-expanded','false'); }
+document.addEventListener('pointerdown',e=>{if($('#settings')&&!e.target.closest('#settings,[data-action=settings]'))closeSettings();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#settings')){closeSettings();document.querySelector('[data-action=settings]')?.focus();}});
+function setupInspectorResize(){
+  const divider=$('#inspector-divider'),workspace=$('.workspace');if(!divider||!workspace)return;
+  const set=value=>{const max=Math.max(280,Math.min(780,workspace.clientWidth-460));const width=Math.max(280,Math.min(max,value));workspace.style.setProperty('--inspector-width',width+'px');divider.setAttribute('aria-valuenow',Math.round(width));try{localStorage.setItem('inspectorWidth',width);}catch{}};
+  set(Number(localStorage.getItem('inspectorWidth'))||410);
+  divider.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();divider.setPointerCapture(e.pointerId);divider.dataset.dragging='true';document.body.classList.add('resizing-inspector');};
+  divider.onpointermove=e=>{if(divider.dataset.dragging==='true')set(workspace.getBoundingClientRect().right-e.clientX);};
+  const end=e=>{delete divider.dataset.dragging;document.body.classList.remove('resizing-inspector');if(e?.pointerId!=null&&divider.hasPointerCapture(e.pointerId))divider.releasePointerCapture(e.pointerId);};
+  divider.onpointerup=end;divider.onpointercancel=end;divider.onlostpointercapture=end;
+  divider.onkeydown=e=>{if(['ArrowLeft','ArrowRight','Home'].includes(e.key)){e.preventDefault();set(e.key==='Home'?410:Number(divider.getAttribute('aria-valuenow'))+(e.key==='ArrowLeft'?20:-20));}};
 }
+function cleanResourceTitle(value){return String(value||'Untitled').replace(/^(\d+[a-z]?)\s*[:.]\s*\1\s*[:.]\s*/i,'$1. ');}
+function mediaTitle(m){return cleanResourceTitle(m.caption||m.title||m.name);}
+function resourcePage(item){const page=item.page??item.locator?.page;return page==null||page===''?'':`p. ${page}`;}
+function resourceSubtitle(kind,item){if(!item)return '';if(kind==='entry')return resourcePage(item);const code=item.source_code||item.source_path?.split('/').at(-1)?.replace(/\.[^.]+$/,'');return [code&&code!==mediaTitle(item)?code:'',resourcePage(item)].filter(Boolean).join(' · ');}
+function visibilityStatus(){
+  const m=selectedMedia();if(!m||S.view!=='media')return;
+  const badge=$('#visibility-status');if(!badge)return;
+  const shown=S.session?.tabs?.some(t=>(typeof t==='string'?t:t.id)===m.id);
+  let label=shown?'On player screen':'Not on player screen',state=shown?'visible':'off';
+  if(shown&&m.kind==='map'){
+    const ops=S.session?.fog[m.id]||[];label=ops.length?'On player screen · fog active':'On player screen · fully hidden';state=ops.length?'partial':'hidden';
+    const r=selectedRegion(),stage=S.stage;
+    if(r?.points?.length&&stage?.image&&stage.fogKey&&stage?.fog.width&&stage.media?.id===m.id){
+      const f=stage.fog.getContext('2d'),point=r.points.reduce((a,p)=>[a[0]+p[0]/r.points.length,a[1]+p[1]/r.points.length],[0,0]);
+      const x=Math.min(stage.fog.width-1,Math.max(0,Math.floor(point[0]*stage.fog.width/m.width))),y=Math.min(stage.fog.height-1,Math.max(0,Math.floor(point[1]*stage.fog.height/m.height)));
+      const hidden=f.getImageData(x,y,1,1).data[3]>127;label=hidden?'Selected area · hidden by fog':'Selected area · visible to players';state=hidden?'hidden':'visible';
+    }
+  }
+  if(S.stage?.drag&&!S.stage.drag.pan&&['reveal','hide'].includes(S.stage.drag.mode)){label='Brush preview · release to share';state='partial';}
+  badge.textContent=label;badge.dataset.visibility=state;
+}
+async function showTour(phase,force=false){
+  if(isPlayer||!S.wid||(!force&&params.get('tutorial')==='off')||sourceJob||transferJob||$('#dialog')?.open)return;
+  if(!force){try{const result=await request('tutorial',{phase,action:'get'});if(result.completed!==false)return;}catch{return;}}
+  closeSettings();activeTour={phase,index:0,wid:S.wid,aid:S.aid};renderTour();
+}
+const tourSteps={workspace:[
+ ['Your workspace','A workspace keeps your own adventures, preparation and saved table together. New workspaces start empty.'],
+ ['Connect your books once','Choose Add adventure and select your local 5e.tools copy, or install one. Your last valid library is ready for the next import; you can change it.'],
+ ['Pick an adventure','Import an adventure to bring in its chapters, pictures and maps. Your sources stay on this computer. Export backup moves your work to another PC.']
+],adventure:[
+ ['Browse your adventure','Resources follows the book chapters. Open category arrows or search Text, Images and Maps. Collapse all returns to closed chapters.'],
+ ['Keep useful resources close','Pin an entry or image to keep it above search. Selecting or reading a resource does not show it to players.'],
+ ['Read and prepare','Text opens in the center. Use the right panel for narration and private notes. Drag its divider to change its width. Save preparation keeps your edits.'],
+ ['Open the player screen','Open player screen creates the separate TV window. The small green light means a player window is connected; red means none is connected.'],
+ ['Present with fog','Present a map to players with fog covering it. Shared tabs stay open until either screen closes them. Pictures are shown only when you press Present.'],
+ ['Reveal while you play','Reveal and Hide paint fog; the circle shows brush size. Your stroke previews while dragging, then saves on release. Space + drag pans. Room selection never reveals it; Reveal room does.'],
+ ['Settings and shared notes','Settings changes DM text size and layout. Shared player notes appear on the TV; DM notes stay private. Player zoom and drawings are temporary. AI stays Off.'],
+ ['Keep a backup','Your preparation and fog save automatically as you use their controls. Export backup before moving computers or upgrading. Replay this guide from Settings → Quick tour.']
+]};
+function renderTour(){const t=activeTour;if(!t)return;const steps=tourSteps[t.phase]||tourSteps.adventure,[title,copy]=steps[t.index];modal(`<div class="tour"><p class="eyebrow">Quick tour · ${t.index+1} of ${steps.length}</p><h2>${esc(title)}</h2><p>${esc(copy)}</p><progress value="${t.index+1}" max="${steps.length}" aria-label="Tour progress"></progress><div class="row">${button('tour-close','Skip tour','quiet')}${t.index?button('tour-back','Back','quiet'):''}${button('tour-next',t.index===steps.length-1?'Start exploring':'Next','primary')}</div></div>`);}
+async function finishTour(){const t=activeTour;activeTour=null;$('#dialog').close();if(t)await request('tutorial',{workspace:t.wid,adventure:t.aid,phase:t.phase,action:'complete'}).catch(()=>{});}
+
+let disposeHome = null;
+function disposeStage() { disposeHome?.(); disposeHome=null; S.stage?.dispose(); S.stage = null; }
+function home() {
+  disposeStage();S.overview=null;S.graph=null;S.aid=null;S.wid=null;
+  $('#app').innerHTML=header()+'<div id="home-root"></div>';
+  disposeHome=mountHome($('#home-root'),{workspaces:S.boot.workspaces});
+}
+
 async function openWorkspace(wid) {
   S.wid = wid; S.overview = await request('workspace'); S.graph = null; S.aid = null; disposeStage();
   $('#app').innerHTML = header() + `<main class="home"><p class="eyebrow">Workspace</p><h1>${esc(S.overview.meta.name)}</h1>
@@ -93,15 +150,15 @@ async function openAdventure(aid) {
   S.aid = aid; S.graph = await request('adventure'); S.session = await request('session');
   S.media = dmMedia()[0]?.id || null;
   S.entry = S.graph.entries[0]?.id || null; S.region = null; S.view = S.media?'media':'text'; S.search = '';S.sourceOpen=false;S.drafts={};S.navOpen=new Set();S.resourceType='all';
-  renderAdventure();
+  renderAdventure();await showTour('adventure');
 }
 function navigationIndex() {
   if(S.navigation?.graph===S.graph)return S.navigation;
   const entries=new Map(S.graph.entries.map(e=>[e.id,e]));
   const visible=S.graph.entries.filter(e=>e.has_heading===true||(e.has_heading===undefined&&e.name!==e.key)),ids=new Set(visible.map(e=>e.id));
   const parent=id=>{const seen=new Set();while(id&&!ids.has(id)&&!seen.has(id)){seen.add(id);id=entries.get(id)?.parent;}return id||null;};
-  const nodes=visible.map((e,i)=>({id:e.id,parent:parent(e.parent),name:e.name,kind:'entry',order:e.order??i*2}));
-  nodes.push(...dmMedia().map((m,i)=>({id:m.id,parent:parent(m.entry),name:m.name,kind:'media',mediaKind:m.kind,order:m.order??100000+i})));
+  const nodes=visible.map((e,i)=>({id:e.id,parent:parent(e.parent),name:cleanResourceTitle(e.name),item:e,kind:'entry',order:e.order??i*2}));
+  nodes.push(...dmMedia().map((m,i)=>({id:m.id,parent:parent(m.entry),name:mediaTitle(m),item:m,kind:'media',mediaKind:m.kind,order:m.order??100000+i})));
   const children=new Map();
   for(const n of nodes){if(!children.has(n.parent))children.set(n.parent,[]);children.get(n.parent).push(n);}
   for(const siblings of children.values())siblings.sort((a,b)=>a.order-b.order);
@@ -113,21 +170,21 @@ function navigationChildren(parent=null) {
   return (children.get(parent)||[]).map(n=>{
     const nested=children.has(n.id),open=S.navOpen.has(n.id);
     const toggle=nested?button('toggle-group',open?'▾':'▸','group-toggle',`data-id="${n.id}" aria-expanded="${open}" aria-label="${open?'Collapse':'Expand'} ${esc(n.name)}"`):'<span class="group-spacer"></span>';
-    const label=button(n.kind,`${esc(n.name)}${n.kind==='media'?`<span class="badge" aria-hidden="true">${n.mediaKind==='map'?'map':'image'}</span>`:''}`,'item'+(resourceActive(n.kind,n.id)?' active':''),`data-id="${n.id}" ${resourceActive(n.kind,n.id)?'aria-current="true"':''}`);
+    const label=button(n.kind,`${esc(n.name)}${resourceSubtitle(n.kind,n.item)?`<small class="resource-meta">${esc(resourceSubtitle(n.kind,n.item))}</small>`:''}`,'item'+(resourceActive(n.kind,n.id)?' active':''),`data-id="${n.id}" ${resourceActive(n.kind,n.id)?'aria-current="true"':''}`);
     return `<div class="nav-node" data-node="${n.id}"><div class="nav-row">${toggle}${label}</div>${nested?`<div class="book-children" ${open?'':'hidden'}>${open?navigationChildren(n.id):''}</div>`:''}</div>`;
   }).join('');
 }
 function library() {
   const q=S.search.trim().toLowerCase(),entries=S.graph.entries,media=dmMedia();
   const pins=(S.graph.pins||[]).map(p=>({pin:p,item:(p.kind==='entry'?entries:media).find(x=>x.id===p.id)})).filter(x=>x.item);
-  const pinnedHTML=pins.length?`<section class="pinned-resources"><h3>Pinned</h3>${pins.map(({pin:p,item})=>`<div class="pinned-row">${button(p.kind==='entry'?'entry':'media',esc(item.name),'item',`data-id="${item.id}"`)}${button('pin','×','quiet',`data-kind="${p.kind}" data-id="${p.id}" aria-label="Unpin ${esc(item.name)}"`)}</div>`).join('')}</section>`:'';
+  const pinnedHTML=pins.length?`<section class="pinned-resources"><h3>Pinned</h3>${pins.map(({pin:p,item})=>`<div class="pinned-row">${button(p.kind==='entry'?'entry':'media',esc(p.kind==='entry'?cleanResourceTitle(item.name):mediaTitle(item))+(resourceSubtitle(p.kind,item)?'<small class="resource-meta">'+esc(resourceSubtitle(p.kind,item))+'</small>':''),'item',`data-id="${item.id}"`)}${button('pin','×','quiet',`data-kind="${p.kind}" data-id="${p.id}" aria-label="Unpin ${esc(item.name)}"`)}</div>`).join('')}</section>`:'';
   const filtered=q||S.resourceType!=='all';
   const search=`<div class="resource-heading"><h2>Resources</h2>${button('collapse-all','Collapse all','quiet','title="Clear search filters and return to collapsed chapters"')}</div>${pinnedHTML}<input id="search" placeholder="Search adventure resources" value="${esc(S.search)}" aria-label="Search adventure resources">
     <label class="sr-only" for="resource-type">Resource type</label><select id="resource-type">${[['all','All types'],['text','Text'],['image','Images'],['map','Maps']].map(([value,label])=>`<option value="${value}" ${S.resourceType===value?'selected':''}>${label}</option>`).join('')}</select>`;
   if(filtered){
     const matches=[...entries.filter(e=>(S.resourceType==='all'||S.resourceType==='text')&&`${e.name} ${e.text}`.toLowerCase().includes(q)).map(e=>({kind:'entry',...e})),
       ...media.filter(m=>(S.resourceType==='all'||S.resourceType===(m.kind==='map'?'map':'image'))&&m.name.toLowerCase().includes(q)).map(m=>({...m,mediaKind:m.kind,kind:'media'}))].slice(0,200);
-    return search+`<div class="search-results">${matches.map(r=>button(r.kind,`${esc(r.name)}<small>${esc(r.kind==='entry'?['Text',...breadcrumbs(r).slice(0,-1)].join(' · '):[r.mediaKind==='map'?'Map':'Image',...breadcrumbs(navigationIndex().entries.get(r.entry))].join(' · '))}</small>`,'item'+(resourceActive(r.kind,r.id)?' active':''),`data-id="${r.id}"`)).join('')||'<p class="muted">No matches.</p>'}</div>`;
+    return search+`<div class="search-results">${matches.map(r=>button(r.kind,`${esc(r.kind==='entry'?cleanResourceTitle(r.name):mediaTitle(r))}${resourceSubtitle(r.kind,r)?`<small class="resource-meta">${esc(resourceSubtitle(r.kind,r))}</small>`:''}`,'item'+(resourceActive(r.kind,r.id)?' active':''),`data-id="${r.id}"`)).join('')||'<p class="muted">No matches.</p>'}</div>`;
   }
   return search+`<nav class="book-navigation" aria-label="Adventure contents">${navigationChildren()}</nav><p>${button('add-picture','Add picture','quiet')}</p>`;
 }
@@ -145,8 +202,8 @@ function renderAdventure() {
   $('#app').innerHTML = header() + `<nav class="sectionnav"><strong>${esc(S.graph.name)}</strong><span class="spacer"></span>
     ${button('workspace','Workspace','quiet',`data-id="${S.wid}"`)}</nav><main class="workspace"><aside class="library">${library()}</aside>
     <section class="center"><div class="presentation"><span>On player screen</span><div id="dm-tabs" class="tabs"></div></div><div id="resource-content"></div></section>
-    <aside class="inspector" id="inspector"></aside></main>`;
-  bindSearch();renderContent();renderTabs($('#dm-tabs'),S.session,false);
+    <div id="inspector-divider" class="inspector-divider" role="separator" aria-label="Resize preparation panel" aria-controls="inspector" aria-orientation="vertical" aria-valuemin="280" aria-valuemax="780" aria-valuenow="410" tabindex="0"></div><aside class="inspector" id="inspector"></aside></main>`;
+  setupInspectorResize();bindSearch();renderContent();renderTabs($('#dm-tabs'),S.session,false);
 }
 function renderContent() {
   disposeStage();
@@ -195,10 +252,10 @@ function renderInspector() {
   const m = selectedMedia();
   if (!m) { root.innerHTML = '<h2>No media imported</h2><p class="muted">Read the import warnings or add a local picture.</p>' + warnings(); return; }
   const r = selectedRegion();
-  root.innerHTML = `<p class="eyebrow">${m.kind === 'map' ? 'Map' : 'Picture'}</p><div class="row spread"><h2>${esc(m.name)}</h2>${pinButton('media',m.id)}</div>
-    <p class="locator">${esc(m.source_path)}</p><label class="check"><input id="safe" type="checkbox" ${m.player_safe ? 'checked' : ''}>I reviewed this image for secrets and spoilers; safe to share</label>
-    <p class="warning">Imported maps may contain secret doors or room labels. Fog cannot remove details within a revealed area. Choose a player-safe image before sharing.</p>
-    ${button('present','Present to players','primary',m.player_safe ? '' : 'disabled')}
+  root.innerHTML = `<p class="eyebrow">${m.kind === 'map' ? 'Map' : 'Picture'}</p><div class="row spread"><h2>${esc(mediaTitle(m))}</h2>${pinButton('media',m.id)}</div>
+    <p class="locator">${esc(resourceSubtitle('media',m))}</p><p id="visibility-status" class="visibility-status" role="status"></p>
+    <p class="muted">${m.kind==='map'?'Present with fog, then reveal only what you choose. Check labels inside revealed areas before sharing.':'Present this picture when you want players to see it.'}</p>
+    ${button('present',m.kind==='map'?'Present to players · with fog':'Present to players','primary')}
     ${m.kind === 'map' ? `<hr><h3>Rooms / areas</h3><select id="region-select" aria-label="Select map region"><option value="">Choose a room or area</option>${m.regions.map(x => `<option value="${x.id}" ${r?.id === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
     ${r ? `<h3 class="room-title">${esc(r.name)}</h3><div class="room-boundary"><span>Room boundary</span>
       ${S.mode==='boundary'?`${button('save-boundary','Save boundary')}${button('cancel-boundary','Cancel','quiet')}<p>Drag around the complete room edge on the map, release, then save.</p>`:button('boundary','Draw boundary','quiet')}
@@ -208,10 +265,7 @@ function renderInspector() {
     ${S.sourceOpen&&selectedEntry()?`<section id="room-source"><hr>${bookUpgradeHint()}<article class="book-content inline-source">${renderSource(selectedEntry(),sourceContext())}</article>${entryEditor(selectedEntry())}</section>`:''}
     <hr><label for="shared-note">Shared player notes</label><textarea id="shared-note" rows="4">${esc(S.session?.notes[m.id] || '')}</textarea>${button('share-note','Save shared note')}
     ${warnings()}`;
-  $('#safe').onchange = async e => {
-    try { await request('media/review',{media:m.id,player_safe:e.target.checked}); m.player_safe = e.target.checked; S.session = await request('session'); renderInspector(); }
-    catch (error) { toast(error.message); }
-  };
+  visibilityStatus();
   const selector = $('#region-select'); if (selector) selector.onchange = e => selectRegion(e.target.value);
 }
 function warnings() {
@@ -227,7 +281,7 @@ async function sessionAction(action, extra = {}) {
   const result = await request('session/action',{action,media:S.media,...extra});
   S.session = result;
   if (isPlayer) updatePlayer();
-  else { renderTabs($('#dm-tabs'),S.session,false); S.stage?.paint(); }
+  else { renderTabs($('#dm-tabs'),S.session,false); S.stage?.paint();visibilityStatus(); }
 }
 function modal(html) { const d = $('#dialog'); d.innerHTML = html; d.showModal(); }
 let sourceJob = null, sourceValidation = null, transferJob = null;
@@ -235,13 +289,14 @@ function dismiss() {
   if (sourceJob||transferJob) { toast('Cancel the current operation before closing this window.'); return; }
   $('#dialog').close();
 }
-$('#dialog').addEventListener('cancel',e=>{if(sourceJob||transferJob){e.preventDefault();toast('Cancel the current operation before closing this window.');}});
-function importDialog() {
+$('#dialog').addEventListener('cancel',e=>{if(activeTour){e.preventDefault();finishTour();return;}if(sourceJob||transferJob){e.preventDefault();toast('Cancel the current operation before closing this window.');}});
+async function importDialog() {
   sourceValidation = null;
   modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close Add adventure"')}<h2>Add adventure</h2><p class="muted">Connect a local source library, then choose your adventure.</p>
     <div class="row source-modes">${button('source-existing','Use existing copy','active')}${button('source-install','Install local copy')}</div>
     <div id="source-form"></div><div id="source-status" role="status" aria-live="polite"></div><div id="inventory"></div>`);
   existingSourceForm();
+  try{const defaults=await request('library/defaults');if(defaults.available&&$('#library-path')&&!$('#library-path').value){existingSourceForm(defaults.path,defaults.images||'');await validateSource();}}catch{}
 }
 function existingSourceForm(path='',images='') {
   $('#source-form').innerHTML=`<form data-form="inspect"><label for="library-path">5e.tools library folder</label>
@@ -309,7 +364,7 @@ async function importAdventure() {
 }
 function transferStatus(job) {
   const root=$('#transfer-status');if(!root)return;
-  const title=job.kind==='export'?'Workspace backup':'Workspace restore';
+  const title=job.kind==='update'?'Application update':job.kind==='export'?'Workspace backup':'Workspace restore';
   if(['failed','cancelled'].includes(job.state)) {
     root.innerHTML=`<div class="notice error"><strong>${title} ${job.state==='cancelled'?'cancelled':'stopped'}</strong><p>${esc(job.error||'Operation stopped. Existing workspaces are unchanged.')}</p></div>
       <p>${job.kind==='export'?button('backup','Retry backup','primary'):''}${button('dismiss','Close','quiet')}</p>`;
@@ -321,8 +376,8 @@ function transferStatus(job) {
     return;
   }
   const finishing=job.state==='committing';
-  root.innerHTML=`<div class="notice"><strong>${finishing?'Finishing restore':esc(job.message||title)}</strong>
-    <p>${job.total?`${Math.floor(job.done/1024/1024)} / ${Math.ceil(job.total/1024/1024)} MB`:'Preparing workspace files…'}</p>
+  root.innerHTML=`<div class="notice"><strong>${finishing?(job.kind==='update'?'Finishing update':'Finishing restore'):esc(job.message||title)}</strong>
+    <p>${job.total?`${Math.floor(job.done/1024/1024)} / ${Math.ceil(job.total/1024/1024)} MB`:job.kind==='update'?'Preparing application files…':'Preparing workspace files…'}</p>
     <progress ${job.total?`max="${job.total}" value="${job.done}"`:''}></progress>
     <p>${button('cancel-transfer',finishing?'Finishing…':job.cancel_requested?'Stopping…':'Cancel','quiet',finishing||job.cancel_requested?'disabled':'')}</p></div>`;
 }
@@ -358,7 +413,25 @@ async function exportBackup(){
   if(result)$('#backup-download')?.click();
 }
 async function onAction(b) {
+  if(b.dataset.action==='quick-tour'){closeSettings();return showTour(S.aid?'adventure':'workspace',true);}
+  if(b.dataset.action==='tour-close')return finishTour();
+  if(b.dataset.action==='tour-back'&&activeTour){activeTour.index=Math.max(0,activeTour.index-1);return renderTour();}
+  if(b.dataset.action==='tour-next'&&activeTour){if(activeTour.index===(tourSteps[activeTour.phase]||tourSteps.adventure).length-1)return finishTour();activeTour.index++;return renderTour();}
   const a = b.dataset.action, m = selectedMedia();
+  if(a==='check-update'){
+    b.disabled=true;const info=$('#update-info');info.textContent='Checking GitHub releases…';
+    try{checkedUpdate=await request('update/check');if(!info.isConnected)return;
+      info.innerHTML=`<p>${checkedUpdate.available?`Version ${esc(checkedUpdate.latest)} is available.`:'You have the latest available version.'}</p>${checkedUpdate.available?button('install-update','Download and install','primary',checkedUpdate.supported===false?'disabled':''):''}${checkedUpdate.supported===false?'<p class="muted">Automatic installation is available in the packaged Windows app.</p>':''}`;
+    }finally{b.disabled=false;}return;
+  }
+  if(a==='install-update'){
+    if(transferJob)return;closeSettings();
+    modal(`<h2>Update Session Desk</h2><p>Your saved workspaces stay outside the application and are retained.</p><div id="transfer-status" role="status" aria-live="polite"></div>`);
+    const job=await request('update/install',{version:checkedUpdate?.latest});const result=await runTransfer(job);
+    if(result)$('#transfer-status').innerHTML=`<div class="notice success"><h3>Version ${esc(result.version)} is ready</h3><p>Save any open edits before restarting. Your saved campaign data is retained.</p></div><div class="row">${button('restart-update','Restart into update','primary')}${button('dismiss','Later','quiet')}</div>`;return;
+  }
+  if(a==='restart-update'){await request('update/restart');$('#dialog').innerHTML='<h2>Restarting Session Desk…</h2><p>The updated application will open in a new window. You can close this old window.</p>';return;}
+
   if (a === 'settings') return showSettings();
   if (a === 'quit') { await request('quit'); $('#app').innerHTML = '<main class="home"><h1>Session Desk closed.</h1><p>Your workspace is saved. You can close this tab.</p></main>'; return; }
   if (a === 'home') { S.boot = await request('bootstrap'); return home(); }
@@ -372,7 +445,7 @@ async function onAction(b) {
     return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close workspace files"')}<h2>Workspace files</h2><p>Private campaign files. Source and preparation scripts are preserved as downloads; they are never executed.</p>${result.original?`<p>${link(result.original,'original-recovery.zip')}</p>`:''}${[...groups].map(([name,files])=>`<details><summary>${esc(name)} (${files.length})</summary><ul>${files.map(f=>`<li>${link(f,f.path)}</li>`).join('')}</ul></details>`).join('')}`);
   }
   if (a === 'adventure') return openAdventure(b.dataset.id);
-  if (a === 'dismiss') return dismiss();
+  if (a === 'dismiss') return activeTour?finishTour():dismiss();
   if (a === 'new-workspace') return modal(`<h2>New workspace</h2><form data-form="workspace"><label for="workspace-name">Name</label><input name="name" id="workspace-name" required maxlength="100" autofocus>
     <label>Preparation language</label><input name="language" value="English" maxlength="80"><label>Rules profile</label><select name="rules"><option>Unspecified</option><option>2014</option><option>2024</option><option>Other</option></select>
     <div class="row"><button type="submit" class="primary">Create workspace</button>${button('dismiss','Cancel','quiet')}</div></form>`);
@@ -411,7 +484,7 @@ async function onAction(b) {
     const u = new URL(location.href); u.search = new URLSearchParams({view:'player',workspace:S.wid,adventure:S.aid});
     u.hash = 'player=' + S.boot.player_token; window.open(u,'sessiondesk-player'); return;
   }
-  if (a === 'present') { await sessionAction('present'); toast('Presented. Open the player screen for your TV.'); return; }
+  if (a === 'present') { await sessionAction('present',{with_fog:m?.kind==='map'}); toast('Presented. Open the player screen for your TV.'); return; }
   if (a === 'activate' || a === 'close') { await sessionAction(a,{media:b.dataset.id}); if (!isPlayer && a === 'activate') openMedia(b.dataset.id); return; }
   if (a === 'close-all') return sessionAction('close_all');
   if (a === 'share-note') { await sessionAction('note',{text:$('#shared-note').value}); toast('Shared notes saved.'); return; }
@@ -441,7 +514,7 @@ document.addEventListener('submit', async e => {
   const submit = $('button[type=submit]',form); submit.disabled = true;
   try {
     const data = Object.fromEntries(new FormData(form));
-    if (form.dataset.form === 'workspace') { const w = await request('workspace/create',data); dismiss(); await openWorkspace(w.id); }
+    if (form.dataset.form === 'workspace') { const w = await request('workspace/create',data); dismiss(); await openWorkspace(w.id);await showTour('workspace'); }
     if (form.dataset.form === 'inspect') {
       await validateSource();
     }
@@ -481,21 +554,21 @@ class Stage {
     this.root=root; this.canvas=$('canvas',root); this.ctx=this.canvas.getContext('2d'); this.player=player;
     this.image=null; this.media=null; this.scale=1; this.x=0; this.y=0; this.space=false; this.drag=null; this.ink=[];
     this.pointer=null;this.cursor=document.createElement('div');this.cursor.className='brush-cursor';this.cursor.hidden=true;this.cursor.setAttribute('aria-hidden','true');root.append(this.cursor);
-    this.fog=document.createElement('canvas'); this.fogKey=''; this.dead=false;
+    this.fog=document.createElement('canvas');this.previewFog=document.createElement('canvas');this.fogTexture=this.makeFogTexture();this.previewActive=false;this.pendingFog=false; this.fogKey=''; this.dead=false;
     this.resize=new ResizeObserver(() => { this.size(); this.paint(); }); this.resize.observe(root); this.size();
     this.keydown=e=>{ if(e.code==='Space' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) { e.preventDefault(); this.space=true;this.updateCursor(); } };
-    this.keyup=e=>{if(e.code==='Space'){if(this.space)e.preventDefault();this.space=false;this.updateCursor();}}; this.blur=()=>{this.space=false;this.drag=null;this.pointer=null;this.updateCursor();};
+    this.keyup=e=>{if(e.code==='Space'){if(this.space)e.preventDefault();this.space=false;this.updateCursor();}}; this.blur=()=>{this.space=false;this.drag=null;this.previewActive=false;this.pointer=null;this.updateCursor();this.paint();};
     window.addEventListener('keydown',this.keydown);window.addEventListener('keyup',this.keyup);window.addEventListener('blur',this.blur);
-    this.canvas.onpointerdown=e=>this.down(e);this.canvas.onpointermove=e=>this.move(e);this.canvas.onpointerup=e=>this.up(e);this.canvas.onpointercancel=()=>{this.drag=null;this.pointer=null;this.updateCursor();};
+    this.canvas.onpointerdown=e=>this.down(e);this.canvas.onpointermove=e=>this.move(e);this.canvas.onpointerup=e=>this.up(e);this.canvas.onpointercancel=()=>{this.drag=null;this.previewActive=false;this.pointer=null;this.updateCursor();this.paint();};
     this.canvas.onpointerleave=()=>{if(!this.drag){this.pointer=null;this.updateCursor();}};
     this.canvas.onwheel=e=>{e.preventDefault();this.zoom(e.deltaY<0?1.12:1/1.12);};
   }
   dispose(){this.dead=true;this.cursor.remove();this.resize.disconnect();window.removeEventListener('keydown',this.keydown);window.removeEventListener('keyup',this.keyup);window.removeEventListener('blur',this.blur);}
-  size(){this.w=this.root.clientWidth;this.h=this.root.clientHeight;this.dpr=Math.min(devicePixelRatio||1,2);this.canvas.width=this.w*this.dpr;this.canvas.height=this.h*this.dpr;}
+  size(){const w=this.root.clientWidth,h=this.root.clientHeight;if(this.w&&this.image){this.x+=(w-this.w)/2;this.y+=(h-this.h)/2;}this.w=w;this.h=h;this.dpr=Math.min(devicePixelRatio||1,2);this.canvas.width=this.w*this.dpr;this.canvas.height=this.h*this.dpr;}
   async load(media){
     if(!media){this.media=null;this.image=null;this.paint();return;}
     if(this.media?.id===media.id&&this.media.asset===media.asset&&this.media.width===media.width&&this.media.height===media.height){this.media=media;return;}
-    this.media=media;this.image=null;this.fogKey='';this.ink=[];const image=new Image();
+    this.media=media;this.image=null;this.fogKey='';this.previewActive=false;this.ink=[];const image=new Image();
     image.onload=()=>{if(this.dead||this.media?.id!==media.id||this.media.asset!==media.asset)return;this.image=image;this.fit();};
     image.onerror=()=>toast('Image could not be decoded. Check the imported file.');image.src=asset(media);
   }
@@ -514,9 +587,11 @@ class Stage {
   down(e){
     if(!this.media||!this.image)return; const pan=this.space||e.button===1||S.mode==='pan';const p=this.point(e);
     if(!pan&&(p[0]<0||p[1]<0||p[0]>this.media.width||p[1]>this.media.height))return;
+    if(this.pendingFog&&!pan)return;
     this.canvas.setPointerCapture(e.pointerId);this.drag={pan,x:e.clientX,y:e.clientY,start:[e.clientX,e.clientY],points:[this.clamp(p)],mode:S.mode};
     this.rememberPointer(e);this.updateCursor();
     if(!pan&&S.mode==='boundary')S.boundary=this.drag.points;
+    if(!pan&&!this.player&&['reveal','hide'].includes(S.mode)){this.startFogPreview();this.paint();}
   }
   move(e){
     this.rememberPointer(e);
@@ -524,6 +599,7 @@ class Stage {
     if(this.drag.pan){this.x+=e.clientX-this.drag.x;this.y+=e.clientY-this.drag.y;this.drag.x=e.clientX;this.drag.y=e.clientY;}
     else if(this.drag.points.length<(this.drag.mode==='boundary'?2000:1000)){
       this.drag.points.push(this.clamp(this.point(e)));if(this.drag.mode==='boundary')S.boundary=this.drag.points;
+      if(this.previewActive)this.extendFogPreview(this.drag.points.slice(-2));
     }
     this.paint();
   }
@@ -539,26 +615,42 @@ class Stage {
       }
       if(drag.mode==='boundary'&&!this.player){S.boundary=drag.points;this.paint();return;}
       if(drag.mode==='pen'){const out=await request('ink',{media:this.media.id,action:'draw',points:drag.points,color:S.color});this.ink=out.strokes;this.paint();return;}
-      if(!this.player&&['reveal','hide'].includes(drag.mode))await sessionAction('fog',{media:this.media.id,mode:drag.mode,points:drag.points,radius:S.radius});
+      if(!this.player&&['reveal','hide'].includes(drag.mode)){this.pendingFog=true;try{await sessionAction('fog',{media:this.media.id,mode:drag.mode,points:drag.points,radius:S.radius});}finally{this.pendingFog=false;this.previewActive=false;this.fogKey='';this.paint();}}
     }catch(error){toast(error.message);}
   }
   path(ctx,points){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));}
   stroke(ctx,stroke,radius){ctx.lineWidth=radius*2;ctx.lineCap='round';ctx.lineJoin='round';this.path(ctx,stroke.points);ctx.stroke();for(const p of [stroke.points[0],stroke.points.at(-1)]){ctx.beginPath();ctx.arc(...p,radius,0,Math.PI*2);ctx.fill();}}
+  makeFogTexture(){
+    const tile=document.createElement('canvas');tile.width=tile.height=192;const f=tile.getContext('2d');
+    f.fillStyle='#111823';f.fillRect(0,0,192,192);
+    const cloud=f.createRadialGradient(76,63,2,98,96,137);cloud.addColorStop(0,'#293342');cloud.addColorStop(.5,'#1b2532');cloud.addColorStop(1,'#111823');f.fillStyle=cloud;f.fillRect(0,0,192,192);
+    let seed=7351;for(let i=0;i<500;i++){seed=(seed*1664525+1013904223)>>>0;const x=seed%192;seed=(seed*1664525+1013904223)>>>0;const y=seed%192;f.fillStyle=i%2?'#b0c3d006':'#0000000a';f.fillRect(x,y,2,2);}
+    f.strokeStyle='#8da4bd08';f.lineWidth=1;for(let x=-192;x<384;x+=24){f.beginPath();f.moveTo(x,0);f.lineTo(x+192,192);f.stroke();}return tile;
+  }
+  buildFog(){
+    if(this.media?.kind!=='map')return;const ops=S.session?.fog[this.media.id]||[],key=JSON.stringify(ops);
+    if(key===this.fogKey)return;
+    const factor=Math.min(1,4096/Math.max(this.media.width,this.media.height));this.fog.width=Math.ceil(this.media.width*factor);this.fog.height=Math.ceil(this.media.height*factor);
+    const f=this.fog.getContext('2d');f.fillStyle=f.createPattern(this.fogTexture,'repeat');f.fillRect(0,0,this.fog.width,this.fog.height);f.scale(factor,factor);
+    for(const op of ops){f.globalCompositeOperation=op.mode==='reveal'?'destination-out':'source-over';f.fillStyle=f.strokeStyle=f.createPattern(this.fogTexture,'repeat');if(op.polygon){this.path(f,op.polygon);f.closePath();f.fill();}else this.stroke(f,op,op.radius);}
+    f.setTransform(1,0,0,1,0,0);f.globalCompositeOperation='source-over';this.fogKey=key;
+  }
+  startFogPreview(){
+    this.buildFog();this.previewFog.width=this.fog.width;this.previewFog.height=this.fog.height;
+    this.previewFog.getContext('2d').drawImage(this.fog,0,0);this.previewActive=true;this.extendFogPreview(this.drag.points);
+  }
+  extendFogPreview(points){
+    const f=this.previewFog.getContext('2d'),factor=this.previewFog.width/this.media.width;
+    f.save();f.scale(factor,factor);f.globalCompositeOperation=this.drag.mode==='reveal'?'destination-out':'source-over';f.fillStyle=f.strokeStyle=f.createPattern(this.fogTexture,'repeat');this.stroke(f,{points},S.radius);f.restore();
+  }
   paint(){
     this.updateCursor();
     const c=this.ctx;c.setTransform(this.dpr,0,0,this.dpr,0,0);c.clearRect(0,0,this.w,this.h);
     if(!this.media||!this.image){c.fillStyle='#a4adba';c.font='16px Segoe UI';c.textAlign='center';c.fillText(this.media?'Loading image…':'Waiting for the DM to present something.',this.w/2,this.h/2);return;}
     c.save();c.translate(this.x,this.y);c.scale(this.scale,this.scale);c.drawImage(this.image,0,0,this.media.width,this.media.height);
     if(this.media.kind==='map'){
-      const ops=S.session?.fog[this.media.id]||[];const key=JSON.stringify(ops);
-      if(key!==this.fogKey){
-        const factor=Math.min(1,4096/Math.max(this.media.width,this.media.height));this.fog.width=Math.ceil(this.media.width*factor);this.fog.height=Math.ceil(this.media.height*factor);
-        const f=this.fog.getContext('2d');f.fillStyle='#0c1016';f.fillRect(0,0,this.fog.width,this.fog.height);f.scale(factor,factor);
-        for(const op of ops){f.globalCompositeOperation=op.mode==='reveal'?'destination-out':'source-over';f.fillStyle='#0c1016';f.strokeStyle='#0c1016';
-          if(op.polygon){this.path(f,op.polygon);f.closePath();f.fill();}else this.stroke(f,op,op.radius);}
-        this.fogKey=key;
-      }
-      c.globalAlpha=this.player?1:.42;c.drawImage(this.fog,0,0,this.media.width,this.media.height);c.globalAlpha=1;
+      this.buildFog();
+      c.globalAlpha=this.player?1:.64;c.drawImage(this.previewActive?this.previewFog:this.fog,0,0,this.media.width,this.media.height);c.globalAlpha=1;
       if(!this.player){
         for(const region of this.media.regions){if(!region.points.length)continue;this.path(c,region.points);c.closePath();c.lineWidth=(region.id===S.region?3:1)/this.scale;c.strokeStyle=region.id===S.region?'#f3c76a':'#78a7be88';c.stroke();}
         if(S.mode==='boundary'&&S.boundary.length){this.path(c,S.boundary);if(!this.drag)c.closePath();c.strokeStyle='#f3c76a';c.fillStyle='#f3c76a22';c.lineWidth=2/this.scale;c.fill();c.stroke();}
@@ -566,7 +658,7 @@ class Stage {
     }
     for(const stroke of this.ink){c.strokeStyle=stroke.color;c.fillStyle=stroke.color;this.stroke(c,stroke,3/this.scale);}
     if(this.drag&&!this.drag.pan&&this.drag.mode==='pen'){c.strokeStyle=S.color;c.fillStyle=S.color;this.stroke(c,this.drag,3/this.scale);}
-    c.restore();
+    c.restore();if(!this.player)visibilityStatus();
   }
 }
 function playerShell(){
@@ -585,17 +677,18 @@ function updatePlayer(){
 async function poll(){
   if(!S.wid||!S.aid||S.pollBusy)return;S.pollBusy=true;
   try {
+    if(!isPlayer){const presence=await request('player/presence').catch(()=>({online:false}));const led=$('#player-presence');if(led){led.classList.toggle('online',!!presence.online);led.setAttribute('aria-label',presence.online?'Player screen online':'Player screen offline');led.title=presence.online?'Player screen online':'Player screen offline';}}
     const next=await request(isPlayer?'player':'session');const changed=JSON.stringify(next)!==JSON.stringify(S.session);S.session=next;
     if(isPlayer){$('#connection').textContent='';if(changed)updatePlayer();}
-    else if(changed){renderTabs($('#dm-tabs'),S.session,false);S.stage?.paint();}
+    else if(changed){renderTabs($('#dm-tabs'),S.session,false);S.stage?.paint();visibilityStatus();}
     if(S.media&&S.session.tabs.some(t=>(typeof t==='string'?t:t.id)===S.media)&&S.stage){const ink=await request('ink',{media:S.media});S.stage.ink=ink.strokes;S.stage.paint();}
   }catch(error){if(isPlayer)$('#connection').textContent='Connection lost · your DM may need to reopen this window.';}
   finally{S.pollBusy=false;}
 }
 async function start(){
   const client=crypto.randomUUID();
-  await request('client/ping',{client});
-  setInterval(()=>request('client/ping',{client}).catch(()=>{}),10000);
+  await request('client/ping',{client,role:isPlayer?'player':'dm'});
+  setInterval(()=>request('client/ping',{client,role:isPlayer?'player':'dm'}).catch(()=>{}),10000);
   window.addEventListener('pagehide',()=>{
     fetch('/api/client/close',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({client})}).catch(()=>{});
   });

@@ -2,6 +2,10 @@
 import base64
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import mimetypes
+import os
+import subprocess
+import sys
 from pathlib import Path
 import secrets
 import threading
@@ -10,8 +14,10 @@ from urllib.parse import parse_qs, urlsplit, unquote
 import uuid
 
 from . import __version__
-from .importer import Library, MAX_IMAGE, UserError
+from .importer import Library, MAX_IMAGE, UserError, confined
 from .library_setup import LibrarySetup
+from .updates import Updater
+from .preferences import Preferences
 from .jobs import TransferJobs
 from .transfers import CHUNK, MAX_BACKUP
 
@@ -27,15 +33,19 @@ class Application:
         self.no_clients_since = None
         self.started = time.monotonic()
         self.setup = LibrarySetup(store.root)
+        self.preferences = Preferences(store.root)
         self.lock = threading.RLock()
         self.picker_lock = threading.Lock()
         self.server = None
         self.recovered = 0
         self.transfers = TransferJobs(store)
         self.prepared_cache = {}
+        self.updater = Updater(store.root)
+        self.update_candidate = None
+        self.pending_update = None
 
     def recover(self):
-        self.recovered = self.transfers.recover()
+        self.recovered = self.transfers.recover() + self.updater.recover()
 
     def close(self):
         self.transfers.close()
@@ -49,6 +59,7 @@ class Application:
             progress("Reading chapters and downloading missing adventure images" if fetcher else "Reading chapters and local images")
             graph, blobs = library.load(payload["source"], event.is_set, fetcher)
             self.transfers.commit(event, job)
+            self.remember_source(library, payload.get("images"), payload["workspace"])
             progress("Saving imported adventure")
             return self.store.import_graph(payload["workspace"], graph, blobs)
         return self.transfers.start_job("import", operation)
@@ -94,6 +105,67 @@ class Application:
             database.cache_clear()
         return {'connected': True, 'version': info['version']}
 
+    def remember_source(self, library, images=None, workspace=None):
+        # Preferences must never turn a completed import into a failed job.
+        try:
+            selection = {'path': str(library.root), 'images': str(images or '')}
+            self.preferences.update('library', selection)
+            if workspace:
+                sources = self.preferences.read().get('sources', {})
+                sources[workspace] = selection
+                self.preferences.update('sources', sources)
+        except (OSError, UserError):
+            pass
+
+    def source_defaults(self):
+        saved = self.preferences.read().get('library', {})
+        candidates = [saved] if saved.get('path') else []
+        candidates += [{'path': p, 'images': ''} for p in reversed(list(self.setup.config()))]
+        candidates += [{'path': p, 'images': ''} for p in self.source_settings().values()]
+        for candidate in candidates:
+            try:
+                lib = Library(candidate['path'], candidate.get('images') or None)
+                lib.validate()
+                return {'path': str(lib.root), 'images': candidate.get('images',''), 'available': True}
+            except (OSError, ValueError, UserError):
+                continue
+        return {'path': '', 'images': '', 'available': False}
+
+    def reference_file(self, wid, name):
+        self.store.folder(wid)
+        selection = self.preferences.read().get('sources', {}).get(wid, {})
+        path = selection.get('path') or self.source_settings().get(wid) or self.source_defaults()['path']
+        if not path:
+            raise UserError('Choose a local 5e.tools library through Add adventure first.')
+        library = Library(path, selection.get('images') or None)
+        if library.root.name.lower() == 'data':
+            library = Library(library.root.parent, selection.get('images') or None)
+        if name.startswith('img/'):
+            file = confined(library.images.resolve(), name[4:])
+        else:
+            file = confined(library.root, name)
+        if (not file.is_file() or '.git' in file.parts or file.suffix.lower() in
+                ('.py','.exe','.bat','.cmd','.ps1','.dll','.sqlite3')):
+            raise UserError('Reference resource not found in this library.')
+        return file, mimetypes.guess_type(file.name)[0] or 'application/octet-stream'
+
+    def restart_update(self):
+        if not getattr(sys, 'frozen', False) or not self.pending_update:
+            raise UserError('Install an update in the packaged app before restarting.')
+        executable = Path(self.pending_update['executable']).resolve()
+        if not executable.is_relative_to((self.store.root / 'applications').resolve()) or not executable.is_file():
+            raise UserError('The staged update is unavailable. Download it again.')
+        self.transfers.request_close()
+        try:
+            subprocess.Popen([str(executable), '--data-dir', str(self.store.root),
+                '--wait-for-pid', str(os.getpid())], creationflags=subprocess.CREATE_NO_WINDOW)
+        except OSError as exc:
+            with self.transfers.lock:
+                self.transfers.accepting = True
+            raise UserError('Unable to open the update. Your current app is still running; try restarting again.') from exc
+        threading.Thread(target=self.server.shutdown, daemon=True).start()
+        return {'restarting': True}
+
     def should_exit(self, now=None):
         now = time.monotonic() if now is None else now
         with self.lock:
@@ -119,11 +191,43 @@ class Application:
         if path in ("/api/client/ping", "/api/client/close"):
             client = str(uuid.UUID(body["client"]))
             with self.lock:
-                self.clients[client] = {"seen": time.monotonic(), "closed": path.endswith("close")}
+                self.clients[client] = {"seen": time.monotonic(), "closed": path.endswith("close"),
+                    "role": "player" if player else "dm", "workspace": body.get("workspace"),
+                    "adventure": body.get("adventure")}
             return {"ok": True}
         if path == "/api/bootstrap":
             return {"version": __version__, "workspaces": store.listing(),
                     "ai": {"enabled": False, "available": False}, "player_token": self.player_token, 'recovered_operations': self.recovered}
+        if path == "/api/player/presence":
+            with self.lock:
+                return {'online': any(c.get('role') == 'player' and not c['closed']
+                    and c.get('workspace') == body.get('workspace')
+                    and c.get('adventure') == body.get('adventure')
+                    and time.monotonic() - c['seen'] < 20 for c in self.clients.values())}
+        if path == '/api/tutorial':
+            self.store.folder(body['workspace'])
+            if body.get('adventure'):
+                self.store.adventure(body['workspace'], body['adventure'])
+            return self.preferences.tutorial(body['workspace'], body.get('phase'),
+                body.get('adventure'), body.get('action','get'))
+        if path == '/api/update/check':
+            candidate = self.updater.check()
+            self.update_candidate = candidate
+            return candidate | {'supported': bool(getattr(sys,'frozen',False))}
+        if path == '/api/update/install':
+            if not getattr(sys,'frozen',False):
+                raise UserError('In-app installation is available in the Windows EXE.')
+            candidate = self.update_candidate or self.updater.check()
+            if not candidate.get('available'):
+                raise UserError('No newer release is available.')
+            def install(event, job, progress):
+                result = self.updater.install(candidate, event.is_set, progress,
+                    lambda: self.transfers.commit(event,job))
+                self.pending_update = result
+                return result
+            return self.transfers.start_job('update', install)
+        if path == '/api/update/restart':
+            return self.restart_update()
         if path == "/api/workspace/create":
             return store.create(body.get("name", ""), body.get("language", "English"), body.get("rules", "Unspecified"))
         if path == "/api/workspace":
@@ -143,9 +247,15 @@ class Application:
             return {'files': [{'path': name, **record} for name, record in module['files'].items()],
                     'original': module.get('original')}
         if path == "/api/adventure":
-            return store.adventure(body["workspace"], body["adventure"])
+            graph = store.adventure(body["workspace"], body["adventure"])
+            graph['reference_base'] = f"/reference/{body['workspace']}/{self.dm_token}/"
+            return graph
+        if path == "/api/library/defaults":
+            return self.source_defaults()
         if path == "/api/library":
-            return self.setup.validate(body.get("path", ""), body.get("images"))
+            result = self.setup.validate(body.get("path", ""), body.get("images"))
+            self.remember_source(Library(body["path"]), body.get("images"), body.get("workspace"))
+            return result
         if path == "/api/library/options":
             return self.setup.options()
         if path == "/api/library/install":
@@ -278,11 +388,18 @@ def make_server(app, port=0):
                     return self.send(403, {"error": "Invalid host."})
                 parsed = urlsplit(self.path)
                 path, query = parsed.path, parse_qs(parsed.query)
+                if path.startswith('/reference/') and self.command == 'GET':
+                    parts = path.split('/',4)
+                    if len(parts) != 5 or not secrets.compare_digest(parts[3], app.dm_token):
+                        raise PermissionError('Book references are DM-only.')
+                    file, mime = app.reference_file(parts[2], unquote(parts[4]))
+                    csp = "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; frame-ancestors 'self'"
+                    return self.send(200,file,mime,csp=csp)
                 if path.startswith('/campaign/'):
                     return self.prepared_dispatch(path, query, origin)
-                if self.command == "GET" and path in ("/", "/app.js", "/book.js", "/style.css", "/icon.svg"):
+                if self.command == "GET" and path in ("/", "/app.js", "/book.js", "/home.js", "/home.css", "/hero.svg", "/style.css", "/icon.svg"):
                     filename = "index.html" if path == "/" else path[1:]
-                    mime = {"index.html": "text/html", "app.js": "text/javascript", "book.js": "text/javascript", "style.css": "text/css", "icon.svg": "image/svg+xml"}[filename]
+                    mime = {"index.html": "text/html", "app.js": "text/javascript", "book.js": "text/javascript", "style.css": "text/css", "icon.svg": "image/svg+xml", "home.js":"text/javascript", "home.css":"text/css", "hero.svg":"image/svg+xml"}[filename]
                     return self.send(200, (STATIC / filename).read_bytes(), mime)
                 token = self.headers.get("Authorization", "").removeprefix("Bearer ")
                 if path.startswith(("/asset/", '/download/')):

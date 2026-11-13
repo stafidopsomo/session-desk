@@ -96,7 +96,7 @@ def run(exe=None, artifacts=None):
             context.route("**/*",route)
             page = context.new_page()
             page.on("pageerror",lambda error: errors.append(str(error)))
-            page.goto(ready["url"]+"#dm="+ready["token"])
+            page.goto(ready["url"]+"?tutorial=off#dm="+ready["token"])
             expect(page.get_by_role("heading",name="A place for your next adventure.")).to_be_visible()
             if artifacts:
                 artifacts.mkdir(parents=True,exist_ok=True)
@@ -190,8 +190,8 @@ def run(exe=None, artifacts=None):
             expect(page.locator('.book-navigation')).not_to_contain_text('16b')
             if artifacts:page.screenshot(path=str(artifacts/'book-reader.png'))
             page.locator('.book-navigation').get_by_role('button',name='Observatory floor',exact=False).click()
-            page.get_by_role("checkbox",name="I reviewed this image",exact=False).check()
             page.get_by_role("button",name="Present to players").click()
+            expect(page.locator("#toast")).to_have_text("Presented. Open the player screen for your TV.")
             # Synthetic legacy import: enrich its metadata while the same tab is
             # visible. The player must reload the new asset, not retain the DM image.
             synthetic_store=Store(base/'app/profile/SessionDesk')
@@ -211,7 +211,10 @@ def run(exe=None, artifacts=None):
             expect(player.locator('body')).not_to_contain_text("Private browser note")
             expect(player.locator('body')).not_to_contain_text("DM_ONLY_SYNTHETIC_SECRET")
             with player.expect_response(lambda r: '/asset/' in r.url and player_asset in r.url):
-                call(ready,'import/start',{**scope,'path':str(source),'source':'DEMO'})
+                imported_again=call(ready,'import/start',{**scope,'path':str(source),'source':'DEMO'})
+                from tools.smoke_core import wait_job
+                outcome=wait_job(ready,imported_again['id'])
+                assert outcome.get('enriched'),outcome
             expect(player.locator('#player-tabs')).to_contain_text('Observatory floor')
             # Space-pan after focusing outside the map must not produce a reveal stroke.
             page.get_by_role("button",name="Reveal",exact=True).click()
@@ -280,7 +283,6 @@ def run(exe=None, artifacts=None):
             # Open a second tab and prove player-controlled activation and close-all.
             page.locator('.library').get_by_role('button',name='Expand The lower gallery',exact=True).click()
             page.locator('.book-navigation').get_by_role("button",name="Gallery floor",exact=False).click()
-            page.get_by_role("checkbox",name="I reviewed this image",exact=False).check()
             page.get_by_role("button",name="Present to players").click()
             expect(player.locator('#player-tabs .tab')).to_have_count(2)
             player.get_by_role("button",name="Observatory floor",exact=True).click()

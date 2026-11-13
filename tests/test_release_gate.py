@@ -65,6 +65,15 @@ class ReleaseGateTests(unittest.TestCase):
         r['version']='0.1.0-preview.3'
         self.assertTrue(self.check(r,version=r['version']))
 
+    def test_regular_release_requires_separate_owner_testing_decision(self):
+        r=record();r.update(version='0.1.0',release_ready=True)
+        self.assertTrue(self.check(r,version='0.1.0'))
+        r['publication'].update(channel='desktop',kind='release',scope='initial_desktop_release',reason='Original owner stable-release test')
+        r['checks']['owner_main_pc']={'passed':True,'evidence':'Original owner testing report'}
+        self.assertEqual(self.check(r,version='0.1.0'),[])
+        self.assertFalse(r['checks']['laptop_compatibility']['passed'])
+        self.assertTrue(self.check(r,version='0.1.1'))
+
     def test_package_requires_clean_matching_provenance_and_every_file_hash(self):
         with tempfile.TemporaryDirectory() as temp:
             archive=Path(temp)/'original-test-package.zip'

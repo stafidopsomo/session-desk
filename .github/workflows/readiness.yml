@@ -74,14 +74,16 @@ jobs:
           if ($taskArchive.Count -ne 1) { throw 'Expected exactly one application ZIP' }
           python tools/release_gate.py --tag $env:GITHUB_REF_NAME --archive $taskArchive[0].FullName --commit $env:GITHUB_SHA
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Publish the validated tag as a prerelease
+      - name: Publish the validated version
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $taskAssets = @(Get-ChildItem dist/*.zip,dist/*.sha256 | ForEach-Object FullName)
           $taskVersion = $env:GITHUB_REF_NAME -replace '^product-v',''
-          gh release create "$env:GITHUB_REF_NAME" @taskAssets --verify-tag --prerelease --title "Session Desk $taskVersion — Windows preview" --notes-file docs/RELEASE-NOTES.md
+          $taskReleaseFlags = @('--latest')
+          if ($taskVersion.Contains('-')) { $taskReleaseFlags = @('--prerelease') }
+          gh release create "$env:GITHUB_REF_NAME" @taskAssets --verify-tag @taskReleaseFlags --title "Session Desk $taskVersion" --notes-file docs/RELEASE-NOTES.md
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 # No live provider diagnostics, login, account/quota access or inference.

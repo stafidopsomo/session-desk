@@ -35,7 +35,21 @@ def evaluate(record, version, digest, tag):
     errors = []
     required = REQUIRED
     preview = version in PREVIEW_SCOPES
-    if preview:
+    if version == '0.1.0':
+        decision = record.get('publication', {})
+        if (record.get('release_ready') is not True or record.get('alpha_ready') is not False
+                or decision.get('channel') != 'desktop' or decision.get('kind') != 'release'
+                or decision.get('basis') != 'owner_request'
+                or decision.get('scope') != 'initial_desktop_release'
+                or not decision.get('reason') or not decision.get('date')):
+            errors.append('The initial desktop release needs its own tested publication decision.')
+        laptop = record.get('checks', {}).get('laptop_compatibility', {})
+        if laptop.get('passed') is not False or laptop.get('status') != 'deferred':
+            errors.append('Untested laptop compatibility must remain deferred.')
+        if not record.get('checks', {}).get('owner_main_pc', {}).get('passed'):
+            errors.append('Missing owner main-PC testing report.')
+        required = REQUIRED - {'laptop_compatibility'}
+    elif preview:
         # Owner-requested preview decisions are version-scoped. They do not
         # establish hardware results or relax the full alpha requirements.
         decision = record.get('publication', {})
@@ -110,7 +124,7 @@ def main():
         parser.error('--archive and --commit must be supplied together.')
     if args.archive:
         verify_package(args.archive, __version__, product_digest(), args.commit)
-    print('Publication gate passed for the accepted ' + ('preview' if __version__ in PREVIEW_SCOPES else 'alpha') + ' product tree.')
+    print('Publication gate passed for the accepted ' + ('desktop release' if __version__ == '0.1.0' else 'preview' if __version__ in PREVIEW_SCOPES else 'alpha') + ' product tree.')
 
 
 if __name__ == "__main__":

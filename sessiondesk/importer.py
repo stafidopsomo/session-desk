@@ -330,3 +330,32 @@ class Library:
         graph["fingerprint"] = hashlib.sha256((graph["source_fingerprint"] +
                             "".join(sorted(blobs))).encode()).hexdigest()
         return graph, blobs
+
+
+def enrich_book_metadata(graph):
+    """Derive captions/pages for old and new snapshots without changing IDs/prep."""
+    book = graph.get('book')
+    if not book:
+        return graph
+    for record in graph['entries'] + graph['maps'] + graph['pictures']:
+        node = book
+        page = None
+        for part in record.get('path', []):
+            if isinstance(node, dict) and node.get('page') is not None:
+                page = node['page']
+            try:
+                node = node[part]
+            except (KeyError, IndexError, TypeError):
+                node = None
+                break
+        if isinstance(node, dict):
+            page = node.get('page', page)
+        if isinstance(page, (int, str)) and len(str(page)) < 30:
+            record['page'] = page
+        if record.get('kind') in ('map','picture') and isinstance(node, dict):
+            caption = plain(node.get('title') or node.get('caption') or node.get('mapName') or '')
+            if caption:
+                record['caption'] = caption
+                record['name'] = caption
+            record['source_code'] = Path(record.get('source_path','')).stem
+    return graph

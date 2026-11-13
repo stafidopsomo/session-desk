@@ -4,10 +4,69 @@ const pathKey = path => JSON.stringify(path);
 
 export function bookContext(graph, assetURL) {
   return {
-    graph, assetURL,
+    graph, assetURL, referenceURL: graph.reference_base || '/reference/',
     entries: new Map(graph.entries.map(e => [pathKey(e.path),e])),
     media: new Map([...graph.maps,...graph.pictures].filter(m=>m.path).map(m=>[pathKey(m.path),m]))
   };
+}
+
+// The local 2014 reader uses lower-case URI components joined with underscores.
+// Only fixed local pages are allowed; source names never become URL paths/HTML.
+const referenceKinds = Object.freeze({
+  creature:['bestiary.html','MM','Creature'], monster:['bestiary.html','MM','Creature'],
+  spell:['spells.html','PHB','Spell'], item:['items.html','DMG','Item'],
+  background:['backgrounds.html','PHB','Background'], race:['races.html','PHB','Race'],
+  class:['classes.html','PHB','Class'], feat:['feats.html','PHB','Feat'],
+  condition:['conditionsdiseases.html','PHB','Condition'], status:['conditionsdiseases.html','PHB','Status'],
+  disease:['conditionsdiseases.html','DMG','Disease'], optfeature:['optionalfeatures.html','PHB','Optional feature'],
+  optionalfeature:['optionalfeatures.html','PHB','Optional feature'],
+  action:['actions.html','PHB','Action'], language:['languages.html','PHB','Language'],
+  reward:['rewards.html','DMG','Reward'], object:['objects.html','DMG','Object'],
+  trap:['trapshazards.html','DMG','Trap'], hazard:['trapshazards.html','DMG','Hazard'],
+  variantrule:['variantrules.html','DMG','Variant rule'], table:['tables.html','DMG','Table'],
+  vehicle:['vehicles.html','GoS','Vehicle'], boon:['cultsboons.html','MTF','Boon'],
+  cult:['cultsboons.html','MTF','Cult']
+});
+const hashPart = value => encodeURIComponent(String(value).toLowerCase()).toLowerCase();
+const validReferencePart = value => typeof value==='string' && value.trim().length>0 && value.length<=500 && !/[\x00-\x1f\x7f]/.test(value);
+function localReference(ctx,page,hash) {
+  const base=ctx.referenceURL ?? ctx.graph?.reference_base ?? '/reference/';
+  if(typeof base!=='string'||!/^\/reference\/(?:[a-zA-Z0-9_-]{1,100}\/)*$/.test(base))return null;
+  return base+page+'#'+hash;
+}
+export function referenceHref(tag,parts,ctx) {
+  if(tag==='book'||tag==='adventure') {
+    if(!validReferencePart(parts[1]))return null;
+    let hash=hashPart(parts[1]);
+    if(parts[2]) {
+      if(!/^\d{1,4}$/.test(parts[2]))return null;
+      hash+=','+parts[2];
+      if(parts[3]){if(!validReferencePart(parts[3]))return null;hash+=','+hashPart(parts[3]);}
+      if(parts[4]){if(!/^\d{1,4}$/.test(parts[4]))return null;hash+=','+parts[4];}
+    }
+    return localReference(ctx,tag==='book'?'book.html':'adventure.html',hash);
+  }
+  const kind=referenceKinds[tag];
+  if(!kind||!validReferencePart(parts[0])||!validReferencePart(parts[1]||kind[1]))return null;
+  let hash=hashPart(parts[0])+'_'+hashPart(parts[1]||kind[1]);
+  if(tag==='class'&&parts[3]) {
+    if(!validReferencePart(parts[3])||!validReferencePart(parts[4]||parts[1]||kind[1]))return null;
+    hash+=',state:sub_'+hashPart(parts[3])+'_'+hashPart(parts[4]||parts[1]||kind[1])+'=b1';
+  }
+  return localReference(ctx,kind[0],hash);
+}
+function referenceAnchor(href,label) {
+  return `<a class="book-link reference-link" href="${escape(href)}" target="_blank" rel="noopener noreferrer" title="Open this reference in local 5e.tools">${label} ↗</a>`;
+}
+function statblock(node,ctx,chapter,depth) {
+  const data=node.type==='statblockInline'?(node.statblockData||{}):node;
+  const tag=node.tag||node.prop||node.statblockType;
+  const kind=referenceKinds[tag];
+  const name=data.name||node.name;
+  const label=inline(node.displayName||name||'Unnamed reference',ctx,chapter,depth+1);
+  const source=data.source||node.source||(kind?.[1]||'');
+  const href=name?referenceHref(tag,[name,source],ctx):null;
+  return `<aside class="book-reference"><strong>${href?referenceAnchor(href,label):label}</strong><small>${escape(kind?.[2]||'Reference')}${source?' · '+escape(source):''}</small>${href?'':'<p>This reference has no supported local source locator.</p>'}</aside>`;
 }
 
 export function sourceNode(entry, graph) {
@@ -41,7 +100,7 @@ export function inline(value, ctx, chapter=0, depth=0) {
       const matches=ctx.graph.entries.filter(e=>e.key===parts[1]);
       const local=matches.filter(e=>e.chapter===chapter);const candidates=local.length?local:matches;
       result+=candidates.length===1?`<button type="button" class="book-link" data-action="entry" data-id="${candidates[0].id}">${formatted}</button>`:formatted;
-    } else result+=formatted;
+    } else {const href=referenceHref(tag,parts,ctx);result+=href?referenceAnchor(href,formatted):formatted;}
     position=end+1;
   }
   return result;
@@ -82,7 +141,7 @@ function render(node,ctx,path,level=0) {
     return `<div class="book-table"><table>${node.caption?`<caption>${inline(node.caption,ctx,chapter)}</caption>`:''}
       ${node.colLabels?`<thead><tr>${node.colLabels.map(x=>`<th>${cell(x)}</th>`).join('')}</tr></thead>`:''}<tbody>${(node.rows||[]).map(row=>`<tr>${(Array.isArray(row)?row:row.row||[]).map(x=>`<td>${cell(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
-  if(node.type==='statblock')return `<aside class="book-reference"><strong>${title||'Reference'}</strong><small>${escape(node.tag||node.prop||'')} ${escape(node.source||'')}</small></aside>`;
+  if(node.type==='statblock'||node.type==='statblockInline')return statblock(node,ctx,chapter,level);
   const entry=ctx.entries.get(pathKey(path));
   return `<section ${entry?`data-source-entry="${entry.id}"`:''}>${heading}${content()}${children(node,'items',ctx,path,level)}${children(node,'blocks',ctx,path,level)}${children(node,'text',ctx,path,level)}</section>`;
 }

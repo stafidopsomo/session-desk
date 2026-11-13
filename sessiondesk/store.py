@@ -10,7 +10,7 @@ import threading
 import uuid
 import zipfile
 
-from .importer import MAX_IMAGE, UserError, image_size, polygon
+from .importer import MAX_IMAGE, UserError, image_size, polygon, enrich_book_metadata
 from .transfers import CHUNK, MAX_BACKUP, MAX_METADATA, check_cancel, staging, remove_staging, recover_staging
 
 SCHEMA = 2
@@ -158,7 +158,7 @@ class Store:
                 raise UserError("Adventure not found in this workspace.")
             graph["preparation"] = self.get(conn, "prep:" + aid, {})
             graph["pins"] = self.get(conn, "pins:" + aid, {"items": []})["items"]
-            return graph
+            return enrich_book_metadata(graph)
 
     def _write_assets(self, conn, wid, blobs):
         repaired = 0
@@ -347,8 +347,11 @@ class Store:
             if action not in ("close_all",) and not media:
                 raise UserError("Map/picture not found.")
             if action == "present":
+                if media["kind"] == "picture" or payload.get('with_fog') is True:
+                    media['player_safe'] = True
+                    self.put(conn, 'adventure:' + aid, graph)
                 if not media["player_safe"]:
-                    raise UserError("Review this image for secrets and mark it safe before presenting.")
+                    raise UserError("Use Present with fog to open this map covered.")
                 if mid not in state["tabs"]:
                     state["tabs"].append(mid)
                 state["active"] = mid
