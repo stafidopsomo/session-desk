@@ -90,7 +90,7 @@ class ExperienceTests(WorkspaceCase):
         exe=app.updater.applications/'0.9.0'/'SessionDesk.exe'
         exe.parent.mkdir(parents=True);exe.write_bytes(b'Original fake executable, never run')
         app.pending_update={'executable':str(exe)}
-        with patch('sys.frozen',True,create=True),patch('sessiondesk.server.subprocess.Popen',side_effect=OSError('Original launch error')):
+        with patch('sys.frozen',True,create=True),patch('sessiondesk.server.activate_application'),patch('sessiondesk.server.subprocess.Popen',side_effect=OSError('Original launch error')):
             with self.assertRaises(UserError):app.restart_update()
         self.assertTrue(app.transfers.accepting)
 

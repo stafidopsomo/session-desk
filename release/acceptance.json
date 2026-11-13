@@ -1,7 +1,7 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.1",
   "alpha_ready": false,
-  "product_digest": "480c8f7c1d526bcc044f7b6a5a3073fd38ad2ea1b775dcdc18a235ce1323600a",
+  "product_digest": null,
   "checks": {
     "owned_library_import": {
       "passed": true,
@@ -52,13 +52,13 @@
     "channel": "desktop",
     "kind": "release",
     "basis": "owner_request",
-    "scope": "initial_desktop_release",
+    "scope": "desktop_update_handoff",
     "date": "2026-11-13",
-    "reason": "Owner reported successful main-PC installation/testing and requested the new experience and internal updater as a regular GitHub release.",
+    "reason": "Complete the owner-requested internal upgrade including persistent cold launches through existing shortcuts, after final updater review.",
     "deferred": {
       "laptop_compatibility": "Physical laptop/friend-PC access is unavailable; no hardware result is claimed.",
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": true
+  "release_ready": false
 }

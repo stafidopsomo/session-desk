@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import subprocess
 import threading
 import time
 import webbrowser
@@ -71,6 +72,21 @@ def main():
         wait_for_process(args.wait_for_pid)
     root = args.data_dir or Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share")) / "SessionDesk"
     root = root.resolve()
+    if getattr(sys,'frozen',False):
+        from .updates import preferred_application
+        from . import __version__
+        preferred=preferred_application(root,__version__)
+        if preferred:
+            command=[str(preferred),'--data-dir',str(root),'--wait-for-pid',str(os.getpid())]
+            if args.no_browser:command.append('--no-browser')
+            if args.auto_exit:command.append('--auto-exit')
+            if args.port:command+=['--port',str(args.port)]
+            if args.ready_file:command+=['--ready-file',str(args.ready_file)]
+            try:
+                subprocess.Popen(command,creationflags=subprocess.CREATE_NO_WINDOW)
+                return
+            except OSError:
+                pass  # Retain the original working application as fallback.
     lock = instance_lock(root)
     if lock is None:
         for _ in range(20):

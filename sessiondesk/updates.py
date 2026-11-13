@@ -275,3 +275,57 @@ class Updater:
         finally:
             try:remove_staging(apps,pending,'_update-')
             except (OSError,UserError):pass
+
+
+def _installed_target(root, executable, manifest_digest=None):
+    root=Path(root).resolve();apps=root/'applications';exe=Path(executable)
+    if apps.is_symlink() or apps.is_junction() or exe.is_symlink():
+        raise UserError('Updated application cannot be linked.')
+    exe=exe.resolve()
+    folder=exe.parent
+    if (exe.name!='SessionDesk.exe' or folder.parent!=apps
+            or not STABLE.fullmatch(folder.name) or folder.is_symlink() or folder.is_junction()):
+        raise UserError('Invalid updated application location.')
+    manifest=folder/'MANIFEST.json'
+    raw=manifest.read_bytes()
+    if len(raw)>4*1024*1024 or manifest_digest and hashlib.sha256(raw).hexdigest()!=manifest_digest:
+        raise UserError('Updated application manifest changed.')
+    data=json.loads(raw)
+    if data.get('version')!=folder.name or data.get('target')!='windows-x64' or data.get('dirty_source') is not False:
+        raise UserError('Updated application metadata is invalid.')
+    for record in data['files']:
+        file=folder/portable_path(record['path'])
+        if not file.resolve().is_relative_to(folder.resolve()) or file.is_symlink() or file.is_junction():
+            raise UserError('Updated application file leaves its installation.')
+        if file.stat().st_size!=record['size']:
+            raise UserError('Updated application file changed.')
+        with file.open('rb') as stream:
+            if hashlib.file_digest(stream,'sha256').hexdigest()!=record['sha256']:
+                raise UserError('Updated application file changed.')
+    if not exe.is_file():
+        raise UserError('Updated application executable is missing.')
+    return data['version'],hashlib.sha256(raw).hexdigest()
+
+
+def activate_application(root, executable):
+    """Persist the explicit restart choice so original EXE/shortcuts stay usable."""
+    root=Path(root).resolve();exe=Path(executable).absolute()
+    version,digest=_installed_target(root,exe)
+    pointer=root/'active-application.json';temp=pointer.with_suffix('.tmp')
+    if pointer.is_symlink() or temp.is_symlink():
+        raise UserError('Application launch preference cannot be linked.')
+    temp.write_text(json.dumps({'version':version,'executable':str(exe),'manifest_sha256':digest}),encoding='utf-8')
+    temp.replace(pointer)
+
+
+def preferred_application(root, current_version):
+    """Ignore invalid launch pointers and fall back to the current working build."""
+    try:
+        pointer=Path(root)/'active-application.json'
+        if pointer.is_symlink() or pointer.stat().st_size>10000:return None
+        selected=json.loads(pointer.read_text(encoding='utf-8'))
+        if version_key(selected['version'])<=version_key(current_version):return None
+        version,_=_installed_target(root,selected['executable'],selected['manifest_sha256'])
+        return Path(selected['executable']) if version==selected['version'] else None
+    except (OSError,ValueError,KeyError,TypeError,UserError):
+        return None

@@ -163,3 +163,28 @@ class UpdateTests(unittest.TestCase):
         with self.assertRaisesRegex(UserError,'differs'):self.updater.install()
         self.assertEqual(executable.read_bytes(),b'Original user modification')
         self.unchanged()
+
+
+class LaunchPointerTests(unittest.TestCase):
+    def test_verified_update_is_used_only_by_older_launchers_and_tampering_falls_back(self):
+        from sessiondesk.updates import activate_application,preferred_application
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);folder=root/'applications'/'0.2.0';folder.mkdir(parents=True)
+            exe=folder/'SessionDesk.exe';data=b'Original synthetic executable, not run';exe.write_bytes(data)
+            manifest={'version':'0.2.0','target':'windows-x64','dirty_source':False,
+                'files':[{'path':'SessionDesk.exe','size':len(data),'sha256':hashlib.sha256(data).hexdigest()}]}
+            (folder/'MANIFEST.json').write_text(json.dumps(manifest),encoding='utf-8')
+            activate_application(root,exe)
+            self.assertEqual(preferred_application(root,'0.1.1'),exe)
+            self.assertIsNone(preferred_application(root,'0.2.0'))
+            self.assertIsNone(preferred_application(root,'0.3.0'))
+            exe.write_bytes(b'Changed file')
+            self.assertIsNone(preferred_application(root,'0.1.1'))
+
+    def test_launch_pointer_cannot_escape_application_folder(self):
+        from sessiondesk.updates import activate_application,preferred_application
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);exe=root/'outside.exe';exe.write_bytes(b'Original synthetic file')
+            with self.assertRaises(UserError):activate_application(root,exe)
+            (root/'active-application.json').write_text(json.dumps({'version':'9.0.0','executable':str(exe),'manifest_sha256':'0'*64}))
+            self.assertIsNone(preferred_application(root,'0.1.1'))

@@ -1,4 +1,4 @@
-# Session Desk 0.1.0
+# Session Desk 0.1.1
 
 Windows x64 desktop release. Extract the entire application ZIP and run **SessionDesk.exe**; keep _internal beside it. No Python, Git, Node or AI account is required.
 
@@ -24,3 +24,5 @@ Automated Python, Node, source/frozen browser, archive/provenance and lifecycle 
 The package is unsigned. AI stays Off/unavailable. No books, official artwork, campaigns, characters or credentials are bundled. The home landscape is original app artwork. PDF/OCR, remote/LAN players and AI generation remain deferred. Temporary drawing/token positions/camera remain temporary.
 
 Export backup before moving computers or upgrading, and keep backups private. Report the app version, Windows version and steps when giving feedback.
+
+0.1.1 finalizes the persistent launch handoff: after choosing Restart into update, the original EXE/desktop shortcut forwards to the newer verified installation on subsequent launches. Invalid or modified launch targets fall back to the original working build.

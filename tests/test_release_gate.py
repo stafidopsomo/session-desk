@@ -73,6 +73,9 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertEqual(self.check(r,version='0.1.0'),[])
         self.assertFalse(r['checks']['laptop_compatibility']['passed'])
         self.assertTrue(self.check(r,version='0.1.1'))
+        r['version']='0.1.1';r['publication']['scope']='desktop_update_handoff'
+        self.assertEqual(self.check(r,version='0.1.1'),[])
+        self.assertTrue(self.check(r,version='0.1.2'))
 
     def test_package_requires_clean_matching_provenance_and_every_file_hash(self):
         with tempfile.TemporaryDirectory() as temp:

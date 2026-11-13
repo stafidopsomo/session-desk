@@ -16,7 +16,7 @@ import uuid
 from . import __version__
 from .importer import Library, MAX_IMAGE, UserError, confined
 from .library_setup import LibrarySetup
-from .updates import Updater
+from .updates import Updater, activate_application
 from .preferences import Preferences
 from .jobs import TransferJobs
 from .transfers import CHUNK, MAX_BACKUP
@@ -157,9 +157,10 @@ class Application:
             raise UserError('The staged update is unavailable. Download it again.')
         self.transfers.request_close()
         try:
+            activate_application(self.store.root,executable)
             subprocess.Popen([str(executable), '--data-dir', str(self.store.root),
                 '--wait-for-pid', str(os.getpid())], creationflags=subprocess.CREATE_NO_WINDOW)
-        except OSError as exc:
+        except (OSError, UserError) as exc:
             with self.transfers.lock:
                 self.transfers.accepting = True
             raise UserError('Unable to open the update. Your current app is still running; try restarting again.') from exc
