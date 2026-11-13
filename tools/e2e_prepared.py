@@ -80,7 +80,7 @@ def run(exe=None,artifacts=None):
             context.route('**/*',route)
             page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
             page.goto(ready['url']+'?tutorial=off#dm='+ready['token'])
-            expect(page.get_by_role('heading',name='Adventures')).to_be_visible()
+            expect(page.get_by_role('heading',name='Adventures',exact=True)).to_be_visible()
             # New users get no empty optional tabs, even in the same EXE.
             expect(page.get_by_role('button',name='Characters',exact=True)).to_have_count(0)
             page.get_by_role('button',name='New workspace',exact=True).click()

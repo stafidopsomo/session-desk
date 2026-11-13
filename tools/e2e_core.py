@@ -97,7 +97,7 @@ def run(exe=None, artifacts=None):
             page = context.new_page()
             page.on("pageerror",lambda error: errors.append(str(error)))
             page.goto(ready["url"]+"?tutorial=off#dm="+ready["token"])
-            expect(page.get_by_role("heading",name="Adventures")).to_be_visible()
+            expect(page.get_by_role("heading",name="Adventures",exact=True)).to_be_visible()
             if artifacts:
                 artifacts.mkdir(parents=True,exist_ok=True)
                 page.screenshot(path=str(artifacts / "home.png"))
