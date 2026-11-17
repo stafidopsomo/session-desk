@@ -103,6 +103,7 @@ def main():
     app = Application(Store(root))
     app.recover()
     server = make_server(app, args.port)
+    app.remote.resume(server.server_port)
     if not args.no_browser or args.auto_exit:
         def monitor():
             while True:

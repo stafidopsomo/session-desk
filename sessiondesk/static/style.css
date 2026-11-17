@@ -30,3 +30,5 @@
 .tour{padding:.2rem}.tour h2{font:600 1.7rem/1.2 Georgia,serif;color:#efdbb8}.tour>p:not(.eyebrow){line-height:1.8;color:#d5d4cf;min-height:6rem}.tour progress{height:5px}.tour .row{justify-content:flex-end}.tour .row button:first-child{margin-right:auto}
 @media(max-width:1100px) and (min-width:801px){.workspace{grid-template-columns:190px minmax(200px,1fr) 9px var(--inspector-width,350px)}}
 @media(max-width:800px){.workspace{grid-template-columns:170px minmax(180px,1fr)}.inspector-divider{display:none}.inspector{grid-column:1/-1}.player-presence{margin-left:-.3rem}.top{gap:.55rem}.sourceview{padding:1.1rem}}
+
+.settings{max-height:calc(100dvh - 80px);overflow:auto}#remote-link{width:100%;font-size:.8rem}

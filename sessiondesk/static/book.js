@@ -149,5 +149,7 @@ function render(node,ctx,path,level=0) {
 export function renderSource(entry,ctx) {
   if(!entry)return '';
   const node=sourceNode(entry,ctx.graph);
-  return node?render(node,ctx,entry.path):`<div class="legacy-source">${escape(entry.text)}</div>`;
+  const href=referenceHref(ctx.graph.source_kind==='book'?'book':'adventure',['',ctx.graph.source,String(entry.chapter),entry.name],ctx);
+  const sourceLink=href?`<p><a href="${escape(href)}" target="_blank" rel="noopener noreferrer">Open source in 5e.tools ↗</a></p>`:'';
+  return sourceLink+(node?render(node,ctx,entry.path):`<div class="legacy-source">${escape(entry.text)}</div>`);
 }

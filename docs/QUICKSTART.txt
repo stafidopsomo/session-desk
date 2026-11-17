@@ -1,10 +1,10 @@
-SESSION DESK 0.2.2 — WINDOWS X64
+SESSION DESK 0.3.0 — WINDOWS X64
 
 1. Extract the entire application ZIP. Keep _internal beside SessionDesk.exe.
 2. Double-click SessionDesk.exe. No Python, Git, Node or AI account is needed.
 3. Create a workspace: Campaign starts with Book; One-shot / standalone session
    starts with Resources and has no Book section.
-4. Choose Add adventure. Select your local 5e.tools library or explicitly
+4. Choose Add source. Select your local 5e.tools library or explicitly
    install the supported local 2014 copy. Search titles, choose and import.
 5. Prepare your resources, then Present and Open player screen for the TV.
    Map/room inspection is private. Reveal room or the brush changes fog.
@@ -39,3 +39,14 @@ and friend-PC compatibility and universal map geometry are not certified.
 
 Closing the last app window shuts down its local server after a short grace
 period. Do not delete your workspace folder when replacing application files.
+
+REFERENCE BOOKS: Add source → Reference books → choose/import. Sources use the
+same Resources tabs, title search, pins and preparation. PDFs remain unsupported.
+
+PRIVATE HOSTING: Install/sign in to Tailscale on both PCs. On the laptop, use
+Settings → Private hosting → Enable → Copy DM link. Open that private link on
+the other PC. Both use the same laptop workspace. Keep the laptop awake and
+connected. Hosting keeps the app running after browser windows close; Quit stops
+it. Launch Session Desk after reboot to resume. Disable hosting revokes its link.
+First HTTPS certificate setup may take longer. Remote folder paths refer to the
+host laptop. This feature does not copy/synchronise databases or enable Funnel.

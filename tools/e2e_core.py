@@ -110,10 +110,10 @@ def run(exe=None, artifacts=None):
             page.get_by_role("button",name="New workspace").click()
             page.locator('#workspace-name').fill("Browser test table")
             page.get_by_role("button",name="Create workspace",exact=True).click()
-            page.get_by_role("button",name="Add adventure",exact=True).click()
-            page.get_by_role('button',name='Close Add adventure',exact=True).click()
+            page.get_by_role("button",name="Add source",exact=True).click()
+            page.get_by_role('button',name='Close Add source',exact=True).click()
             expect(page.locator('#dialog')).not_to_be_visible()
-            page.get_by_role("button",name="Add adventure",exact=True).click()
+            page.get_by_role("button",name="Add source",exact=True).click()
             # A native picker is stubbed with a synthetic path. This verifies its
             # button never submits/validates the empty form before choosing.
             page.route('**/api/pick-folder',lambda route: route.fulfill(json={"path":str(source)}))

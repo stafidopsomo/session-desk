@@ -1,11 +1,12 @@
 {
-  "version": "0.2.2",
+  "version": "0.3.0",
   "alpha_ready": false,
-  "product_digest": "7e7d3e1aece6e2bab9eccba364b82c2a935673ccefe9a5b1df5d01d25dad3e2f",
+  "product_digest": "pending",
   "checks": {
     "owned_library_import": {
-      "passed": true,
-      "evidence": "Regular 0.2.2 frozen candidate a33b7ab: seven representative owned 2014 adventures passed import/export/restore with zero warnings. Private reports/books remain outside Git and CI."
+      "passed": false,
+      "evidence": null,
+      "status": "pending_0.3.0_candidate"
     },
     "clean_standard_user": {
       "passed": true,
@@ -18,16 +19,19 @@
       "status": "deferred"
     },
     "backup_restore": {
-      "passed": true,
-      "evidence": "Candidate a33b7ab restored a fresh native 0.2.1 campaign backup only in an isolated profile: 883 authored files and saved fog unchanged; all 15 maps and five character records rendered; 26 native Book entries and 10 missions preserved through portable roundtrip. Live state was not used for UI testing."
+      "passed": false,
+      "evidence": null,
+      "status": "pending_0.3.0_candidate"
     },
     "privacy_audit": {
-      "passed": true,
-      "evidence": "Local root CI and GitHub Windows run 44052607023 passed public source/package boundaries. Downloaded clean GitHub candidate verified exact version, commit, product digest, explicit manifest and every packaged file checksum. No private campaign, book, artwork or credentials included."
+      "passed": false,
+      "evidence": null,
+      "status": "pending_0.3.0_candidate"
     },
     "frozen_browser_e2e": {
-      "passed": true,
-      "evidence": "Local root CI and GitHub Windows run 44052607023 passed 144 Python tests, seven Node tests, all four source/frozen browser workflows and extracted-ZIP smoke. Synthetic regressions cover title-only resource search, adventure search/no matches, hidden one-shot Book and old links, adjacent source tabs, return/reload, restored-source switching, wide-screen viewport and unchanged player state; zero script errors/external requests."
+      "passed": false,
+      "evidence": null,
+      "status": "pending_0.3.0_candidate"
     },
     "owner_main_pc": {
       "passed": true,
@@ -52,13 +56,13 @@
     "channel": "desktop",
     "kind": "release",
     "basis": "owner_request",
-    "scope": "resource_navigation_corrections",
+    "scope": "reference_books_private_hosting",
     "date": "2026-11-17",
-    "reason": "Owner requests one-shot navigation, searchable adventure titles, title-only resource search, persistent adjacent source tabs and full-height Resources corrections while using the official regular release.",
+    "reason": "Owner explicitly requests reference books and private laptop-hosted campaign access through the official app, with PDF conversion left deferred.",
     "deferred": {
-      "laptop_compatibility": "Physical laptop/friend-PC access is unavailable; no hardware result is claimed.",
+      "laptop_compatibility": "Other physical-device/browser acceptance has not been performed; same-host automated Tailscale HTTPS checks are recorded separately.",
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": true
+  "release_ready": false
 }

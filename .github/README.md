@@ -4,16 +4,16 @@ A local Windows app for preparing tabletop adventures and showing maps, pictures
 
 [![Windows checks](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml/badge.svg?branch=main)](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml)
 
-**0.2.2 — Windows x64 regular release.** AI is Off and unavailable.
+**0.3.0 — Windows x64 regular release.** AI is Off and unavailable.
 
-[**Download the Windows application ZIP**](https://github.com/stafidopsomo/session-desk/releases/download/product-v0.2.2/SessionDesk-0.2.2-windows-x64.zip) · [Release notes and checksum](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.2.2)
+[**Download the Windows application ZIP**](https://github.com/stafidopsomo/session-desk/releases/download/product-v0.3.0/SessionDesk-0.3.0-windows-x64.zip) · [Release notes and checksum](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.3.0)
 
 ## Start
 
 1. Download and extract the complete application ZIP.
 2. Double-click **SessionDesk.exe**. Keep `_internal` beside it.
 3. Create a **Campaign** or **One-shot / standalone session** workspace.
-4. Choose **Add adventure**, connect your local 5e.tools library or explicitly install the supported local 2014 copy, then import.
+4. Choose **Add source**, connect your local 5e.tools library or explicitly install the supported local 2014 copy, then import.
 5. Prepare your resources → **Present** → **Open player screen**.
 
 Have a backup? Choose **Restore backup**. No Python, Git, Node or AI account is needed. Source books, pictures, campaigns, characters and credentials are not bundled.

@@ -100,7 +100,7 @@ def run(exe=None,artifacts=None):
             page.locator('#workspace-name').fill('Fresh example')
             page.get_by_role('button',name='Create workspace',exact=True).click()
             expect(page.locator('.prepared-workspace')).to_have_count(0)
-            expect(page.get_by_role('button',name='Add adventure',exact=True)).to_be_visible()
+            expect(page.get_by_role('button',name='Add source',exact=True)).to_be_visible()
             page.get_by_role('button',name='Workspaces',exact=True).click()
             page.get_by_role('button',name='Restore backup',exact=True).click()
             page.locator('#dialog input[type=file]').set_input_files(str(archive))

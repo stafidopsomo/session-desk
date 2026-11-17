@@ -66,14 +66,23 @@ function showSettings() {
   panel.innerHTML = `<h2>Settings</h2><h3>Display</h3><label for="text-size">DM text size</label>
     <input id="text-size" type="range" min="85" max="150" value="${localStorage.getItem('textSize') || 100}">
     <label class="check"><input id="density" type="checkbox" ${document.body.classList.contains('dense') ? 'checked' : ''}>Compact layout</label>
-    <hr><h3>AI</h3><label class="check"><input type="checkbox" role="switch" aria-label="AI" disabled>Off</label>
+    <hr><h3>Private hosting</h3><div id="remote-info" role="status"></div><hr><h3>AI</h3><label class="check"><input type="checkbox" role="switch" aria-label="AI" disabled>Off</label>
     <p class="muted">AI preparation is unavailable in this build. Import, edit, review and play without a provider.</p>
     <hr>${S.wid?`<p>${button('quick-tour','Quick tour','quiet')}</p>`:''}<h3>Updates</h3><p>${button('check-update','Check for updates','quiet')}</p><div id="update-info" role="status"></div><small>${esc(S.boot?.version || 'Development build')} · Windows desktop</small><p>${button('quit', 'Quit app', 'quiet')}</p>`;
   document.body.append(panel);
+  if(S.boot?.remote_client)$('#remote-info').textContent='Connected to the host laptop. Manage hosting on that laptop.';else loadRemoteStatus();
   document.querySelector('[data-action=settings]')?.setAttribute('aria-expanded','true');
   $('#text-size').oninput = e => { document.documentElement.style.setProperty('--scale', e.target.value / 100); localStorage.setItem('textSize', e.target.value); };
   $('#density').onchange = e => { document.body.classList.toggle('dense', e.target.checked); localStorage.setItem('density', String(e.target.checked)); };
 }
+async function loadRemoteStatus(value){
+  const info=$('#remote-info');if(!info)return;
+  try{
+    const state=value||await request('remote/status');if(!info.isConnected)return;
+    info.innerHTML=`<p>${state.online?'Private hosting is on. The app keeps running when browser windows close.':'Open this workspace from another computer through Tailscale.'}</p><p class="muted">The host laptop must stay awake and connected. Both computers need Tailscale. The DM link grants editing access.</p>${state.error?`<p>${esc(state.error)}</p>`:''}<div class="row">${button('remote-enable',state.online?'Reconnect':'Enable private hosting','quiet')}${state.enabled?button('remote-disable','Disable hosting','quiet'):''}</div>${state.url?`<label>Private DM link<input id="remote-link" type="password" readonly value="${esc(state.url)}"></label>${button('remote-copy','Copy DM link','quiet')}`:''}`;
+  }catch(e){if(info.isConnected)info.textContent=e.message;}
+}
+
 function closeSettings(){ $('#settings')?.remove();document.querySelector('[data-action=settings]')?.setAttribute('aria-expanded','false'); }
 document.addEventListener('pointerdown',e=>{if($('#settings')&&!e.target.closest('#settings,[data-action=settings]'))closeSettings();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#settings')){closeSettings();document.querySelector('[data-action=settings]')?.focus();}});
@@ -124,9 +133,9 @@ const campaignTourSteps=[
  {target:'[data-action=settings]',title:'Display and updates',copy:'Settings contains text size, updates and Quick tour. AI remains unavailable.'}
 ];
 const tourSteps={workspace:[
- {target:'[data-action=import]',title:'Add a book',copy:'Add adventure connects your local 5e.tools folder. You can also install a copy in a location you choose.'},
+ {target:'[data-action=import]',title:'Add a book',copy:'Add source connects your local 5e.tools folder. You can also install a copy in a location you choose.'},
  {target:'[data-action=backup]',title:'Keep a portable backup',copy:'Export backup includes this workspace’s imported images, preparation and saved fog. Restore backup on the home page creates a separate workspace.'},
- {target:'[data-action=settings]',title:'Display and updates',copy:'Settings contains text size, layout, updates and Quick tour. AI is unavailable. Next, choose Add adventure to import a book.'}
+ {target:'[data-action=settings]',title:'Display and updates',copy:'Settings contains text size, layout, updates and Quick tour. AI is unavailable. Next, choose Add source to import a book.'}
 ],adventure:[
  {target:'#search',title:'Find a resource',copy:'Search book entries here. Opening a result changes only your DM view.'},
  {target:'#resource-type',title:'Choose a resource type',copy:'Use Text, Images or Maps to narrow the results. Collapse all clears the search and closes chapter groups.'},
@@ -193,7 +202,7 @@ async function openWorkspace(wid) {
   S.wid = wid; S.overview = await request('workspace'); S.graph = null; S.aid = null; disposeStage();
   $('#app').innerHTML = header() + `<main class="home workspace-home"><p class="eyebrow">Workspace</p><h1>${esc(S.overview.meta.name)}</h1>
     <p>${esc(S.overview.meta.rules)} · Preparation language: ${esc(S.overview.meta.language)}</p>
-    <div class="row">${button('import','Add adventure','primary')}${button('backup','Export backup','quiet')}</div>
+    <div class="row">${button('import','Add source','primary')}${button('backup','Export backup','quiet')}</div>
     ${(S.overview.modules||[]).filter(m=>m.enabled&&m.kind==='campaign-desk-v1'&&m.schema===1).map(m=>`<section class="card prepared-workspace"><h2>${esc(m.title)}</h2><p>Prepared campaign · ${m.summary?.maps||0} maps · ${m.summary?.characters||0} characters · authored scenes, resources and saved table state.</p><p>${S.overview.rules_connected?'2014 rules library connected.':'Connect your local 2014 library to use source links and character rules. Your campaign files are already imported.'}</p><div class="row">${button('prepared','Open prepared campaign','primary')}${button('connect-rules',S.overview.rules_connected?'Change rules library':'Connect 2014 library','quiet')}${button('workspace-files','Browse files','quiet')}</div></section>`).join('')}
     <div class="cards">${S.overview.adventures.map(a => `<article class="card"><h2>${esc(a.name)}</h2>
       <p class="count">${a.maps} maps · ${a.pictures} pictures${a.warnings ? ` · ${a.warnings} import warnings` : ''}</p>
@@ -206,7 +215,7 @@ async function openAdventure(aid,epoch=null) {
   if(epoch!==null&&(epoch!==previewEpoch||S.wid!==wid))return;
   S.aid=aid;S.graph=graph;S.session=session;
   S.media = dmMedia()[0]?.id || null;
-  S.entry = S.graph.entries[0]?.id || null; S.region = null; S.view = S.media?'media':'text'; S.search = '';S.sourceOpen=false;S.drafts={};S.navOpen=new Set();S.resourceType='all';
+  S.entry = S.graph.entries[0]?.id || null; S.region = null; S.view = S.graph.source_kind==='book'?'text':S.media?'media':'text'; S.search = '';S.sourceOpen=false;S.drafts={};S.navOpen=new Set();S.resourceType='all';
   renderAdventure();await showTour('adventure');
   if(preview){const u=new URL(location.href);if(u.searchParams.get('text'))openEntry(u.searchParams.get('text'));else if(u.searchParams.get('media'))openMedia(u.searchParams.get('media'));}
 }
@@ -350,7 +359,7 @@ function dismiss() {
 $('#dialog').addEventListener('cancel',e=>{if(activeTour){e.preventDefault();finishTour();return;}if(sourceJob||transferJob){e.preventDefault();toast('Cancel the current operation before closing this window.');}});
 async function importDialog() {
   sourceValidation = null;
-  modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close Add adventure"')}<h2>Add adventure</h2><p class="muted">Connect a local source library, then choose your adventure.</p>
+  modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close Add source"')}<h2>Add source</h2><p class="muted">Connect a local source library, then choose an adventure or reference book.</p>
     <div class="row source-modes">${button('source-existing','Use existing copy','active')}${button('source-install','Install local copy')}</div>
     <div id="source-form"></div><div id="source-status" role="status" aria-live="polite"></div><div id="inventory"></div>`);
   existingSourceForm();
@@ -359,6 +368,7 @@ async function importDialog() {
 function existingSourceForm(path='',images='') {
   $('#source-form').innerHTML=`<form data-form="inspect"><label for="library-path">5e.tools library folder</label>
     <div class="row"><input name="path" id="library-path" required value="${esc(path)}" placeholder="Folder containing data/adventures.json">${button('pick-folder','Choose folder','quiet')}</div>
+    ${S.boot?.remote_client?'<p class="notice">These paths refer to folders on the host laptop. Select the source library there, or enter its host path below.</p>':''}
     <details><summary>Separate image folder · optional</summary><label for="image-path">Image library folder</label><input name="images" id="image-path" value="${esc(images)}" placeholder="Uses the library’s img folder"></details>
     <div class="row"><button type="submit" class="primary">Validate copy</button>${button('dismiss','Close','quiet')}</div></form>`;
   for(const input of $('#source-form').querySelectorAll('input'))input.addEventListener('input',()=>{
@@ -370,18 +380,18 @@ async function validateSource() {
   try {
     const path=$('#library-path').value,images=$('#image-path').value;
     const result=await request('library',{path,images});sourceValidation={...result,selectedPath:path,selectedImages:images};
-    $('#source-status').innerHTML=`<div class="notice success"><strong>✓ Local 5e.tools copy found</strong><p>${result.version ? `Version ${esc(result.version)} · ` : ''}${result.available} of ${result.adventures.length} adventure data files found.</p>
+    $('#source-status').innerHTML=`<div class="notice success"><strong>✓ Local 5e.tools copy found</strong><p>${result.version ? `Version ${esc(result.version)} · ` : ''}${result.available} of ${result.adventures.length} source files found.</p>
       <p>${result.download_images ? 'Adventure images will download during import, as selected at installation.' : result.images_found ? 'Image folder found.' : 'No images found. Text can still be imported; missing images will be reported.'}</p></div>`;
-    $('#inventory').innerHTML=`<label for="adventure-search">Find an adventure</label><input id="adventure-search" type="search" placeholder="Search adventure titles" autocomplete="off"><label for="adventure-source">Choose adventure</label><select id="adventure-source"></select><small id="adventure-count" role="status"></small><p>${button('import-adventure','Import adventure','primary',result.available?'':'disabled')}</p>`;
+    $('#inventory').innerHTML=`<label for="source-kind">Source type</label><select id="source-kind"><option value="all">All sources</option><option value="adventure">Adventures</option><option value="book">Reference books</option></select><label for="adventure-search">Find a book or adventure</label><input id="adventure-search" type="search" placeholder="Search book or adventure titles" autocomplete="off"><label for="adventure-source">Choose source</label><select id="adventure-source"></select><small id="adventure-count" role="status"></small><p>${button('import-adventure','Import adventure','primary',result.available?'':'disabled')}</p>`;
     const filterAdventures=()=>{
       const select=$('#adventure-source'),previous=select.value,q=$('#adventure-search').value.trim().toLowerCase();
-      const matches=result.adventures.filter(a=>a.name.toLowerCase().includes(q));
-      select.innerHTML=matches.map(a=>`<option value="${esc(a.id)}" ${a.available?'':'disabled'}>${esc(a.name)}${a.available?'':' · data missing'}</option>`).join('');
+      const matches=result.adventures.filter(a=>a.name.toLowerCase().includes(q)&&($('#source-kind').value==='all'||(a.kind||'adventure')===$('#source-kind').value));
+      select.innerHTML=matches.map(a=>`<option value="${esc(a.id)}" ${a.available?'':'disabled'}>${esc(a.name)}${a.kind==='book'?' · Reference book':''}${a.available?'':' · data missing'}</option>`).join('');
       select.value=matches.some(a=>a.id===previous&&a.available)?previous:matches.find(a=>a.available)?.id||'';
-      select.disabled=!matches.length;$('#adventure-count').textContent=matches.length?`${matches.length} adventures`:'No matching adventures.';
+      select.disabled=!matches.length;$('#adventure-count').textContent=matches.length?`${matches.length} sources`:'No matching sources.';
       $('[data-action=import-adventure]').disabled=!select.value;
     };
-    $('#adventure-search').oninput=filterAdventures;filterAdventures();
+    $('#adventure-search').oninput=filterAdventures;$('#source-kind').onchange=filterAdventures;filterAdventures();
   } catch(error) { $('#source-status').innerHTML=`<div class="notice error"><strong>Copy not validated</strong><p>${esc(error.message)}</p></div>`; }
 }
 function sourceBusy(busy) {
@@ -487,6 +497,11 @@ async function onAction(b) {
   if(b.dataset.action==='tour-back'&&activeTour){activeTour.index=Math.max(0,activeTour.index-1);return renderTour();}
   if(b.dataset.action==='tour-next'&&activeTour){if(activeTour.index===activeTour.steps.length-1)return finishTour();activeTour.index++;return renderTour();}
   const a = b.dataset.action, m = selectedMedia();
+  if(a==='remote-copy'){await navigator.clipboard.writeText($('#remote-link').value);toast('Private DM link copied. Open it on your other Tailscale computer.');return;}
+  if(a==='remote-enable'||a==='remote-disable'){
+    b.disabled=true;try{await loadRemoteStatus(await request(a==='remote-enable'?'remote/enable':'remote/disable'));}
+    catch(e){toast(e.message);await loadRemoteStatus();}finally{b.disabled=false;}return;
+  }
   if(a==='check-update'){
     b.disabled=true;const info=$('#update-info');info.textContent='Checking GitHub releases…';
     try{checkedUpdate=await request('update/check');if(!info.isConnected)return;
@@ -802,7 +817,7 @@ function resourceTabs(){
 function previewNav(){
   const section=new URL(location.href).searchParams.get('section')||(S.overview?.meta.session_mode==='oneshot'?'resources':'book');
   const sections=S.overview?.meta.session_mode==='oneshot'?[['resources','Resources'],['party','Party']]:[['book','Book'],['resources','Resources'],['party','Party']];
-  return `${isolatedPreview?'<div class="preview-banner">Separate preview workspace</div>':''}<nav class="campaign-nav">${sections.map(([id,label])=>`<a class="${section===id?'active':''}" href="${previewHref({section:id})}">${label}</a>`).join('')}<span class="grow"></span>${button('import','Add adventure','quiet')}${button('backup','Export backup','quiet')}</nav>`;
+  return `${isolatedPreview?'<div class="preview-banner">Separate preview workspace</div>':''}<nav class="campaign-nav">${sections.map(([id,label])=>`<a class="${section===id?'active':''}" href="${previewHref({section:id})}">${label}</a>`).join('')}<span class="grow"></span>${button('import','Add source','quiet')}${button('backup','Export backup','quiet')}</nav>`;
 }
 function previewRoute(fields,options={}){
   const path=previewHref(fields);if(path!==location.pathname+location.search)history.pushState(null,'',path);

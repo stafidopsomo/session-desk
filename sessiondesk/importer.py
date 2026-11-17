@@ -158,13 +158,17 @@ class Library:
             self.images = self.root.parent / "img"  # exact conventional library location only
 
     def inventory(self):
-        raw = read_json(self.data / "adventures.json")
-        items = raw.get("adventure") if isinstance(raw, dict) else None
-        if not isinstance(items, list):
-            raise UserError("Unsupported index schema: expected an adventure list.")
-        return [{"id": str(x["id"]), "name": plain(x.get("name", x["id"])),
-                 "available": self.source_path(str(x["id"])).is_file()}
-                for x in items if isinstance(x, dict) and x.get("id")]
+        result=[]
+        for kind,index,prop in (('adventure','adventures.json','adventure'),('book','books.json','book')):
+            if not (self.data/index).is_file():continue
+            raw=read_json(confined(self.data,index));items=raw.get(prop) if isinstance(raw,dict) else None
+            if not isinstance(items,list):raise UserError('Unsupported source index schema.')
+            for item in items:
+                if not isinstance(item,dict) or not item.get('id'):continue
+                ident=('book:' if kind=='book' else '')+str(item['id'])
+                result.append({'id':ident,'name':plain(item.get('name',item['id'])),'kind':kind,
+                    'available':self.source_path(ident).is_file()})
+        return result
 
     def validate(self):
         items = self.inventory()
@@ -183,23 +187,25 @@ class Library:
                 "images_found": self.images.is_dir() and any(self.images.iterdir())}
 
     def source_path(self, source):
+        kind='book' if source.startswith('book:') else 'adventure'
+        source=source.removeprefix('book:')
         if not re.fullmatch(r"[a-zA-Z0-9_-]{1,100}", source):
             raise UserError("Invalid adventure source ID.")
-        return confined(self.data, f"adventure/adventure-{source.lower()}.json")
+        return confined(self.data, f"{kind}/{kind}-{source.lower()}.json")
 
     def load(self, source, cancelled=lambda: False, fetch_missing=None):
         meta = next((x for x in self.inventory() if x["id"].lower() == source.lower()), None)
         if not meta or not meta["available"]:
             raise UserError("Adventure data is missing from the selected library.")
-        source = meta["id"]
-        raw = read_json(self.source_path(source))
+        raw = read_json(self.source_path(meta['id']))
+        kind=meta.get('kind','adventure');source=meta['id'].removeprefix('book:')
         chapters = raw.get("data") if isinstance(raw, dict) else None
         schema = 'data-list'
         if not isinstance(chapters, list):
-            wrapper = raw.get("adventureData") if isinstance(raw, dict) else None
-            schema = 'adventureData-object'
+            wrapper = raw.get("bookData" if kind=="book" else "adventureData") if isinstance(raw, dict) else None
+            schema = kind+'Data-object'
             if isinstance(wrapper, list):
-                schema = 'adventureData-list'
+                schema = kind+'Data-list'
                 matching = [x for x in wrapper if isinstance(x, dict) and
                             str(x.get("id", x.get("source", ""))).lower() == source.lower()]
                 if len(matching) != 1:
@@ -210,8 +216,8 @@ class Library:
             chapters = wrapper.get("data") if isinstance(wrapper, dict) else None
         if not isinstance(chapters, list) or not chapters or any(not isinstance(chapter, dict) for chapter in chapters):
             raise UserError("Unsupported adventure schema: expected data chapters.")
-        aid = stable("5etools", source.lower())
-        graph = {"id": aid, "name": meta["name"], "source": source,
+        aid = stable("5etools-book" if kind=="book" else "5etools", source.lower())
+        graph = {"id": aid, "name": meta["name"], "source": source, "source_kind":kind,
                  "adapter": "5etools-local-v2", "source_schema": schema, "book_schema": 1, "book": chapters,
                  "entries": [], "maps": [], "pictures": [],
                  "warnings": [], "source_fingerprint": hashlib.sha256(

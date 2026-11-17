@@ -18,6 +18,7 @@ from .importer import Library, MAX_IMAGE, UserError, confined
 from .library_setup import LibrarySetup
 from .updates import Updater, activate_application
 from .preferences import Preferences
+from .remote import RemoteHost
 from .jobs import TransferJobs
 from .transfers import CHUNK, MAX_BACKUP
 
@@ -34,6 +35,7 @@ class Application:
         self.started = time.monotonic()
         self.setup = LibrarySetup(store.root)
         self.preferences = Preferences(store.root)
+        self.remote = RemoteHost(store.root)
         self.lock = threading.RLock()
         self.picker_lock = threading.Lock()
         self.server = None
@@ -49,6 +51,9 @@ class Application:
 
     def close(self):
         self.transfers.close()
+        if self.remote.active:
+            try:self.remote.stop(disable=False)
+            except UserError:pass
 
 
     def start_import(self, payload):
@@ -169,6 +174,7 @@ class Application:
 
     def should_exit(self, now=None):
         now = time.monotonic() if now is None else now
+        if self.remote.config.get('enabled'):return False
         with self.lock:
             if any(not c["closed"] and now - c["seen"] < 90 for c in self.clients.values()):
                 self.no_clients_since = None
@@ -400,10 +406,23 @@ def make_server(app, port=0):
             self.body_remaining = None
             try:
                 origin = f"http://127.0.0.1:{self.server.server_port}"
-                if self.headers.get("Host") != origin.removeprefix("http://"):
-                    return self.send(403, {"error": "Invalid host."})
+                local_origin=origin;remote_origin=app.remote.origin
+                allowed={local_origin}|({remote_origin} if remote_origin else set())
+                if self.headers.get('Host') not in {urlsplit(value).netloc for value in allowed}:
+                    return self.send(403, {'error':'Invalid host.'})
+                incoming=self.headers.get('Origin')
+                if incoming is not None and incoming not in allowed:
+                    return self.send(403, {'error':'Same-origin requests only.'})
+                if incoming:origin=incoming
+                elif self.headers.get('Host')!=urlsplit(local_origin).netloc:origin=remote_origin
                 parsed = urlsplit(self.path)
                 path, query = parsed.path, parse_qs(parsed.query)
+                if path.startswith('/connect/') and self.command=='GET':
+                    key=app.remote.config.get('key','')
+                    if not app.remote.active or not key or not secrets.compare_digest(path.removeprefix('/connect/'),key):
+                        return self.send(401,{'error':'Remote link is unavailable. Copy a new link from Settings on the host.'})
+                    self.send_response(303);self.send_header('Location','/#dm='+app.dm_token)
+                    self.send_header('Cache-Control','no-store');self.send_header('Referrer-Policy','no-referrer');self.send_header('Content-Length','0');self.end_headers();return
                 if path.startswith('/reference/') and self.command == 'GET':
                     parts = path.split('/',4)
                     if len(parts) != 5 or not secrets.compare_digest(parts[3], app.dm_token):
@@ -446,6 +465,20 @@ def make_server(app, port=0):
                         raise PermissionError('Workspace attachments are DM-only.')
                     return self.send(200, file, mime, attachment=attachment,
                                      filename=query.get('name',['attachment.bin'])[0])
+                if path.startswith('/api/remote/'):
+                    if not dm:raise PermissionError('DM-only hosting settings.')
+                    if self.command!='POST' or self.headers.get('Origin')!=local_origin or self.headers.get('Host')!=urlsplit(local_origin).netloc:
+                        raise PermissionError('Manage hosting from the laptop itself.')
+                    if self.headers.get_content_type()!='application/json' or not 0<int(self.headers.get('Content-Length','0'))<=1000:
+                        raise UserError('Invalid hosting request.')
+                    self.connection.settimeout(10)
+                    self.rfile.read(int(self.headers.get('Content-Length','0')));self.body_consumed=True
+                    if path=='/api/remote/status':return self.send(200,app.remote.status())
+                    if path=='/api/remote/enable':return self.send(200,app.remote.start(self.server.server_port))
+                    if path=='/api/remote/disable':return self.send(200,app.remote.stop())
+                    raise UserError('Unknown hosting action.')
+                if path=='/api/pick-folder' and origin!=local_origin:
+                    raise UserError('Choose folders on the host laptop, or enter a folder path on that laptop.')
                 if self.command != "POST" or not path.startswith("/api/"):
                     return self.send(404, {"error": "Not found."})
                 if self.headers.get("Origin") != origin:
@@ -479,6 +512,7 @@ def make_server(app, port=0):
                 if not isinstance(body, dict):
                     raise UserError("Expected a JSON object.")
                 result = app.api(path, body, not dm, self.command)
+                if path=='/api/bootstrap' and dm:result['remote_client']=origin!=local_origin
                 self.send(200, result)
             except PermissionError as exc:
                 self.send(403, {"error": str(exc)})

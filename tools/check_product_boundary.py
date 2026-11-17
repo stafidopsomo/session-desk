@@ -15,7 +15,7 @@ ALLOWED_FILES = frozenset({
     'SessionDesk.spec', 'launcher.pyw', 'requirements-build.lock', 'requirements-e2e.lock',
     'sessiondesk/journal.py', 'sessiondesk/static/campaign.js', 'sessiondesk/static/campaign.css', 'sessiondesk/static/prepared-resources.js', 'tests/test_journal.py', 'tools/e2e_journal.py',
     'sessiondesk/__init__.py', 'sessiondesk/__main__.py', 'sessiondesk/importer.py',
-    'sessiondesk/store.py', 'sessiondesk/server.py',
+    'sessiondesk/store.py', 'sessiondesk/server.py', 'sessiondesk/remote.py', 'tests/test_remote.py', 'tests/test_reference_books.py',
     'sessiondesk/library_setup.py',
     'sessiondesk/transfers.py',
     'sessiondesk/static/index.html', 'sessiondesk/static/app.js',
