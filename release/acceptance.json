@@ -37,6 +37,12 @@
     "private_hosting": {
       "passed": true,
       "evidence": "Final candidate a326e55 private real HTTPS browser check passed authenticated writing, complete frozen shutdown/restart, stable-link reuse, saved-record preservation and link revocation. Synthetic/unit checks reject invalid hosts/origins, player administration, unrelated service replacement and public Funnel. Main-PC Tailscale ping passed; a second physical browser remains unverified."
+    },
+    "second_device_browser": {
+      "passed": true,
+      "basis": "owner_report",
+      "date": "2026-11-17",
+      "evidence": "Owner confirms the private link opens the campaign and PHB, DMG and SCAG from the main-PC browser with Tailscale connected. This verifies cross-device browser access; it does not claim a clean VM, exhaustive hardware/geometry testing or concurrent-edit acceptance."
     }
   },
   "milestones": {
