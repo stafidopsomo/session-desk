@@ -1,12 +1,11 @@
 {
   "version": "0.2.0",
   "alpha_ready": false,
-  "product_digest": "pending",
+  "product_digest": "3b6f5061ebcd909bcd1f696d7b3e8d083e0b1292d16836cf1e96757edcbad914",
   "checks": {
     "owned_library_import": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.0_candidate"
+      "passed": true,
+      "evidence": "Candidate 0e632a0: seven representative owned 2014 adventures completed frozen import/export/restore with zero warnings. Historical 80-source coverage is retained, not relabelled as a new full sweep. Sources/private reports remain local."
     },
     "clean_standard_user": {
       "passed": true,
@@ -19,19 +18,16 @@
       "status": "deferred"
     },
     "backup_restore": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.0_candidate"
+      "passed": true,
+      "evidence": "Candidate 0e632a0: normal 0.1.3 workspace exported and CRC/hash verified before upgrade; the clean regular 0.2.0 EXE opened an isolated restore, rendered all 15 maps and 5 characters, then exported/restored all 883 authored files, saved fog and native Book/mission records without differences. Synthetic tests cover current/future journal modules and conflicting edits."
     },
     "privacy_audit": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.0_candidate"
+      "passed": true,
+      "evidence": "GitHub Windows run 44001763447 and local root CI passed the independent-history/source boundary and explicit package/dependency/path audits. Its downloaded artifact independently matched the clean 0e632a0 commit, accepted product digest, companion checksum and every packaged file. No personal content, books or provider tooling enters source/builds."
     },
     "frozen_browser_e2e": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.0_candidate"
+      "passed": true,
+      "evidence": "Candidate 0e632a0 passed GitHub Windows run 44001763447 and local root CI: 144 Python tests, 7 Node checks, all four source/frozen browser workflows and extracted-ZIP lifecycle/relocation/checksum smoke. Tests exercise ordinary default URLs, Campaign/One-shot creation, native Book/mission editing, retained conflicting drafts, independent maps/tabs, compatibility return, tutorials and player-window presence."
     },
     "owner_main_pc": {
       "passed": true,
@@ -64,5 +60,5 @@
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": false
+  "release_ready": true
 }
