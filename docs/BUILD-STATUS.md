@@ -1,6 +1,6 @@
 # Windows desktop build status
 
-Current regular release candidate: **0.2.1**, approved by the owner on November 17 for official publication and everyday use. Book / Resources / Party is the default on the normal SessionDesk profile; the separate local preview remains intact. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
+Current regular release: **0.2.1**, published as GitHub Latest and installed from its verified public package on November 17 for everyday use. Book / Resources / Party is the default on the normal SessionDesk profile; the separate local preview remains intact. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
 
 
 Updated November 14, 2026. Version **0.1.3**, unsigned initial Windows desktop release. No completed alpha is claimed.
@@ -102,7 +102,7 @@ November 17 follow-up: workspace creation offers Campaign or One-shot / standalo
 
 Local preview verification completed November 17: 143 offline Python tests, 7 Node renderer checks, all four source and frozen browser workflows, extracted-ZIP checksum/relocation/lifecycle smoke and the public source boundary passed. The shared-preview browser workflow exercises fresh/restored navigation, Campaign/One-shot creation, independent tabs, retained edit conflicts, mission rewards, Party notes, fog/presentation and a real player-window presence indicator. The frozen app also rendered every map and character in an isolated private campaign copy; native backup/restore preserved all authored files, saved fog and journal records. Private evidence and content remain outside Git/builds. The package is unsigned, local-only and built from the working branch; no GitHub release, remote CI or completed unification milestone is claimed. Stable 0.1.3 and its live profile remain unchanged.
 
-Before public release, finish advanced Party/scene-card integration, full cross-source presentation, native Book context projections and onboarding parity. Existing source projections are not automatically synchronised from this isolated preview. Keep its edits separate until deliberate adoption.
+The initial preview plan listed advanced Party/scene-card integration, full cross-source presentation, native Book context projections and onboarding parity as follow-up work. The subsequent explicit owner request scopes the regular release to the tested basic surface; it does not certify those unfinished integrations. Isolated preview edits remain separate until deliberate adoption.
 
 
 ## Regular 0.2.0 acceptance
@@ -118,3 +118,10 @@ The 0.2.0 tag remained unpublished when its mission-creation browser check raced
 
 
 Candidate 6e66224 passed [GitHub Windows run 44005031100](https://github.com/stafidopsomo/session-desk/actions/runs/44005031100) and the full local root job: 144 Python tests, seven Node checks, all four source/frozen browser suites and extracted-ZIP smoke. The downloaded clean GitHub artifact independently passed exact commit/digest/provenance, archive and every-file checksum verification. Seven representative owned adventures completed regular frozen import/export/restore without warnings. The isolated normal-workspace upgrade rendered all 15 maps and five characters, preserved all 883 authored files and saved fog, and retained 26 native Book entries and 10 missions through backup/restore. Only aggregate evidence is committed; private reports/content remain outside source and CI. The regular tag repeats the complete checks before publishing Latest. Hardware/geometry and unfinished integration deferrals remain explicit.
+
+
+## Official 0.2.1 publication and installation
+
+Tag product-v0.2.1 at 2352621 passed [the final Windows build and publication run 44006486445](https://github.com/stafidopsomo/session-desk/actions/runs/44006486445). GitHub reports [0.2.1](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.2.1) as the regular Latest release, with draft/prerelease both false. The anonymously downloaded public ZIP passed checksum, exact tag commit/product digest and every-file manifest verification. Its SHA-256 is 063fec66c9d0cf4ef1dab6e7bca3d580f225a8484121d5c49d62f82256d0a86f.
+
+The installed 0.1.3 EXE successfully checked, downloaded and installed the official update through the normal updater. Installed files match the public manifest; managed activation and the normal desktop shortcut select 0.2.1. The existing normal profile opened with all original authored files and pre-existing workspace documents unchanged; native Book/mission records were added without a repeat import or preview merge. A verified pre-upgrade backup and old shortcut remain available. Private content, paths and detailed reports stay outside public source/artifacts. This is same-PC adoption evidence, not a new laptop/clean-VM/geometry result.
