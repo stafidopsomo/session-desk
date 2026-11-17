@@ -16,6 +16,9 @@ REQUIRED = {"owned_library_import", "clean_standard_user", "laptop_compatibility
 FIRST_PREVIEW = '0.1.0-preview.1'
 PREVIEW_SCOPES = {FIRST_PREVIEW: 'first_windows_preview',
                   '0.1.0-preview.2': 'reviewed_windows_preview'}
+DESKTOP_SCOPES = {'0.1.0':'initial_desktop_release','0.1.1':'desktop_update_handoff',
+    '0.1.2':'guided_adventure_management','0.1.3':'prepared_map_rendering_fix',
+    '0.2.0':'campaign_book_workspaces'}
 
 
 def product_digest(root=ROOT):
@@ -35,12 +38,12 @@ def evaluate(record, version, digest, tag):
     errors = []
     required = REQUIRED
     preview = version in PREVIEW_SCOPES
-    if version in ('0.1.0','0.1.1','0.1.2','0.1.3'):
+    if version in DESKTOP_SCOPES:
         decision = record.get('publication', {})
         if (record.get('release_ready') is not True or record.get('alpha_ready') is not False
                 or decision.get('channel') != 'desktop' or decision.get('kind') != 'release'
                 or decision.get('basis') != 'owner_request'
-                or decision.get('scope') != {'0.1.0':'initial_desktop_release','0.1.1':'desktop_update_handoff','0.1.2':'guided_adventure_management','0.1.3':'prepared_map_rendering_fix'}[version]
+                or decision.get('scope') != DESKTOP_SCOPES[version]
                 or not decision.get('reason') or not decision.get('date')):
             errors.append('The initial desktop release needs its own tested publication decision.')
         laptop = record.get('checks', {}).get('laptop_compatibility', {})
@@ -124,7 +127,7 @@ def main():
         parser.error('--archive and --commit must be supplied together.')
     if args.archive:
         verify_package(args.archive, __version__, product_digest(), args.commit)
-    print('Publication gate passed for the accepted ' + ('desktop release' if __version__ in ('0.1.0','0.1.1','0.1.2','0.1.3') else 'preview' if __version__ in PREVIEW_SCOPES else 'alpha') + ' product tree.')
+    print('Publication gate passed for the accepted ' + ('desktop release' if __version__ in DESKTOP_SCOPES else 'preview' if __version__ in PREVIEW_SCOPES else 'alpha') + ' product tree.')
 
 
 if __name__ == "__main__":

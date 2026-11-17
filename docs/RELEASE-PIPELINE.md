@@ -90,3 +90,8 @@ The November 12 owner request for review/corrections/rebuild authorizes the vers
 ## Initial regular desktop release
 
 The November 13 owner report confirms main-PC testing and explicitly requests a regular release rather than a prerelease. product-v0.1.0 therefore requires release_ready, the initial_desktop_release decision, the owner report and exact-tree automated/privacy/package checks. Hardware/full-geometry deferrals remain explicit and alpha_ready remains false. The workflow publishes stable version tags with --latest and prerelease versions with --prerelease, after the same archive verification. The in-app updater reads only the fixed official latest regular release endpoint and never silently installs previews. Existing workspaces and machine-local sources stay outside installed applications. A fresh verified archive must match every file before a staged existing version can be reused.
+
+
+## Regular 0.2.0 decision — November 17
+
+The owner tested and liked the campaign-book surface and explicitly requested the official regular release for everyday use. product-v0.2.0 uses campaign_book_workspaces scope, regular --latest publication, owner main-PC evidence and the same exact-tree/archive gates. It promotes the shared surface as default while keeping the regular workspace profile and separate preview data intact. New version approval does not turn laptop/full geometry or unfinished feature acceptance into passed results. Candidate acceptance stays pending until local and GitHub Windows checks, vetted package provenance, owned-source checks and isolated recovery parity complete. The tag job rebuilds and verifies its own artifact; published files remain immutable.

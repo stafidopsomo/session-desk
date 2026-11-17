@@ -4,7 +4,8 @@ const $ = (s, root = document) => root.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fragment = new URLSearchParams(location.hash.slice(1));
 const params = new URLSearchParams(location.search);
-const preview = params.get('preview') === 'book';
+const isolatedPreview = params.get('preview') === 'book';
+const preview = params.get('legacy') !== '1' && params.get('view') !== 'player' && !fragment.has('player');
 let previewDispose=null,previewEpoch=0;
 const isPlayer = params.get('view') === 'player' || fragment.has('player');
 const tokenKey = isPlayer ? 'playerToken' : 'dmToken';
@@ -108,11 +109,20 @@ function visibilityStatus(){
   badge.textContent=label;badge.dataset.visibility=state;
 }
 async function showTour(phase,force=false){
-  if(preview)return;
   if(isPlayer||!S.wid||(!force&&params.get('tutorial')==='off')||sourceJob||transferJob||$('#dialog')?.open)return;
   if(!force){try{const result=await request('tutorial',{phase,action:'get'});if(result.completed!==false)return;}catch{return;}}
-  clearTour();closeSettings();activeTour={phase,index:0,wid:S.wid,aid:S.aid,restore:{media:S.media,entry:S.entry,region:S.region,view:S.view,sourceOpen:S.sourceOpen},steps:tourSteps[phase].filter(step=>step.view==='map'?dmMedia().some(m=>m.kind==='map'):step.view==='text'?!!S.graph?.entries.length:true)};renderTour();
+  clearTour();closeSettings();activeTour={phase,index:0,wid:S.wid,aid:S.aid,restore:{media:S.media,entry:S.entry,region:S.region,view:S.view,sourceOpen:S.sourceOpen},steps:(preview&&!S.graph?campaignTourSteps:tourSteps[phase]).filter(step=>step.view==='map'?dmMedia().some(m=>m.kind==='map'):step.view==='text'?!!S.graph?.entries.length:true)};renderTour();
 }
+const campaignTourSteps=[
+ {target:'.campaign-nav a[href*="section=book"]',title:'Your campaign book',copy:'Book keeps your session record, preparation and missions. Open an entry and choose Edit to save your own text.'},
+ {target:'.campaign-nav a[href*="section=resources"]',title:'Books, maps and images',copy:'Resources contains imported adventures and restored maps. Inspecting a map or room changes only this DM tab.'},
+ {target:'.campaign-nav a[href*="section=party"]',title:'Character records',copy:'Party keeps character concepts and private notes. Restored characters retain their complete sheets in Open full sheet.'},
+ {target:'#present-map',title:'Show this map',copy:'Present map sends this map to the player window with its saved fog. Choosing a room never presents or reveals it.'},
+ {target:'#preview-brush',title:'Reveal at your pace',copy:'Choose Reveal or Hide, adjust this radius and drag on the map. Space + drag pans. Reveal room is a separate room action.'},
+ {target:'[data-action=player]',title:'Player window',copy:'Open player screen opens the TV window. The adjacent light shows whether it is connected.'},
+ {target:'[data-action=backup]',title:'Take your campaign with you',copy:'Export backup includes the Book, missions, character records, resources and saved fog. Restore creates a separate workspace.'},
+ {target:'[data-action=settings]',title:'Display and updates',copy:'Settings contains text size, updates and Quick tour. AI remains unavailable.'}
+];
 const tourSteps={workspace:[
  {target:'[data-action=import]',title:'Add a book',copy:'Add adventure connects your local 5e.tools folder. You can also install a copy in a location you choose.'},
  {target:'[data-action=backup]',title:'Keep a portable backup',copy:'Export backup includes this workspace’s imported images, preparation and saved fog. Restore backup on the home page creates a separate workspace.'},
@@ -194,7 +204,7 @@ async function openAdventure(aid) {
   S.aid = aid; S.graph = await request('adventure'); S.session = await request('session');
   S.media = dmMedia()[0]?.id || null;
   S.entry = S.graph.entries[0]?.id || null; S.region = null; S.view = S.media?'media':'text'; S.search = '';S.sourceOpen=false;S.drafts={};S.navOpen=new Set();S.resourceType='all';
-  renderAdventure();if(!preview)await showTour('adventure');
+  renderAdventure();await showTour('adventure');
   if(preview){const u=new URL(location.href);if(u.searchParams.get('text'))openEntry(u.searchParams.get('text'));else if(u.searchParams.get('media'))openMedia(u.searchParams.get('media'));}
 }
 function navigationIndex() {
@@ -245,7 +255,7 @@ function renderAdventure() {
   capturePreparation();
   disposeStage();
   $('#app').innerHTML = header() + `<nav class="sectionnav"><strong>${esc(S.graph.name)}</strong><span class="spacer"></span>
-    ${button('workspace','Workspace','quiet',`data-id="${S.wid}"`)}</nav><main class="workspace"><aside class="library">${library()}</aside>
+    ${button('workspace',preview?'All sources':'Workspace','quiet',`data-id="${S.wid}"`)}</nav><main class="workspace"><aside class="library">${library()}</aside>
     <section class="center"><div class="presentation"><span>On player screen</span><div id="dm-tabs" class="tabs"></div></div><div id="resource-content"></div></section>
     <div id="inspector-divider" class="inspector-divider" role="separator" aria-label="Resize preparation panel" aria-controls="inspector" aria-orientation="vertical" aria-valuemin="280" aria-valuemax="780" aria-valuenow="410" tabindex="0"></div><aside class="inspector" id="inspector"></aside></main>`;
   setupInspectorResize();bindSearch();renderContent();renderTabs($('#dm-tabs'),S.session,false);
@@ -481,8 +491,8 @@ async function onAction(b) {
 
   if (a === 'settings') return showSettings();
   if (a === 'quit') { await request('quit'); $('#app').innerHTML = '<main class="home"><h1>Session Desk closed.</h1><p>Your workspace is saved. You can close this tab.</p></main>'; return; }
-  if (a === 'home') { if(preview)history.pushState(null,'','/?preview=book');S.boot = await request('bootstrap'); return home(); }
-  if (a === 'workspace') return openWorkspace(b.dataset.id);
+  if (a === 'home') { if(preview)history.pushState(null,'',isolatedPreview?'/?preview=book':'/');S.boot = await request('bootstrap'); return home(); }
+  if (a === 'workspace') return preview&&S.aid?previewRoute({section:'resources',adventure:null,prepared:null,map:null,room:null,text:null,media:null}):openWorkspace(b.dataset.id);
   if (a === 'prepared'&&preview) return previewRoute({section:'resources',prepared:'1',adventure:null,map:null,room:null});
   if (a === 'prepared') {const result=await request('campaign/open');location.assign(result.url);return;}
   if (a === 'connect-rules') {const result=await request('pick-folder');if(result.path){await request('campaign/source',{path:result.path});await openWorkspace(S.wid);toast('2014 rules library connected.');}return;}
@@ -750,12 +760,12 @@ async function poll(){
   finally{S.pollBusy=false;}
 }
 function previewHref(fields={}){
-  const u=new URL(location.href);u.hash='';u.searchParams.set('preview','book');if(S.wid)u.searchParams.set('workspace',S.wid);
+  const u=new URL(location.href);u.hash='';if(isolatedPreview)u.searchParams.set('preview','book');else u.searchParams.delete('preview');if(S.wid)u.searchParams.set('workspace',S.wid);
   if(fields.section && fields.section!==u.searchParams.get('section'))for(const key of ['adventure','prepared','entry','mission','character','map','room','text','media'])u.searchParams.delete(key);
   for(const [key,value] of Object.entries(fields)){if(value==null)u.searchParams.delete(key);else u.searchParams.set(key,value);}
   return u.pathname+u.search;
 }
-function previewNav(){const section=new URL(location.href).searchParams.get('section')||(S.overview?.meta.session_mode==='oneshot'?'resources':'book');return `<div class="preview-banner">Local preview · separate test data</div><nav class="campaign-nav">${[['book','Book'],['resources','Resources'],['party','Party']].map(([id,label])=>`<a class="${section===id?'active':''}" href="${previewHref({section:id})}">${label}</a>`).join('')}<span class="grow"></span>${button('import','Add adventure','quiet')}${button('backup','Export backup','quiet')}</nav>`;}
+function previewNav(){const section=new URL(location.href).searchParams.get('section')||(S.overview?.meta.session_mode==='oneshot'?'resources':'book');return `${isolatedPreview?'<div class="preview-banner">Separate preview workspace</div>':''}<nav class="campaign-nav">${[['book','Book'],['resources','Resources'],['party','Party']].map(([id,label])=>`<a class="${section===id?'active':''}" href="${previewHref({section:id})}">${label}</a>`).join('')}<span class="grow"></span>${button('import','Add adventure','quiet')}${button('backup','Export backup','quiet')}</nav>`;}
 function previewRoute(fields,options={}){const path=previewHref(fields);if(path!==location.pathname+location.search)history.pushState(null,'',path);if(options.render!==false)return renderPreview();}
 async function renderPreview(){
   const epoch=++previewEpoch;disposeStage();S.graph=null;S.aid=null;S.stage=null;
@@ -765,14 +775,15 @@ async function renderPreview(){
   $('#app').innerHTML=header()+'<div id="campaign-surface"><p class="home">Loading…</p></div>';
   const root=$('#campaign-surface'),wid=S.wid;
   const context={api:(path,body={})=>request(path,{workspace:wid,...body}),route:previewRoute,href:previewHref,wid,selection,preparedBase:'/campaign/'+wid+'/'+token};
-  if(section==='book'){const {mountBook}=await import('./campaign.js');await mountBook(root,context);}
+  if(section==='book'){const {mountBook}=await import('./campaign.js');try{await mountBook(root,context);}catch(e){root.innerHTML='<main class="home"><h1>Book unavailable</h1><p>'+esc(e.message)+'</p><p>Your other workspace resources remain available.</p></main>';}}
   else if(section==='party'){const {mountParty}=await import('./campaign.js');await mountParty(root,context);}
   else if(selection.prepared){const {mountPrepared}=await import('./prepared-resources.js');const dispose=await mountPrepared(root,{...context,base:context.preparedBase});if(epoch===previewEpoch)previewDispose=dispose;else dispose?.();}
   else {root.innerHTML=`<main class="home workspace-home"><h1>Resources</h1><div class="cards">${(S.overview.modules||[]).filter(m=>m.kind==='campaign-desk-v1').map(m=>`<article class="card"><h2>${esc(m.title)}</h2><p>${m.summary?.maps||0} maps · authored images and room preparation</p>${button('prepared','Open maps and images','primary')} ${button('connect-rules',S.overview.rules_connected?'Change 2014 library':'Connect 2014 library','quiet')}</article>`).join('')}${S.overview.adventures.map(a=>`<article class="card"><h2>${esc(a.name)}</h2><p>${a.maps} maps · ${a.pictures} images</p>${button('adventure','Open adventure','primary',`data-id="${a.id}"`)}</article>`).join('')}</div>${!S.overview.adventures.length&&!S.overview.modules?.some(m=>m.kind==='campaign-desk-v1')?'<p>Add an adventure to bring its book, maps and images here.</p>':''}</main>`;}
 }
 if(preview){
+  document.documentElement.style.setProperty('--campaign-top',isolatedPreview?'158px':'126px');
   const style=document.createElement('link');style.rel='stylesheet';style.href='/campaign.css';document.head.append(style);
-  document.addEventListener('click',e=>{const a=e.target.closest('a');if(!a||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||a.target)return;const u=new URL(a.href);if(u.origin===location.origin&&u.searchParams.get('preview')==='book'){e.preventDefault();history.pushState(null,'',u);openWorkspace(u.searchParams.get('workspace')).catch(e=>toast(e.message));}});
+  document.addEventListener('click',e=>{const a=e.target.closest('a');if(!a||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||a.target)return;const u=new URL(a.href);if(u.origin===location.origin&&u.pathname==='/'&&u.searchParams.has('workspace')&&u.searchParams.get('legacy')!=='1'){e.preventDefault();history.pushState(null,'',u);openWorkspace(u.searchParams.get('workspace')).catch(e=>toast(e.message));}});
   window.addEventListener('popstate',()=>{const u=new URL(location.href);const wid=u.searchParams.get('workspace');if(wid)openWorkspace(wid).catch(e=>toast(e.message));else home();});
 }
 async function start(){

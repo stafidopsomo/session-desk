@@ -73,7 +73,10 @@ def _seed(store, wid, conn):
 def get(store, wid):
     with store.lock, store.db(wid) as conn:
         module = store.get(conn, KEY)
-        if module: return copy.deepcopy(validate(module['journal']))
+        if module:
+            if module.get('kind')!='campaign-journal' or module.get('schema')!=1 or module.get('enabled') is not True:
+                raise UserError('This Book format needs a compatible app version. Its data is preserved; other resources remain usable.')
+            return copy.deepcopy(validate(module['journal']))
         book = _seed(store,wid,conn)
         _put(store,conn,book)
         return copy.deepcopy(book)

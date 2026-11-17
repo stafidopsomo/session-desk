@@ -1,54 +1,46 @@
 # Session Desk
 
-A local Windows app for preparing a tabletop adventure and showing maps, pictures and notes on a separate player screen.
+A local Windows app for preparing tabletop adventures and showing maps, pictures and notes on a separate player screen.
 
 [![Windows checks](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml/badge.svg?branch=main)](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml)
 
-**0.1.3 — Windows x64 desktop release.** Laptop/friend-PC testing is pending. AI is Off and unavailable.
+**0.2.0 — Windows x64 regular release.** AI is Off and unavailable.
 
-[**Download the Windows application ZIP**](https://github.com/stafidopsomo/session-desk/releases/download/product-v0.1.3/SessionDesk-0.1.3-windows-x64.zip) · [Release notes and SHA-256 checksum](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.1.3)
+[**Download the Windows application ZIP**](https://github.com/stafidopsomo/session-desk/releases/download/product-v0.2.0/SessionDesk-0.2.0-windows-x64.zip) · [Release notes and checksum](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.2.0)
 
 ## Start
 
-1. Download the application ZIP above; GitHub's Source code ZIP is not the application.
-2. Extract the entire ZIP. Double-click **SessionDesk.exe**, keeping _internal beside it.
-3. Choose **New workspace → Add adventure** and select an existing local 5e.tools library, or explicitly install the supported local 2014 copy.
-4. Import, prepare/review the resources, then **Present to players → Open player screen**.
+1. Download and extract the complete application ZIP.
+2. Double-click **SessionDesk.exe**. Keep `_internal` beside it.
+3. Create a **Campaign** or **One-shot / standalone session** workspace.
+4. Choose **Add adventure**, connect your local 5e.tools library or explicitly install the supported local 2014 copy, then import.
+5. Prepare your resources → **Present** → **Open player screen**.
 
-Have a compatible Session Desk or prepared-campaign backup? Choose **Restore backup** instead. Imported content enables its character sheets, scene guides and shops. New workspaces have no empty optional panels.
-
-No Python, Git, Node or AI account is required to run the EXE. Books, official artwork, campaigns, characters and credentials are not bundled. Choose your own source files.
+Have a backup? Choose **Restore backup**. No Python, Git, Node or AI account is needed. Source books, pictures, campaigns, characters and credentials are not bundled.
 
 ## At the table
 
-- **Resources:** collapsible chapters, Text/Images/Maps search and persistent pins. Text opens the reader/preparation; media opens its preview.
-- **Maps:** inspect rooms without revealing, draw a corrected boundary, reveal rooms or use the adjustable brush.
-- **On player screen:** select/close shared tabs, zoom and make temporary drawings. Shared notes stay separate from private DM notes.
-- **Workspaces:** keep independent adventures together and move them between computers using Export backup / Restore backup.
+- **Book:** session records, preparation and missions, with separate offered/awarded rewards and retained conflicting drafts.
+- **Resources:** imported book readers, maps, pictures, pins and inline preparation; restored maps retain their calibrated geometry and fog.
+- **Party:** concepts and private notes, with complete restored sheets available through Open full sheet.
+- **Independent tabs:** keep characters, rooms and book entries open separately. Map inspection is private; presentation and reveal are explicit.
+
+Campaign starts at Book. One-shot starts at Resources with a smaller notebook. Both use the same tools. Settings contains display, updates and Quick tour; Open player screen stays separate.
 
 ## Saves and updates
 
-Workspaces live in %LOCALAPPDATA%\\SessionDesk\\workspaces, outside the app folder. **Export backup before upgrading or moving computers.** Restore creates a separate workspace with its images; reconnect the local 2014 library on a different PC. Keep backups private.
+Use **Settings → Check for updates → Download and install → Restart into update**, or extract the new application ZIP. Regular updates retain `%LOCALAPPDATA%\SessionDesk\workspaces`; source files and imported campaigns are not re-imported or replaced. Export a backup before changing installations or computers. Restore creates a separate workspace; reconnect its local source library on another PC.
 
-Close DM/player windows, wait about ten seconds, then replace the extracted app folder. Do not replace your workspace data with release files. Older schema-1 workspaces upgrade with a recovery copy; older preview 5 cannot open schema 2.
+The earlier local `--preview` profile remains separate. Its edits do not automatically merge into the regular app. Launchers from 0.1.1 onward forward to verified installed updates; earlier launchers need one manual download and shortcut change.
 
-## Preview limits
+## Limits
 
-This package is unsigned. Automated checks run on Windows 11 x64 and Windows CI; a fresh app profile/PATH test is not a physical laptop or clean-VM test. Laptop/friend-PC compatibility and full visual review of every source map remain pending. Review maps before sharing. AI generation, PDF/OCR and remote/LAN players are deferred. No automatic telemetry or provider activity is enabled.
+The package is unsigned. Actual laptop/friend-PC compatibility and complete source-map geometry review remain pending. Full mechanical-sheet editing uses the compatibility editor; further Party, scene-card and cross-source presentation integration remains planned. Homebrew JSON/PDF/OCR importing, AI generation and remote/LAN players are not implemented. No automatic telemetry or provider activity is enabled.
 
-Use GitHub Issues for feedback with the app/Windows versions and reproducible steps. Do not attach private workspaces or source books.
+Use GitHub Issues for feedback with the app/Windows versions and steps to reproduce. Keep private backups and source books out of reports.
 
 ## Development
 
-The root [ci.ps1](../ci.ps1) is the canonical Windows job; GitHub's wrapper is under .github/workflows/. Tests use original synthetic fixtures. Packages exclude tests, source libraries, workspaces and provider tooling. The tag pipeline checks exact-tree acceptance, clean provenance and every package file hash before publishing.
+The root [ci.ps1](../ci.ps1) runs the canonical Windows checks; GitHub's wrapper is under .github/workflows/. Tests use original synthetic fixtures. The tag pipeline validates exact-tree acceptance and every file in its own CI-built ZIP before publication.
 
-[Developer guide](../docs/README.md) · [Short instructions](../docs/QUICKSTART.txt) · [Build status](../docs/BUILD-STATUS.md) · [Migration](../docs/MIGRATION.md) · [Release process](../docs/RELEASE-PIPELINE.md)
-
-
-0.1.3 fixes blank maps in restored prepared campaigns. Existing imported workspaces, fog and notes are retained; no repeat restore is needed.
-
-## Current features
-
-Remove a workspace from its home card or an individual adventure from inside a workspace, with confirmation. The home uses minimal larger labels, and the workspace/import flow shares its beige glass style. Guided tutorials now highlight the actual controls with arrows, adapt to available content, and leave the player session unchanged. The offline animated cross artwork remains. The source library is remembered for later imports. Drag the preparation divider, scale both reader/panel text, and present maps covered with fog using one button. Live DM brush feedback and the player-connection LED make sharing state visible. Source creature/spell/background references link directly to the selected local 5e.tools copy.
-
-Settings now includes Check for updates. Later regular releases install side by side after checksum/file verification and restart using the same workspace directory. No re-import overwrites authored preparation. Preview/0.1.0 users need one manual download and must point their shortcut to this EXE once. Launchers from 0.1.1 onward keep forwarding to verified future updates.
+[Developer guide](../docs/README.md) · [Quick start](../docs/QUICKSTART.txt) · [Build status](../docs/BUILD-STATUS.md) · [Migration](../docs/MIGRATION.md)

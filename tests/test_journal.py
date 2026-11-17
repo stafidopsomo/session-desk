@@ -109,3 +109,11 @@ class JournalTests(PreparedCase):
         self.assertEqual(restored['session_mode'],'oneshot')
         self.assertEqual(journal.get(self.store,restored['id']),book)
         with self.assertRaises(UserError):self.store.create('Original invalid case',session_mode='anything')
+
+    def test_future_book_module_is_inert_portable_and_never_overwritten(self):
+        self.wid=self.store.create('Original future book')['id']
+        module={'kind':'campaign-journal','schema':2,'enabled':True,'title':'Original future book','files':{},'futureJournal':{'keep':'Original future data'}}
+        with self.store.db(self.wid) as conn:self.store.put(conn,journal.KEY,module)
+        with self.assertRaisesRegex(UserError,'compatible app'):journal.get(self.store,self.wid)
+        other=self.store.restore(self.store.backup(self.wid))
+        with self.store.db(other['id']) as conn:self.assertEqual(self.store.get(conn,journal.KEY),module)

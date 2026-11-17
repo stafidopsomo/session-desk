@@ -1,3 +1,9 @@
+# Regular 0.2.0 workspace upgrade
+
+0.2.0 opens the shared Book / Resources / Party surface by default. The normal SessionDesk data directory is retained. Opening Book seeds a native campaign-journal module from supported authored data once; original source files, complete character records, geometry/assets and saved fog remain unchanged. Existing native journal records are not re-seeded. Book/mission edits belong to the native module and are included in regular backups. Exported older Markdown/JSON views are not automatically rewritten.
+
+The former --preview profile stays separate and is never merged automatically. Export it if you need to retain its edits for deliberate adoption. Full restored mechanical sheets still use the compatibility editor. Older apps can preserve the inert journal module in backups, but do not offer its editor. Unknown future journal modules stay inert and roundtrip unchanged.
+
 # Campaign migration and optional features
 
 Updated November 11, 2026. Implemented in development preview 6. No personal campaign data is distributed.

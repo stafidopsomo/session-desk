@@ -3,7 +3,7 @@ name: Windows core checks and package
 on:
   workflow_dispatch:
   push:
-    branches: [main, release-dev]
+    branches: [main, release-dev, "codex/**"]
     tags: ['product-v*']
   pull_request:
     branches: [main, release-dev]

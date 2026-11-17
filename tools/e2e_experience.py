@@ -16,7 +16,7 @@ def run(exe=None,artifacts=None):
    browser=p.chromium.launch();context=browser.new_context(viewport={'width':1500,'height':1000});errors=[]
    context.route('**/*',lambda r:r.continue_() if r.request.url.startswith(ready['url']) else r.abort())
    page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
-   page.goto(ready['url']+'?tutorial=off#dm='+ready['token'])
+   page.goto(ready['url']+'?legacy=1&tutorial=off#dm='+ready['token'])
    expect(page.locator('.home-ascii')).to_be_visible()
    expect(page.get_by_role('button',name='New workspace',exact=True)).to_be_visible()
    if artifacts:
@@ -25,7 +25,7 @@ def run(exe=None,artifacts=None):
    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
    if artifacts:page.screenshot(path=str(artifacts/'home-mobile.png'))
    page.set_viewport_size({'width':1500,'height':1000})
-   page.goto(ready['url']+'#dm='+ready['token'])
+   page.goto(ready['url']+'?legacy=1#dm='+ready['token'])
    page.get_by_role('button',name='New workspace',exact=True).click()
    page.locator('#workspace-name').fill('Original guided workspace')
    page.get_by_role('button',name='Create workspace',exact=True).click()
@@ -39,7 +39,7 @@ def run(exe=None,artifacts=None):
    assert page.locator('#dialog').evaluate('e=>getComputedStyle(e).color')=='rgb(41, 61, 50)'
    if artifacts:page.screenshot(path=str(artifacts/'import.png'))
    page.get_by_role('button',name='Close Add adventure',exact=True).click()
-   page.goto(ready['url']+'?workspace='+wid+'&tutorial=off#dm='+ready['token'])
+   page.goto(ready['url']+'?legacy=1&workspace='+wid+'&tutorial=off#dm='+ready['token'])
    page.get_by_role('button',name='Open adventure',exact=True).click()
    expect(page.locator('#safe')).to_have_count(0)
    expect(page.get_by_role('button',name='Present to players · with fog',exact=True)).to_be_enabled()

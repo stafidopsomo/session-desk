@@ -67,7 +67,7 @@ def validate(module, assets):
             or len(module['files']) > MAX_FILES or not isinstance(module.get('title'), str)
             or len(module['title']) > 200):
         raise UserError('Invalid workspace module manifest.')
-    if module['kind'] == 'campaign-journal':
+    if module['kind'] == 'campaign-journal' and module['schema'] == 1:
         from .journal import validate as validate_journal
         validate_journal(module.get('journal'))
     seen = set()

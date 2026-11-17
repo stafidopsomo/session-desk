@@ -1,100 +1,41 @@
-LOCAL CAMPAIGN-BOOK PREVIEW — 0.2.0-preview.1
+SESSION DESK 0.2.0 — WINDOWS X64
 
-Double-click LaunchPreview.bat to test the new Book / Resources / Party surface.
-Its data is kept in your Windows user profile under SessionDesk-CampaignPreview,
-separately from the ordinary SessionDesk profile. Keep your normal shortcut for
-regular sessions. Preview edits do not automatically merge into that campaign.
+1. Extract the entire application ZIP. Keep _internal beside SessionDesk.exe.
+2. Double-click SessionDesk.exe. No Python, Git, Node or AI account is needed.
+3. Create a workspace: Campaign starts with Book; One-shot / standalone session
+   starts with Resources and a smaller notebook. Both have the same tools.
+4. Choose Add adventure. Select your local 5e.tools library or explicitly
+   install the supported local 2014 copy. Choose and import an adventure.
+5. Prepare your resources, then Present and Open player screen for the TV.
+   Map/room inspection is private. Reveal room or the brush changes fog.
 
-This is an unfinished local preview, not a published release. Book entries,
-missions and Party notes are editable. Full restored character sheets still
-open the compatibility editor; complete presentation unification and tours are
-pending. Export a preview backup if you want to keep its edits.
+BOOK: write session records, preparation and missions. Choose Edit, then Save.
+Mission offers, outcomes and rewards awarded are separate. A conflicting save
+keeps your draft; copy it before choosing Reload saved record.
+PARTY: edit concepts and private notes. Restored characters keep their complete
+mechanical sheets under Open full sheet; this still opens the compatibility
+editor. It does not award levels, powers, membership, money or rewards.
+RESOURCES: imported books retain their reader, search, pins, room preparation
+and boundary correction. Restored maps keep their original geometry and fog.
+Use All sources to switch adventures. Ordinary browser tabs can show different
+characters, entries and maps; inspecting them does not change the TV.
 
-SESSION DESK 0.1.3 — WINDOWS X64 DESKTOP RELEASE
-
-Have a supported prepared-campaign or Session Desk backup? Choose Restore
-backup on the home screen. A new workspace is created; your original stays
-untouched. Open prepared campaign appears only when imported content exists.
-Connect your local 2014 library for its book/rules references. Export backup
-includes edited characters, stories, maps/fog, pictures and original files.
-On another computer, restore that ZIP and reconnect its local rules library.
-Scripts in backups are retained as files only; AI/generation stays Off.
-
-1. Extract the entire ZIP into a folder you can keep.
-2. Run SessionDesk.exe. Keep the _internal folder beside it.
-3. Create a workspace and choose Add adventure. Use existing copy validates
-   the folder and shows which adventure files and images were found.
-   Install local copy downloads a verified 2014 source release to a new or
-   empty folder you choose. Optional adventure images download during import
-   for that installed copy; this is not the complete image archive.
-   No books or pictures are bundled in the Session Desk ZIP.
-4. Read import warnings. Review images for secrets before presenting them.
-   Present to players with fog sends a map fully covered. Source room boundaries can be used directly. If one is wrong,
-   select the room, choose Draw boundary, drag around its complete edge and
-   Save boundary. There are no coordinate fields or verification steps.
-   Selecting or reading an entry/room never reveals it.
-5. Resources is the single adventure browser. Expand chapter arrows or
-   search; filter by Text, Images or Maps. Collapse all clears filters and
-   returns to closed chapters. Pin resources to keep them above search.
-   Choosing text opens its book reader and narration/private-notes form;
-   choosing an image/map opens its preview. Room source/preparation stays
-   beside the map. Selecting resources does not share them automatically.
-   Present sends selected media to the player screen. On player screen
-   lists the shared tabs, which either window can select or close. Player
-   zoom, temporary drawing and shared notes work on the same computer/TV.
-   Reveal/Hide have a brush circle matching the size slider and map zoom.
-   Space temporarily switches to pan; the circle disappears while panning.
-
-App updates retain imported adventures and authored work without re-import.
+ALREADY USING SESSION DESK?
 Use Settings > Check for updates > Download and install > Restart into update.
-Updates verify the official release checksum and packaged files. Starting
-with a 0.1.1 launcher, existing shortcuts keep opening the verified update.
-Preview/0.1.0 users must launch this extracted EXE and repoint their shortcut
-once; older executable code cannot learn the forwarding behavior.
+The regular app uses %LOCALAPPDATA%\SessionDesk, preserving existing workspaces.
+The new Book is added non-destructively; original authored files remain intact.
+Export backup before upgrading or moving computers. Restore creates a separate
+workspace with its assets, Book, missions, character records and saved fog.
+Reconnect your local source library on a different computer.
 
-Your workspaces are saved in %LOCALAPPDATA%\SessionDesk\workspaces,
-outside this application folder. Export a workspace backup before moving
-computers. Restore backup creates a separate workspace with its pictures.
-Export and restore show progress and can be cancelled before the final
-commit. Restores validate their files before the new workspace appears.
-An interrupted transfer can be retried with the original ZIP; saved
-workspaces remain intact. Private transfer cache is cleared at shutdown
-or recovered on the next launch. Backups support up to 1 GB plus metadata
-(metadata maximum 64 MB).
+A previous --preview launch uses SessionDesk-CampaignPreview instead. That
+profile and its edits stay separate; the regular release does not merge them.
 
-If an imported source image is missing or damaged, re-import that same
-adventure from the complete original library. This repairs source images
-without resetting your notes, pinned resources or session/fog.
+Pictures, books, campaigns and credentials are not bundled. AI is Off and
+unavailable. Homebrew-JSON, PDF/OCR and remote/LAN imports/players are not
+implemented. Full cross-source presentation, scene-card migration and advanced
+Party integration remain future work. The package is unsigned; actual laptop
+and friend-PC compatibility and universal map geometry are not certified.
 
-Settings (top right) contains Display and the unavailable AI control.
-AI is Off: there is no provider setup, generation or account connection.
-Closing the last DM/player tab stops the app after about 8 seconds, allowing
-time for reloads. Keep either window open while playing. Settings > Quit app
-stops it immediately. If a browser crashes without sending a close event,
-the lost-window timeout is about 100 seconds. This releases the EXE so its
-folder can be moved/deleted; workspace data remains outside that folder.
-
-This is an unsigned initial Windows desktop release.
-Do not disable Windows protections to run it. If the publisher is untrusted
-to you, wait for a trusted/signed distribution. Windows 11 x64 is the initial
-validation target. Laptop/friend-PC compatibility and full visual review of
-every source map remain pending. Automated tests do not establish those results.
-No developer tools, Python, Node, Git or AI login are needed to run the EXE.
-
-Limitations: structured local library import only, no PDF/OCR, no automatic
-geometry inference, no remote/LAN mode. Restore also accepts supported prepared-campaign recovery ZIPs.
-Changed source snapshots must be imported into a new workspace to preserve
-existing preparation. Backup ZIPs contain your imported source content;
-keep them private. Temporary drawings are not saved. Native folder selection
-is optional; pasting the folder path works as well.
-
-Use Remove on a home card to remove a workspace from the list. A local
-recovery copy stays under removed-workspaces in the app data directory.
-Inside a workspace, Remove on a book card deletes that adventure’s
-preparation, pins and saved session after confirmation. Export backup first.
-Original source libraries and other adventures stay unchanged. Shared
-image storage is retained so other adventures keep their assets.
-
-Quick tour highlights the actual controls with an arrow and short steps.
-Use Back/Next, Skip tour or Escape; replay from Settings. The tour only
-changes the DM selection. It never presents media or changes saved fog.
+Closing the last app window shuts down its local server after a short grace
+period. Do not delete your workspace folder when replacing application files.

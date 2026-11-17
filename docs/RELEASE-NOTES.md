@@ -1,19 +1,20 @@
-# Local 0.2.0-preview.1 candidate
+# Session Desk 0.2.0
 
-Unpublished campaign-book test build. LaunchPreview.bat selects the separate preview profile. Adds a shared Book / Resources / Party surface for fresh and restored workspaces, editable book entries and mission outcomes/rewards, guarded character-note edits, retained conflicting drafts and independent URL-addressed map/room inspection. Existing source import, calibrated fog and backups remain in the app. Full sheet editing uses the compatibility editor; cross-source presentation, scene-card migration and new tours remain pending. No live campaign migration is performed.
+Regular Windows x64 release. Book / Resources / Party is now the default workspace interface for new and restored campaigns. Campaign and One-shot / standalone session creation use the same tools with different starting organisation.
 
-# Session Desk 0.1.3
+- Edit Book entries and track missions, outcomes and offered versus awarded rewards.
+- Keep different entries, characters and maps open in independent browser tabs with stable addresses.
+- Inspect restored maps without changing the TV; explicitly Present and Reveal with the existing calibrated fog.
+- Edit Party concepts/private notes with revision checks. Conflicting drafts are retained; reload or copy them explicitly.
+- Keep imported source readers, pins, preparation, original authored files, character records, assets and saved fog. Native Book/mission records travel in ordinary backups.
+- Use the control-anchored Quick tour and player connection indicator from the shared workspace.
 
-Windows x64 regular correction release. Update through Settings, or extract the whole ZIP and run SessionDesk.exe with _internal beside it.
+## Updating from 0.1.3
 
-## Prepared-map correction
-Fixed “Cannot set properties of null (setting 'hidden')” when opening a restored prepared campaign. The map renderer referenced an AI control that is absent from this non-AI release. That interrupted map loading and room-list rendering. The obsolete reference is removed; no AI feature is enabled.
+Use Settings → Check for updates → Download and install → Restart into update, or extract this ZIP and run SessionDesk.exe. The regular app keeps the existing SessionDesk data profile. A native Book is created without replacing source files or changing fog/character mechanics. Back up before changing installations or computers. The separate local campaign preview profile is not merged automatically.
 
-Your existing imported workspace is retained. You do not need to restore or import it again. Saved fog, notes, characters and source images stay in the same data folder; no workspace schema/data changes are introduced.
+## Limits
 
-Browser regressions now require a hidden loading/error panel, rendered map pixels and the correct room list on both the initial dungeon and when switching between dungeon and regional maps. The previous heading-only check did not detect a caught renderer exception. These checks run against source and the frozen EXE.
+Full restored mechanical sheets still open the compatibility editor. Full cross-source presentation, scene-card migration, advanced Party integration and native context projections remain future work. Homebrew JSON/PDF/OCR import, AI providers/generation and remote/LAN player devices are unavailable. No books, maps, private campaigns or credentials are bundled.
 
-## Updating
-Save edits and export a private backup, then use Settings → Check for updates → Download and install → Restart into update. Updates verify the official checksum and packaged files, install side by side and preserve workspaces. Launchers from 0.1.1 onward forward to verified future installs. Preview/0.1.0 users need one manual download and shortcut change.
-
-The home/removal/guided tutorial features from 0.1.2 remain. Prior release files stay immutable for rollback. This is an unsigned Windows x64 build with AI Off. No campaigns, books, artwork or credentials are bundled. Laptop/friend-PC and full source-geometry acceptance remain deferred.
+This package is unsigned. Automated Windows tests, owned-library/campaign checks in isolated profiles and the owner's main-PC report are distinct from physical laptop/friend-PC testing. Laptop compatibility and complete geometry review remain deferred; review source maps before presenting them. This release does not claim completed alpha acceptance or AI integration.

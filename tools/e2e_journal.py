@@ -29,7 +29,7 @@ def run(exe=None,artifacts=None):
             context.on('page',lambda page:page.on('pageerror',lambda e:errors.append(str(e))))
             context.route('**/*',lambda r:r.continue_() if r.request.url.startswith(ready['url']) else (external.append(r.request.url),r.abort()))
             page=context.new_page()
-            def address(wid,extra=''):return ready['url']+'?preview=book&workspace='+wid+extra+'#dm='+ready['token']
+            def address(wid,extra=''):return ready['url']+'?tutorial=off&workspace='+wid+extra+'#dm='+ready['token']
             page.goto(address(fresh))
             expect(page.locator('.campaign-nav').get_by_role('link')).to_have_count(3)
             page.get_by_role('button',name='New entry',exact=True).click();page.get_by_role('button',name='Edit',exact=True).click()
@@ -50,11 +50,14 @@ def run(exe=None,artifacts=None):
             expect(page.locator('dd').last).to_have_text('Not recorded')
             page.locator('.campaign-nav').get_by_role('link',name='Party',exact=True).click();page.get_by_role('button',name='Add character',exact=True).click()
             page.get_by_label('Name',exact=True).fill('Original newcomer');page.get_by_role('button',name='Save character notes',exact=True).click();expect(page.locator('#party-status')).to_have_text('Saved')
+            page.get_by_role('button',name='Settings',exact=True).click();page.get_by_role('button',name='Quick tour',exact=True).click();expect(page.locator('#tour-layer .tour')).to_be_visible();page.get_by_role('button',name='Skip tour',exact=True).click()
             page.locator('.campaign-nav').get_by_role('link',name='Resources',exact=True).click();page.get_by_role('button',name='Open adventure',exact=True).click()
             expect(page.locator('#stage canvas')).to_be_visible()
             expect(page).to_have_url(__import__('re').compile('adventure='))
             page.get_by_role('button',name='Observatory floor',exact=False).first.click() if page.get_by_role('button',name='Observatory floor',exact=False).count() else None
             generic_url=page.url;page.reload();expect(page.locator('#stage canvas')).to_be_visible()
+            page.get_by_role('button',name='All sources',exact=True).click();expect(page.get_by_role('heading',name='Resources',exact=True)).to_be_visible()
+            page.get_by_role('button',name='Open adventure',exact=True).click();expect(page.locator('#stage canvas')).to_be_visible()
             page.goto(address(restored,'&section=party&character=explorer'))
             expect(page.get_by_role('heading',name='Explorer',exact=True)).to_be_visible();party_url=page.url
             page.get_by_label('Private notes',exact=True).fill('Original updated private note');page.get_by_role('button',name='Save character notes',exact=True).click();expect(page.locator('#party-status')).to_have_text('Saved')
@@ -80,7 +83,7 @@ def run(exe=None,artifacts=None):
                 Path(artifacts).mkdir(parents=True,exist_ok=True);map_page.screenshot(path=str(Path(artifacts)/'preview-map.png'),full_page=True)
                 page.screenshot(path=str(Path(artifacts)/'preview-party.png'),full_page=True)
                 page.goto(entry_url);expect(page.get_by_role('heading',name='Original session report',exact=True)).to_be_visible();page.screenshot(path=str(Path(artifacts)/'preview-book.png'),full_page=True)
-            page.goto(ready['url']+'?preview=book#dm='+ready['token'])
+            page.goto(ready['url']+'?tutorial=off#dm='+ready['token'])
             page.get_by_role('button',name='New workspace',exact=True).click()
             page.get_by_label('Name',exact=True).fill('Original standalone session')
             page.get_by_label('Play style',exact=True).select_option('oneshot')
