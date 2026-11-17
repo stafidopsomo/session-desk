@@ -1,6 +1,6 @@
 # Windows desktop build status
 
-Current regular release: **0.2.2**, published as GitHub Latest and installed from its verified public package on November 17 for everyday use. Book / Resources / Party is the default on the normal SessionDesk profile; the separate local preview remains intact. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
+Current regular release: **0.3.0**, published as GitHub Latest and installed from its verified public package on November 17 for everyday use. Book / Resources / Party is the default on the normal SessionDesk profile; the separate local preview remains intact. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
 
 
 Updated November 14, 2026. Version **0.1.3**, unsigned initial Windows desktop release. No completed alpha is claimed.
@@ -159,3 +159,12 @@ Implemented on codex/books-and-private-hosting: books.json/bookData catalog supp
 
 
 Final candidate a326e55 passed [GitHub Windows run 44095099309](https://github.com/stafidopsomo/session-desk/actions/runs/44095099309) and the full local root job: 151 Python tests, seven Node checks, all four source/frozen browser suites and extracted-ZIP smoke. The clean downloaded GitHub artifact passed exact commit/digest/provenance and every-file hash verification. Ten owned sources, including PHB/DMG/SCAG, completed frozen portable roundtrips with zero warnings; the three real book readers and book-specific source links were also checked privately. The fresh native campaign recovery preserved all 883 authored files, five characters, 15 rendered maps, fog, 26 Book entries and 10 missions. Same-host real private HTTPS/frozen browser editing, full shutdown/restart with stable DM link, record persistence and disable/revocation passed against synthetic data. Main-PC network ping passed; a second physical browser is still deferred. Aggregate evidence only is committed. The regular tag repeats CI and verifies its own artifact before publication.
+
+
+## Official 0.3.0 publication and shared-host adoption
+
+Tag product-v0.3.0 at 521671a passed [final Windows build/publication run 44096591792](https://github.com/stafidopsomo/session-desk/actions/runs/44096591792). [0.3.0](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.3.0) is GitHub's regular Latest release, with draft/prerelease false. Its anonymous public ZIP passed exact tag/digest, manifest and every-file verification; SHA-256 is 0a2bd01a69de6c1d0e986b3259a4cebd8ec0d08c8658c3cbf8a47b2ab81f8f69.
+
+The installed 0.2.2 app completed the native official update and restart into 0.3.0. Both existing workspaces, all eight original workspace documents and all 883 original authored files were unchanged by the update. PHB, DMG and SCAG were then explicitly imported into the owner's existing campaign from the local 2014 library; the three pre-existing campaign documents and all authored files remained unchanged. Private hosting was enabled and its real HTTPS authenticated endpoint verified. A private desktop connection shortcut and normal official EXE shortcut were created/updated. The expanded 752,083,620-byte native backup passed CRC and isolated restore, retaining all original files, all three reference books, 26 Book entries and 10 missions. No main-PC local database was overwritten, no preview profile was merged, and no campaign data/keys/links enter public source or artifacts.
+
+Same-host private HTTPS, frozen browser writing/restart/revocation and main-PC Tailscale network reachability passed. A second physical browser confirmation was requested from the owner and remains pending at this checkpoint. Broader hardware/geometry and unfinished feature deferrals remain unchanged. PDF/OCR and AI are still deferred.

@@ -114,3 +114,10 @@ Correctness precedes broader extraction: the reviewed build fixes cleanup outcom
 ## November 15 unified campaign-workspace direction
 
 The owner requested one consistent workflow for fresh imports and restored campaigns. The next implementation replaces the split prepared/generic UI with a stable Book / Resources / Party shell, tab-local navigation, explicit shared presentation and an editable campaign book with mission/event records. See [the DM usability review](reviews/2026-11-15/DM-USABILITY.md) for the staged implementation and exact acceptance tasks. This is implementation direction, not a claim of a shipped feature or completed data migration. Keep AI deferred and existing releases/recovery data intact.
+
+
+## Implemented extension — reference books and private hosting, November 17
+
+The source adapter reads adventures.json/adventureData and books.json/bookData through the same validated, asset-complete workspace graph. Reference books use a separate stable identity namespace; existing adventure IDs and manual/session documents are preserved. Source kind selects the reader and book.html locator. PDF conversion/import remains out of scope.
+
+RemoteHost composes optional Tailscale Serve with the loopback server. An explicit host-local Settings action configures private HTTPS port 8443, preserving unrelated Serve rules and rejecting public Funnel on that endpoint. Only the configured hostname/origin joins the loopback allowlist; existing DM/player capabilities and request bounds remain enforced. A random, persistent, revocable connection link exchanges for the current process DM capability. Machine-local hosting settings/keys are outside workspace backups and source control. The app stays running while configured as a host and resumes its endpoint on the next launch/update; it is not an unattended Windows startup service and does not prevent OS sleep. Remote file paths refer to the host. Other PCs use a browser against this one authoritative workspace; no SQLite/Git synchronisation or automatic main-PC data migration occurs. Tailscale is a separately installed optional dependency, not bundled with the EXE.
