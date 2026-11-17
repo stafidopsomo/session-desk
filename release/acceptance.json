@@ -1,12 +1,11 @@
 {
   "version": "0.2.1",
   "alpha_ready": false,
-  "product_digest": "pending",
+  "product_digest": "773bd6605891ea39407c94485620c8bec18275da04a8c62e3101f49298f8d920",
   "checks": {
     "owned_library_import": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.1_candidate"
+      "passed": true,
+      "evidence": "Regular frozen 0.2.1 candidate 6e66224: seven representative local 2014 adventure import/export/restore cases passed with zero warnings. Owned books and private reports remain outside Git/CI."
     },
     "clean_standard_user": {
       "passed": true,
@@ -19,19 +18,16 @@
       "status": "deferred"
     },
     "backup_restore": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.1_candidate"
+      "passed": true,
+      "evidence": "Regular 0.2.1 candidate 6e66224: isolated restoration of a fresh 0.1.3 backup preserved all 883 authored files and saved fog; all 15 maps and five character records rendered, 26 native Book entries and 10 missions survived portable roundtrip. No live-profile UI test or preview merge."
     },
     "privacy_audit": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.1_candidate"
+      "passed": true,
+      "evidence": "GitHub Windows run 44005031100 and the local root CI job passed source/package privacy boundaries. Downloaded clean candidate artifact verified exact commit, version, product digest, manifest and every file checksum; no campaign or source library is included."
     },
     "frozen_browser_e2e": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.1_candidate"
+      "passed": true,
+      "evidence": "GitHub Windows run 44005031100 and local root CI passed 144 Python tests, seven Node checks, all four source/frozen browser suites and extracted-ZIP lifecycle/relocation smoke. Default normal-profile Book/Resources/Party, mission conflict/reload, source resources and explicit map presentation passed; zero browser errors/external requests."
     },
     "owner_main_pc": {
       "passed": true,
@@ -64,5 +60,5 @@
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": false
+  "release_ready": true
 }
