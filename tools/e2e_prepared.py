@@ -192,7 +192,8 @@ def run(exe=None,artifacts=None):
                 page.screenshot(path=str(artifacts/'prepared-dm.png'))
                 player.screenshot(path=str(artifacts/'prepared-player.png'))
             page.get_by_role('link',name='Workspace',exact=True).click()
-            expect(page.locator('.prepared-workspace')).to_be_visible()
+            expect(page.locator('.campaign-nav').get_by_role('link',name='Book',exact=True)).to_be_visible()
+            expect(page.locator('.campaign-index').get_by_role('heading',name='Campaign Book',exact=True)).to_be_visible()
             with page.expect_download() as download_info:
                 page.get_by_role('button',name='Export backup',exact=True).click()
             exported=base/'portable.zip';download_info.value.save_as(exported)
