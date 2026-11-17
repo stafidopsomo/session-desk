@@ -534,7 +534,7 @@ async function onAction(b) {
   if (a === 'remove-workspace' || a === 'remove-adventure') {
     const workspace=a==='remove-workspace',item=(workspace?S.boot.workspaces:S.overview.adventures).find(x=>x.id===b.dataset.id);
     if(!item)return;
-    return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Cancel removal"')}<h2>Remove ${esc(item.name)}?</h2><p>${workspace?'This workspace leaves My adventures. A local recovery copy is kept on this computer.':'This removes the adventure, its preparation, pins and saved session from this workspace. Export a backup first if you want to keep them.'}</p><p>Original source files stay unchanged.</p><div class="row">${button(workspace?'confirm-remove-workspace':'confirm-remove-adventure','Remove','danger',`data-id="${item.id}"`)}${button('dismiss','Cancel','quiet')}</div>`);
+    return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Cancel removal"')}<h2>Remove ${esc(item.name)}?</h2><p>${workspace?'This workspace leaves My adventures. A local recovery copy is kept on this computer.':'This removes the source, its preparation, pins and saved session from this workspace. Export a backup first if you want to keep them.'}</p><p>Original source files stay unchanged.</p><div class="row">${button(workspace?'confirm-remove-workspace':'confirm-remove-adventure','Remove','danger',`data-id="${item.id}"`)}${button('dismiss','Cancel','quiet')}</div>`);
   }
   if(a==='confirm-remove-workspace'||a==='confirm-remove-adventure'){
     b.disabled=true;
@@ -812,7 +812,7 @@ function resourceTabs(){
   const selection=Object.fromEntries(new URL(location.href).searchParams);
   const current=selection.prepared?'prepared':selection.adventure;
   if(!resourceSources().length)return '';
-  return `<nav class="sectionnav resource-sources" aria-label="Adventure sources"><div class="resource-source-links">${resourceSources().map(source=>`<a class="source-tab ${source.id===current?'active':''}" ${source.id===current?'aria-current="page"':''} title="${esc(source.title)}" href="${previewHref({section:'resources',adventure:null,prepared:null,map:null,room:null,text:null,media:null,...source.fields})}">${esc(source.title)}</a>`).join('')}</div>${S.aid?button('remove-adventure','Remove adventure','quiet',`data-id="${S.aid}"`):''}</nav>`;
+  return `<nav class="sectionnav resource-sources" aria-label="Resource sources"><div class="resource-source-links">${resourceSources().map(source=>`<a class="source-tab ${source.id===current?'active':''}" ${source.id===current?'aria-current="page"':''} title="${esc(source.title)}" href="${previewHref({section:'resources',adventure:null,prepared:null,map:null,room:null,text:null,media:null,...source.fields})}">${esc(source.title)}</a>`).join('')}</div>${S.aid?button('remove-adventure',S.graph?.source_kind==='book'?'Remove reference book':'Remove adventure','quiet',`data-id="${S.aid}"`):''}</nav>`;
 }
 function previewNav(){
   const section=new URL(location.href).searchParams.get('section')||(S.overview?.meta.session_mode==='oneshot'?'resources':'book');
