@@ -1,3 +1,7 @@
+# Local 0.2.0-preview.1 candidate
+
+Unpublished campaign-book test build. LaunchPreview.bat selects the separate preview profile. Adds a shared Book / Resources / Party surface for fresh and restored workspaces, editable book entries and mission outcomes/rewards, guarded character-note edits, retained conflicting drafts and independent URL-addressed map/room inspection. Existing source import, calibrated fog and backups remain in the app. Full sheet editing uses the compatibility editor; cross-source presentation, scene-card migration and new tours remain pending. No live campaign migration is performed.
+
 # Session Desk 0.1.3
 
 Windows x64 regular correction release. Update through Settings, or extract the whole ZIP and run SessionDesk.exe with _internal beside it.

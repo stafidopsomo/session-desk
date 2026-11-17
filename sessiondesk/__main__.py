@@ -62,6 +62,7 @@ def wait_for_process(pid, timeout_ms=90000):
 def main():
     parser = argparse.ArgumentParser(description="Session Desk — local adventure preparation")
     parser.add_argument("--data-dir", type=Path, help="External user data directory")
+    parser.add_argument("--preview", action="store_true", help="Open the campaign-book development preview")
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--auto-exit", action="store_true", help=argparse.SUPPRESS)
@@ -70,7 +71,7 @@ def main():
     args = parser.parse_args()
     if args.wait_for_pid:
         wait_for_process(args.wait_for_pid)
-    root = args.data_dir or Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share")) / "SessionDesk"
+    root = args.data_dir or Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share")) / ("SessionDesk-CampaignPreview" if args.preview else "SessionDesk")
     root = root.resolve()
     if getattr(sys,'frozen',False):
         from .updates import preferred_application
@@ -78,6 +79,7 @@ def main():
         preferred=preferred_application(root,__version__)
         if preferred:
             command=[str(preferred),'--data-dir',str(root),'--wait-for-pid',str(os.getpid())]
+            if args.preview:command.append("--preview")
             if args.no_browser:command.append('--no-browser')
             if args.auto_exit:command.append('--auto-exit')
             if args.port:command+=['--port',str(args.port)]
@@ -93,7 +95,7 @@ def main():
             try:
                 ready = json.loads((root / "instance.json").read_text(encoding="utf-8"))
                 if not args.no_browser:
-                    webbrowser.open(ready["url"] + "#dm=" + ready["token"])
+                    webbrowser.open(ready["url"] + ("?preview=book" if args.preview else "") + "#dm=" + ready["token"])
                 return
             except (OSError, ValueError, KeyError):
                 time.sleep(.1)
@@ -110,12 +112,13 @@ def main():
                     return
         threading.Thread(target=monitor, daemon=True).start()
     url = f"http://127.0.0.1:{server.server_port}/"
+    browser_url = url + ("?preview=book" if args.preview else "")
     ready = {"url": url, "token": app.dm_token, "player_token": app.player_token}
     (root / "instance.json").write_text(json.dumps(ready), encoding="utf-8")
     if args.ready_file:
         args.ready_file.write_text(json.dumps(ready), encoding="utf-8")
     if not args.no_browser:
-        webbrowser.open(url + "#dm=" + app.dm_token)
+        webbrowser.open(browser_url + "#dm=" + app.dm_token)
     elif sys.stdout:
         print("Session Desk is running on loopback.", flush=True)
     try:

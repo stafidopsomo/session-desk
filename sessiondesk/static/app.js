@@ -4,6 +4,8 @@ const $ = (s, root = document) => root.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fragment = new URLSearchParams(location.hash.slice(1));
 const params = new URLSearchParams(location.search);
+const preview = params.get('preview') === 'book';
+let previewDispose=null,previewEpoch=0;
 const isPlayer = params.get('view') === 'player' || fragment.has('player');
 const tokenKey = isPlayer ? 'playerToken' : 'dmToken';
 const token = fragment.get(isPlayer ? 'player' : 'dm') || sessionStorage.getItem(tokenKey) || '';
@@ -54,8 +56,8 @@ const button = (action, text, klass = '', extra = '') => `<button type="button" 
 function header() {
   return `<header class="top"><div class="brand"><img src="/icon.svg" alt="">Session Desk</div>
     ${S.overview ? button('home', 'Workspaces', 'quiet') : ''}<span class="title muted">${esc(S.overview?.meta.name || 'Local workspace')}</span>
-    <span class="grow"></span>${button('player', 'Open player screen', '', S.aid ? '' : 'disabled')}<span id="player-presence" class="player-presence" role="status" aria-label="Player screen offline" title="Player screen offline"><i></i></span>
-    ${button('settings', 'Settings', 'quiet', 'aria-expanded="false"')}</header>`;
+    <span class="grow"></span>${button('player', 'Open player screen', '', (S.aid || (preview&&S.overview?.modules?.some(m=>m.kind==='campaign-desk-v1'))) ? '' : 'disabled')}<span id="player-presence" class="player-presence" role="status" aria-label="Player screen offline" title="Player screen offline"><i></i></span>
+    ${button('settings', 'Settings', 'quiet', 'aria-expanded="false"')}</header>` + (preview&&S.overview?previewNav():'');
 }
 function showSettings() {
   if ($('#settings')) { closeSettings(); return; }
@@ -106,6 +108,7 @@ function visibilityStatus(){
   badge.textContent=label;badge.dataset.visibility=state;
 }
 async function showTour(phase,force=false){
+  if(preview)return;
   if(isPlayer||!S.wid||(!force&&params.get('tutorial')==='off')||sourceJob||transferJob||$('#dialog')?.open)return;
   if(!force){try{const result=await request('tutorial',{phase,action:'get'});if(result.completed!==false)return;}catch{return;}}
   clearTour();closeSettings();activeTour={phase,index:0,wid:S.wid,aid:S.aid,restore:{media:S.media,entry:S.entry,region:S.region,view:S.view,sourceOpen:S.sourceOpen},steps:tourSteps[phase].filter(step=>step.view==='map'?dmMedia().some(m=>m.kind==='map'):step.view==='text'?!!S.graph?.entries.length:true)};renderTour();
@@ -168,7 +171,7 @@ async function finishTour(){
 }
 document.addEventListener('keydown',e=>{if(activeTour&&e.key==='Escape'){e.preventDefault();finishTour();}});
 let disposeHome = null;
-function disposeStage() { disposeHome?.(); disposeHome=null; S.stage?.dispose(); S.stage = null; }
+function disposeStage() { previewDispose?.();previewDispose=null;disposeHome?.(); disposeHome=null; S.stage?.dispose(); S.stage = null; }
 function home() {
   disposeStage();S.overview=null;S.graph=null;S.aid=null;S.wid=null;
   $('#app').innerHTML=header()+'<div id="home-root"></div>';
@@ -176,6 +179,7 @@ function home() {
 }
 
 async function openWorkspace(wid) {
+  if(preview){S.wid=wid;S.overview=await request('workspace');return renderPreview();}
   S.wid = wid; S.overview = await request('workspace'); S.graph = null; S.aid = null; disposeStage();
   $('#app').innerHTML = header() + `<main class="home workspace-home"><p class="eyebrow">Workspace</p><h1>${esc(S.overview.meta.name)}</h1>
     <p>${esc(S.overview.meta.rules)} · Preparation language: ${esc(S.overview.meta.language)}</p>
@@ -190,7 +194,8 @@ async function openAdventure(aid) {
   S.aid = aid; S.graph = await request('adventure'); S.session = await request('session');
   S.media = dmMedia()[0]?.id || null;
   S.entry = S.graph.entries[0]?.id || null; S.region = null; S.view = S.media?'media':'text'; S.search = '';S.sourceOpen=false;S.drafts={};S.navOpen=new Set();S.resourceType='all';
-  renderAdventure();await showTour('adventure');
+  renderAdventure();if(!preview)await showTour('adventure');
+  if(preview){const u=new URL(location.href);if(u.searchParams.get('text'))openEntry(u.searchParams.get('text'));else if(u.searchParams.get('media'))openMedia(u.searchParams.get('media'));}
 }
 function navigationIndex() {
   if(S.navigation?.graph===S.graph)return S.navigation;
@@ -269,11 +274,12 @@ function toggleGroup(b) {
   body.hidden=!open;body.innerHTML=open?navigationChildren(b.dataset.id):'';
 }
 function openEntry(id,inline=false){
+  if(preview)previewRoute({text:id,media:null},{render:false});
   capturePreparation();S.entry=id;S.sourceOpen=true;
   if(inline&&S.view==='media'){renderInspector();updateSidebarSelection();}
   else{S.view='text';renderContent();}
 }
-function openMedia(id){capturePreparation();S.media=id;S.region=null;S.mode='pan';S.view='media';S.sourceOpen=false;S.boundary=[];renderContent();}
+function openMedia(id){if(preview)previewRoute({media:id,text:null},{render:false});capturePreparation();S.media=id;S.region=null;S.mode='pan';S.view='media';S.sourceOpen=false;S.boundary=[];renderContent();}
 function selectRegion(id){capturePreparation();S.region=id;const r=selectedRegion();if(r?.entry){S.entry=r.entry;S.sourceOpen=true;}renderInspector();updateSidebarSelection();S.stage?.paint();}
 function entryEditor(entry) {
   if (!entry) return '<p class="muted">Select an entry to prepare.</p>';
@@ -475,8 +481,9 @@ async function onAction(b) {
 
   if (a === 'settings') return showSettings();
   if (a === 'quit') { await request('quit'); $('#app').innerHTML = '<main class="home"><h1>Session Desk closed.</h1><p>Your workspace is saved. You can close this tab.</p></main>'; return; }
-  if (a === 'home') { S.boot = await request('bootstrap'); return home(); }
+  if (a === 'home') { if(preview)history.pushState(null,'','/?preview=book');S.boot = await request('bootstrap'); return home(); }
   if (a === 'workspace') return openWorkspace(b.dataset.id);
+  if (a === 'prepared'&&preview) return previewRoute({section:'resources',prepared:'1',adventure:null,map:null,room:null});
   if (a === 'prepared') {const result=await request('campaign/open');location.assign(result.url);return;}
   if (a === 'connect-rules') {const result=await request('pick-folder');if(result.path){await request('campaign/source',{path:result.path});await openWorkspace(S.wid);toast('2014 rules library connected.');}return;}
   if (a === 'workspace-files') {
@@ -485,7 +492,7 @@ async function onAction(b) {
     const groups=new Map();for(const file of result.files){const parent=file.path.includes('/')?file.path.split('/')[0]:'Campaign files';if(!groups.has(parent))groups.set(parent,[]);groups.get(parent).push(file);}
     return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close workspace files"')}<h2>Workspace files</h2><p>Private campaign files. Source and preparation scripts are preserved as downloads; they are never executed.</p>${result.original?`<p>${link(result.original,'original-recovery.zip')}</p>`:''}${[...groups].map(([name,files])=>`<details><summary>${esc(name)} (${files.length})</summary><ul>${files.map(f=>`<li>${link(f,f.path)}</li>`).join('')}</ul></details>`).join('')}`);
   }
-  if (a === 'adventure') return openAdventure(b.dataset.id);
+  if (a === 'adventure') return preview?previewRoute({section:'resources',adventure:b.dataset.id,prepared:null,map:null,room:null}):openAdventure(b.dataset.id);
   if (a === 'dismiss') return activeTour?finishTour():dismiss();
   if (a === 'remove-workspace' || a === 'remove-adventure') {
     const workspace=a==='remove-workspace',item=(workspace?S.boot.workspaces:S.overview.adventures).find(x=>x.id===b.dataset.id);
@@ -502,7 +509,7 @@ async function onAction(b) {
     }catch(e){b.disabled=false;throw e;}return;
   }
   if (a === 'new-workspace') return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close new workspace"')}<h2>New adventure</h2><form data-form="workspace"><label for="workspace-name">Name</label><input name="name" id="workspace-name" required maxlength="100" autofocus>
-    <label>Preparation language</label><input name="language" value="English" maxlength="80"><label>Rules profile</label><select name="rules"><option>Unspecified</option><option>2014</option><option>2024</option><option>Other</option></select>
+    <label for="session-mode">Play style</label><select name="session_mode" id="session-mode"><option value="campaign">Campaign</option><option value="oneshot">One-shot / standalone session</option></select><p class="muted">Campaign starts with its Book. One-shot starts with Resources and a smaller session notebook. Both keep the same tools.</p><label>Preparation language</label><input name="language" value="English" maxlength="80"><label>Rules profile</label><select name="rules"><option>Unspecified</option><option>2014</option><option>2024</option><option>Other</option></select>
     <div class="row"><button type="submit" class="primary">Create workspace</button>${button('dismiss','Cancel','quiet')}</div></form>`);
   if (a === 'import') return importDialog();
   if (a === 'source-existing') {
@@ -536,6 +543,7 @@ async function onAction(b) {
   if (a === 'fit') return S.stage?.fit();
   if (a === 'zoom-in' || a === 'zoom-out') return S.stage?.zoom(a === 'zoom-in' ? 1.25 : .8);
   if (a === 'player') {
+    if(preview&&!S.aid&&S.overview?.modules?.some(m=>m.kind==='campaign-desk-v1')){window.open('/campaign/'+S.wid+'/'+S.boot.player_token+'/player','sessiondesk-player');return;}
     const u = new URL(location.href); u.search = new URLSearchParams({view:'player',workspace:S.wid,adventure:S.aid});
     u.hash = 'player=' + S.boot.player_token; window.open(u,'sessiondesk-player'); return;
   }
@@ -730,6 +738,7 @@ function updatePlayer(){
   const note=S.session.notes[S.media]||'';$('#player-note').textContent=note;$('#player-note').hidden=!note;
 }
 async function poll(){
+  if(preview&&S.wid&&!S.aid){const p=await request('player/presence').catch(()=>({online:false}));const led=$('#player-presence');if(led){led.classList.toggle('online',p.online);led.title=p.online?'Player screen online':'Player screen offline';led.setAttribute('aria-label',led.title);}return;}
   if(!S.wid||!S.aid||S.pollBusy)return;S.pollBusy=true;
   try {
     if(!isPlayer){const presence=await request('player/presence').catch(()=>({online:false}));const led=$('#player-presence');if(led){led.classList.toggle('online',!!presence.online);led.setAttribute('aria-label',presence.online?'Player screen online':'Player screen offline');led.title=presence.online?'Player screen online':'Player screen offline';}}
@@ -739,6 +748,32 @@ async function poll(){
     if(S.media&&S.session.tabs.some(t=>(typeof t==='string'?t:t.id)===S.media)&&S.stage){const ink=await request('ink',{media:S.media});S.stage.ink=ink.strokes;S.stage.paint();}
   }catch(error){if(isPlayer)$('#connection').textContent='Connection lost · your DM may need to reopen this window.';}
   finally{S.pollBusy=false;}
+}
+function previewHref(fields={}){
+  const u=new URL(location.href);u.hash='';u.searchParams.set('preview','book');if(S.wid)u.searchParams.set('workspace',S.wid);
+  if(fields.section && fields.section!==u.searchParams.get('section'))for(const key of ['adventure','prepared','entry','mission','character','map','room','text','media'])u.searchParams.delete(key);
+  for(const [key,value] of Object.entries(fields)){if(value==null)u.searchParams.delete(key);else u.searchParams.set(key,value);}
+  return u.pathname+u.search;
+}
+function previewNav(){const section=new URL(location.href).searchParams.get('section')||(S.overview?.meta.session_mode==='oneshot'?'resources':'book');return `<div class="preview-banner">Local preview · separate test data</div><nav class="campaign-nav">${[['book','Book'],['resources','Resources'],['party','Party']].map(([id,label])=>`<a class="${section===id?'active':''}" href="${previewHref({section:id})}">${label}</a>`).join('')}<span class="grow"></span>${button('import','Add adventure','quiet')}${button('backup','Export backup','quiet')}</nav>`;}
+function previewRoute(fields,options={}){const path=previewHref(fields);if(path!==location.pathname+location.search)history.pushState(null,'',path);if(options.render!==false)return renderPreview();}
+async function renderPreview(){
+  const epoch=++previewEpoch;disposeStage();S.graph=null;S.aid=null;S.stage=null;
+  const selection=Object.fromEntries(new URL(location.href).searchParams);const section=selection.section||(S.overview.meta.session_mode==='oneshot'?'resources':'book');
+  if(!selection.workspace){history.replaceState(null,'',previewHref({workspace:S.wid}));}
+  if(section==='resources'&&selection.adventure){return openAdventure(selection.adventure);}
+  $('#app').innerHTML=header()+'<div id="campaign-surface"><p class="home">Loading…</p></div>';
+  const root=$('#campaign-surface'),wid=S.wid;
+  const context={api:(path,body={})=>request(path,{workspace:wid,...body}),route:previewRoute,href:previewHref,wid,selection,preparedBase:'/campaign/'+wid+'/'+token};
+  if(section==='book'){const {mountBook}=await import('./campaign.js');await mountBook(root,context);}
+  else if(section==='party'){const {mountParty}=await import('./campaign.js');await mountParty(root,context);}
+  else if(selection.prepared){const {mountPrepared}=await import('./prepared-resources.js');const dispose=await mountPrepared(root,{...context,base:context.preparedBase});if(epoch===previewEpoch)previewDispose=dispose;else dispose?.();}
+  else {root.innerHTML=`<main class="home workspace-home"><h1>Resources</h1><div class="cards">${(S.overview.modules||[]).filter(m=>m.kind==='campaign-desk-v1').map(m=>`<article class="card"><h2>${esc(m.title)}</h2><p>${m.summary?.maps||0} maps · authored images and room preparation</p>${button('prepared','Open maps and images','primary')} ${button('connect-rules',S.overview.rules_connected?'Change 2014 library':'Connect 2014 library','quiet')}</article>`).join('')}${S.overview.adventures.map(a=>`<article class="card"><h2>${esc(a.name)}</h2><p>${a.maps} maps · ${a.pictures} images</p>${button('adventure','Open adventure','primary',`data-id="${a.id}"`)}</article>`).join('')}</div>${!S.overview.adventures.length&&!S.overview.modules?.some(m=>m.kind==='campaign-desk-v1')?'<p>Add an adventure to bring its book, maps and images here.</p>':''}</main>`;}
+}
+if(preview){
+  const style=document.createElement('link');style.rel='stylesheet';style.href='/campaign.css';document.head.append(style);
+  document.addEventListener('click',e=>{const a=e.target.closest('a');if(!a||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||a.target)return;const u=new URL(a.href);if(u.origin===location.origin&&u.searchParams.get('preview')==='book'){e.preventDefault();history.pushState(null,'',u);openWorkspace(u.searchParams.get('workspace')).catch(e=>toast(e.message));}});
+  window.addEventListener('popstate',()=>{const u=new URL(location.href);const wid=u.searchParams.get('workspace');if(wid)openWorkspace(wid).catch(e=>toast(e.message));else home();});
 }
 async function start(){
   const client=crypto.randomUUID();

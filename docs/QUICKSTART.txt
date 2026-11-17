@@ -1,3 +1,15 @@
+LOCAL CAMPAIGN-BOOK PREVIEW — 0.2.0-preview.1
+
+Double-click LaunchPreview.bat to test the new Book / Resources / Party surface.
+Its data is kept in your Windows user profile under SessionDesk-CampaignPreview,
+separately from the ordinary SessionDesk profile. Keep your normal shortcut for
+regular sessions. Preview edits do not automatically merge into that campaign.
+
+This is an unfinished local preview, not a published release. Book entries,
+missions and Party notes are editable. Full restored character sheets still
+open the compatibility editor; complete presentation unification and tours are
+pending. Export a preview backup if you want to keep its edits.
+
 SESSION DESK 0.1.3 — WINDOWS X64 DESKTOP RELEASE
 
 Have a supported prepared-campaign or Session Desk backup? Choose Restore

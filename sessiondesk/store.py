@@ -80,8 +80,8 @@ class Store:
         finally:
             conn.close()
 
-    def create(self, name, language="English", rules="Unspecified"):
-        meta = self._metadata(name, language, rules)
+    def create(self, name, language="English", rules="Unspecified", session_mode="campaign"):
+        meta = self._metadata(name, language, rules, session_mode)
         folder = staging(self.workspaces, '_restore-')
         try:
             (folder / 'assets').mkdir()
@@ -92,12 +92,14 @@ class Store:
         return meta
 
     @staticmethod
-    def _metadata(name, language, rules):
+    def _metadata(name, language, rules, session_mode="campaign"):
         name = string(name, 100).strip()
         if not name:
             raise UserError("Enter a workspace name.")
+        if session_mode not in ("campaign", "oneshot"):
+            raise UserError("Choose Campaign or One-shot / standalone session.")
         wid = str(uuid.uuid4())
-        return {"id": wid, "name": name, "schema": SCHEMA,
+        return {"session_mode":session_mode,"id": wid, "name": name, "schema": SCHEMA,
                 "language": string(language, 80), "rules": string(rules, 80)}
 
     def _initialize(self, folder, meta, documents, assets):
@@ -514,6 +516,7 @@ class Store:
                 if not isinstance(value, dict):
                     raise UserError("Invalid workspace metadata.")
                 string(value.get("name"), 100)
+                if value.get("session_mode","campaign") not in ("campaign","oneshot"): raise UserError("Invalid workspace mode.")
                 continue
             prefix, _, suffix = key.partition(":")
             identifier(suffix)
@@ -654,7 +657,7 @@ class Store:
                 meta = documents["meta"]
                 self.validate_backup(documents, assets)
                 new = self._metadata(string(meta['name'], 100)[:89] + ' (restored)',
-                                     meta.get('language', 'English'), meta.get('rules', 'Unspecified'))
+                                     meta.get('language', 'English'), meta.get('rules', 'Unspecified'), meta.get('session_mode','campaign'))
                 check_cancel(cancelled)
                 folder = staging(self.workspaces, '_restore-')
                 (folder / 'assets').mkdir()

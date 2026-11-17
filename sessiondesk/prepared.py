@@ -84,6 +84,15 @@ class Prepared:
                     return data | {'capabilities': self.capabilities()}
                 if path in ('/api/state','/api/player-state'):
                     return r.snapshot(player=path.endswith('player-state'))
+                if path == '/api/map-state':
+                    import copy
+                    m = r.map_by_id(query.get('mapId',[''])[0])
+                    if not m: raise UserError('Map not found.')
+                    state = r.snapshot()
+                    fog = copy.deepcopy(r.state['fog'].get(m['id'], {'operations':[]}))
+                    return state | {'mapId':m['id'], 'locationId':None, 'fogState':fog,
+                        'revealed':r.revealed(m,fog), 'tokens':[], 'playerFocus':None,
+                        'roomNotes':read(self.workspace.path('state')/'room-notes.json',{}).get(m['id'],{})}
                 if path == '/api/shop':
                     return read(self.workspace.data / 'shopping.json', {'shops': [], 'items': []})
                 if path == '/api/characters':

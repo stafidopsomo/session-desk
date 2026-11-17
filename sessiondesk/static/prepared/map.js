@@ -12,6 +12,7 @@ function inside(point, polygon) {
 export class AtlasMap {
   constructor(canvas, {player = false, onSelect, onStroke, onPing, onZoom, onLoad, onAnnotationChange, onTokenMove, onTokenSelect, onTokenPlace} = {}) {
     Object.assign(this, {canvas, player, onSelect, onStroke, onPing, onZoom, onLoad, onAnnotationChange, onTokenMove, onTokenSelect, onTokenPlace});
+    this.abort=new AbortController();const listen=(target,event,handler,options={})=>target.addEventListener(event,handler,{...options,signal:this.abort.signal});
     this.ctx = canvas.getContext('2d'); this.tool = 'rooms'; this.radius = 48;
     this.scale = 1; this.tx = 0; this.ty = 0; this.space = false; this.images = new Map();
     this.fog = document.createElement('canvas'); this.selected = null;
@@ -19,23 +20,24 @@ export class AtlasMap {
     this.annotationMode='pan'; this.penColor='#e7b94f'; this.penSize=4;
     this.tokenImages=new Map(); this.focusSeen=new Map(); this.tokenRadius=26;
     this.observer = new ResizeObserver(() => this.resize()); this.observer.observe(canvas);
-    canvas.addEventListener('wheel', e => { e.preventDefault(); const r = canvas.getBoundingClientRect(); this.zoom(Math.exp(-e.deltaY * .0015), e.clientX - r.left, e.clientY - r.top); }, {passive: false});
-    canvas.addEventListener('pointerdown', e => this.pointerDown(e));
-    canvas.addEventListener('pointermove', e => this.pointerMove(e));
-    canvas.addEventListener('pointerleave', () => {this.hover=null;this.draw();});
-    canvas.addEventListener('pointerup', e => this.pointerUp(e));
-    canvas.addEventListener('pointercancel', () => { this.drag = null; this.preview = null; this.inkPreview=null; this.draw(); });
-    canvas.addEventListener('contextmenu', e => { e.preventDefault(); if (!player) this.pick(e, true); });
+    listen(canvas,'wheel', e => { e.preventDefault(); const r = canvas.getBoundingClientRect(); this.zoom(Math.exp(-e.deltaY * .0015), e.clientX - r.left, e.clientY - r.top); }, {passive: false});
+    listen(canvas,'pointerdown', e => this.pointerDown(e));
+    listen(canvas,'pointermove', e => this.pointerMove(e));
+    listen(canvas,'pointerleave', () => {this.hover=null;this.draw();});
+    listen(canvas,'pointerup', e => this.pointerUp(e));
+    listen(canvas,'pointercancel', () => { this.drag = null; this.preview = null; this.inkPreview=null; this.draw(); });
+    listen(canvas,'contextmenu', e => { e.preventDefault(); if (!player) this.pick(e, true); });
     // Track Space before the canvas receives focus, without stealing typing
     // from notes, narration, sliders or other controls.
     const editable = target => target?.closest?.('input,textarea,select,[contenteditable="true"]');
-    window.addEventListener('keydown', e => {
+    listen(window,'keydown', e => {
       if(e.code==='Space'){this.space=true;if(!editable(e.target))e.preventDefault();}
     });
-    window.addEventListener('keyup', e => {if(e.code==='Space')this.space=false;});
-    window.addEventListener('blur', () => {this.space=false;this.drag=null;this.preview=null;this.inkPreview=null;this.draw();});
-    canvas.addEventListener('keydown', e => {if (e.key === '+' || e.key === '=') this.zoom(1.3); if (e.key === '-') this.zoom(1 / 1.3);});
+    listen(window,'keyup', e => {if(e.code==='Space')this.space=false;});
+    listen(window,'blur', () => {this.space=false;this.drag=null;this.preview=null;this.inkPreview=null;this.draw();});
+    listen(canvas,'keydown', e => {if (e.key === '+' || e.key === '=') this.zoom(1.3); if (e.key === '-') this.zoom(1 / 1.3);});
   }
+  dispose(){this.abort.abort();this.observer.disconnect();}
   resize() {
     const r = this.canvas.getBoundingClientRect();
     if (this.w && Math.abs(this.w-r.width)<.5 && Math.abs(this.h-r.height)<.5) return;

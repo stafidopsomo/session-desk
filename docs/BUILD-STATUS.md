@@ -84,3 +84,19 @@ The owner reported a restored Grove map error. An obsolete lookup for the remove
 
 
 Candidate 4c01854 passed [Windows CI 43525828312](https://github.com/stafidopsomo/session-desk/actions/runs/43525828312) and the full local root job (134 Python tests, 7 Node tests, all source/frozen browser workflows and ZIP smoke). The exact null.hidden loading error was reproduced by the new browser check before the correction. All 875 actual restored campaign files were verified present read-only. All 15 owned campaign maps rendered in isolated source and frozen checks, with unchanged saved fog and zero script errors. Only aggregate evidence is committed; private reports and screenshots remain outside Git/CI. The regular tag rebuilds and verifies its own archive before publication.
+
+
+## November 17 local campaign-book preview
+
+Branch codex/unified-campaign-workspace adds an opt-in 0.2.0-preview.1 surface to the same app: native Book/mission editing, shared Book / Resources / Party navigation, revision-guarded drafts, independent map inspection and URL-addressed entries/maps/rooms. LaunchPreview.bat uses --preview and a separate SessionDesk-CampaignPreview profile. This is a local test build, not a published release or completed unification milestone.
+
+Restored authored book data seeds an inert, versioned campaign-journal module once. The original data remains intact; later journal edits live in that module and are included in normal backups. Known journal modules are validated; older readers preserve unknown module data without executing it. Fresh workspaces use the same book/mission/Party surface. Basic character notes are editable with conflict guards; restored mechanical sheets still open the compatibility editor. Generic source resources retain the existing renderer and prepared maps reuse the calibrated Atlas renderer inside the shared shell. Complete presentation unification across imported sources, advanced Party editing, scene-card migration and revised tours remain pending.
+
+The local preview must pass offline unit, source/frozen browser, package/privacy and recovery checks before delivery. A private copied profile may be used for owner testing; never migrate or test against the live campaign. A regular release remains gated separately. Preview edits are isolated and do not synchronise back into the owner's live campaign automatically.
+
+November 17 follow-up: workspace creation offers Campaign or One-shot / standalone session. Mode is portable metadata; one-shots start at Resources with a smaller notebook, while Campaign starts at Book. Both expose the same tools. This does not add PDF or community-JSON importing; source adapters remain independent of play style.
+
+
+Local preview verification completed November 17: 143 offline Python tests, 7 Node renderer checks, all four source and frozen browser workflows, extracted-ZIP checksum/relocation/lifecycle smoke and the public source boundary passed. The shared-preview browser workflow exercises fresh/restored navigation, Campaign/One-shot creation, independent tabs, retained edit conflicts, mission rewards, Party notes, fog/presentation and a real player-window presence indicator. The frozen app also rendered every map and character in an isolated private campaign copy; native backup/restore preserved all authored files, saved fog and journal records. Private evidence and content remain outside Git/builds. The package is unsigned, local-only and built from the working branch; no GitHub release, remote CI or completed unification milestone is claimed. Stable 0.1.3 and its live profile remain unchanged.
+
+Before public release, finish advanced Party/scene-card integration, full cross-source presentation, native Book context projections and onboarding parity. Existing source projections are not automatically synchronised from this isolated preview. Keep its edits separate until deliberate adoption.

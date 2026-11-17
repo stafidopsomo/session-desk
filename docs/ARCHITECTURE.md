@@ -109,3 +109,8 @@ An older snapshot can be enriched by re-importing the identical source fingerpri
 The deployment remains one modular application. Background jobs/transfers live in sessiondesk/jobs.py with their own lifecycle lock and explicit start/status/cancel/commit/download/close operations; server.py assembles services and handles the existing HTTP routes. Native dialog locking is separate from heartbeat/session state. Storage and data-only prepared modules retain their existing formats.
 
 Correctness precedes broader extraction: the reviewed build fixes cleanup outcomes, atomic file materialization, cancellation, export asset reachability, offline tracking and asynchronous player presentation. The next seams are the large browser entry point and shared presentation/client coordination, plus a consistent snapshot design that shortens large backup lock time. No framework/service rewrite or AI/provider implementation is part of this correction. See reviews/2026-11-12/REVIEW.md.
+
+
+## November 15 unified campaign-workspace direction
+
+The owner requested one consistent workflow for fresh imports and restored campaigns. The next implementation replaces the split prepared/generic UI with a stable Book / Resources / Party shell, tab-local navigation, explicit shared presentation and an editable campaign book with mission/event records. See [the DM usability review](reviews/2026-11-15/DM-USABILITY.md) for the staged implementation and exact acceptance tasks. This is implementation direction, not a claim of a shipped feature or completed data migration. Keep AI deferred and existing releases/recovery data intact.

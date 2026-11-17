@@ -13,6 +13,7 @@ ALLOWED_FILES = frozenset({
     'tools/check_product_boundary.py', 'tools/probe_codex.py',
     'tests/test_readiness.py',
     'SessionDesk.spec', 'launcher.pyw', 'requirements-build.lock', 'requirements-e2e.lock',
+    'sessiondesk/journal.py', 'sessiondesk/static/campaign.js', 'sessiondesk/static/campaign.css', 'sessiondesk/static/prepared-resources.js', 'tests/test_journal.py', 'tools/e2e_journal.py',
     'sessiondesk/__init__.py', 'sessiondesk/__main__.py', 'sessiondesk/importer.py',
     'sessiondesk/store.py', 'sessiondesk/server.py',
     'sessiondesk/library_setup.py',
@@ -49,7 +50,7 @@ ALLOWED_FILES = frozenset({
     'tests/test_updates.py', 'tests/test_experience.py', 'tools/e2e_experience.py', 'tests/test_jobs.py', 'tests/test_module_recovery.py',
     'tests/test_prepared_characters.py', 'tests/test_prepared_limits.py',
     'tests/test_install_recovery.py',
-    'docs/reviews/2026-11-12/REVIEW.md',
+    'docs/reviews/2026-11-12/REVIEW.md', 'docs/reviews/2026-11-15/DM-USABILITY.md',
 })
 
 

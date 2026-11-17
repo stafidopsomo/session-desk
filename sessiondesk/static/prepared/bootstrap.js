@@ -4,8 +4,8 @@
   const workspace = parts[2], token = parts[3], player = document.currentScript.dataset.player === '1';
   const client = crypto.randomUUID();
   const api = (path, body) => fetch(new URL(['','api',path].join('/'),location.origin), {method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(body)});
-  api('client/ping',{client}).catch(()=>{});
-  setInterval(()=>api('client/ping',{client}).catch(()=>{}),10000);
+  api('client/ping',{client,workspace}).catch(()=>{});
+  setInterval(()=>api('client/ping',{client,workspace}).catch(()=>{}),10000);
   window.addEventListener('pagehide',()=>fetch(new URL(['','api','client/close'].join('/'),location.origin),{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({client})}));
   if(player)sessionStorage.removeItem('dmToken');
   else sessionStorage.setItem('dmToken',token);

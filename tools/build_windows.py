@@ -27,6 +27,8 @@ def main():
                    cwd=ROOT, env={**os.environ, "PYTHONHASHSEED": "0"}, check=True)
     folder = ROOT / "dist" / "SessionDesk"
     shutil.copyfile(ROOT / "docs/QUICKSTART.txt", folder / "READ-ME-FIRST.txt")
+    if __version__.startswith('0.2.0-preview.'):
+        (folder / 'LaunchPreview.bat').write_text('@echo off\nstart "" "%~dp0SessionDesk.exe" --preview\n',encoding='utf-8')
     notices = {name: {"version": version(name), "license": distribution(name).metadata.get("License-Expression")
                      or distribution(name).metadata.get("License", "See upstream distribution notices")} for name in BUILD_PACKAGES}
     notices["Python"] = {"version": platform.python_version(), "license": "PSF-2.0 and bundled third-party notices"}

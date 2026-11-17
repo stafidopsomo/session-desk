@@ -238,8 +238,14 @@ class Application:
                 if path == '/api/workspace/remove':
                     return store.remove_workspace(body['workspace'])
                 return store.remove_adventure(body['workspace'], body['adventure'])
+        if path in ('/api/journal', '/api/journal/patch', '/api/party', '/api/party/patch'):
+            from . import journal
+            if path == '/api/journal': return journal.get(store,body['workspace'])
+            if path == '/api/journal/patch': return journal.patch(store,body['workspace'],body)
+            if path == '/api/party': return journal.party(self,body['workspace'])
+            return journal.party(self,body['workspace'],body)
         if path == "/api/workspace/create":
-            return store.create(body.get("name", ""), body.get("language", "English"), body.get("rules", "Unspecified"))
+            return store.create(body.get("name", ""), body.get("language", "English"), body.get("rules", "Unspecified"), body.get("session_mode", "campaign"))
         if path == "/api/workspace":
             return store.overview(body["workspace"]) | {'rules_connected': body['workspace'] in self.source_settings()}
         if path == '/api/campaign/open':
@@ -407,9 +413,9 @@ def make_server(app, port=0):
                     return self.send(200,file,mime,csp=csp)
                 if path.startswith('/campaign/'):
                     return self.prepared_dispatch(path, query, origin)
-                if self.command == "GET" and path in ("/", "/app.js", "/book.js", "/home.js", "/home.css", "/hero.svg", "/style.css", "/icon.svg"):
+                if self.command == "GET" and path in ("/", "/app.js", "/book.js", "/home.js", "/home.css", "/hero.svg", "/style.css", "/icon.svg", "/campaign.js", "/campaign.css", "/prepared-resources.js"):
                     filename = "index.html" if path == "/" else path[1:]
-                    mime = {"index.html": "text/html", "app.js": "text/javascript", "book.js": "text/javascript", "style.css": "text/css", "icon.svg": "image/svg+xml", "home.js":"text/javascript", "home.css":"text/css", "hero.svg":"image/svg+xml"}[filename]
+                    mime = {"index.html": "text/html", "app.js": "text/javascript", "book.js": "text/javascript", "style.css": "text/css", "icon.svg": "image/svg+xml", "home.js":"text/javascript", "home.css":"text/css", "hero.svg":"image/svg+xml", "campaign.js":"text/javascript", "prepared-resources.js":"text/javascript", "campaign.css":"text/css"}[filename]
                     return self.send(200, (STATIC / filename).read_bytes(), mime)
                 token = self.headers.get("Authorization", "").removeprefix("Bearer ")
                 if path.startswith(("/asset/", '/download/')):
