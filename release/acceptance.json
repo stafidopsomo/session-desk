@@ -1,12 +1,11 @@
 {
   "version": "0.2.2",
   "alpha_ready": false,
-  "product_digest": "pending",
+  "product_digest": "7e7d3e1aece6e2bab9eccba364b82c2a935673ccefe9a5b1df5d01d25dad3e2f",
   "checks": {
     "owned_library_import": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.2_candidate"
+      "passed": true,
+      "evidence": "Regular 0.2.2 frozen candidate a33b7ab: seven representative owned 2014 adventures passed import/export/restore with zero warnings. Private reports/books remain outside Git and CI."
     },
     "clean_standard_user": {
       "passed": true,
@@ -19,19 +18,16 @@
       "status": "deferred"
     },
     "backup_restore": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.2_candidate"
+      "passed": true,
+      "evidence": "Candidate a33b7ab restored a fresh native 0.2.1 campaign backup only in an isolated profile: 883 authored files and saved fog unchanged; all 15 maps and five character records rendered; 26 native Book entries and 10 missions preserved through portable roundtrip. Live state was not used for UI testing."
     },
     "privacy_audit": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.2_candidate"
+      "passed": true,
+      "evidence": "Local root CI and GitHub Windows run 44052607023 passed public source/package boundaries. Downloaded clean GitHub candidate verified exact version, commit, product digest, explicit manifest and every packaged file checksum. No private campaign, book, artwork or credentials included."
     },
     "frozen_browser_e2e": {
-      "passed": false,
-      "evidence": null,
-      "status": "pending_0.2.2_candidate"
+      "passed": true,
+      "evidence": "Local root CI and GitHub Windows run 44052607023 passed 144 Python tests, seven Node tests, all four source/frozen browser workflows and extracted-ZIP smoke. Synthetic regressions cover title-only resource search, adventure search/no matches, hidden one-shot Book and old links, adjacent source tabs, return/reload, restored-source switching, wide-screen viewport and unchanged player state; zero script errors/external requests."
     },
     "owner_main_pc": {
       "passed": true,
@@ -64,5 +60,5 @@
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": false
+  "release_ready": true
 }
