@@ -1,6 +1,6 @@
 # Windows desktop build status
 
-Current regular release: **0.2.1**, published as GitHub Latest and installed from its verified public package on November 17 for everyday use. Book / Resources / Party is the default on the normal SessionDesk profile; the separate local preview remains intact. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
+Current regular release: **0.2.2**, published as GitHub Latest and installed from its verified public package on November 17 for everyday use. Book / Resources / Party is the default on the normal SessionDesk profile; the separate local preview remains intact. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
 
 
 Updated November 14, 2026. Version **0.1.3**, unsigned initial Windows desktop release. No completed alpha is claimed.
@@ -133,3 +133,10 @@ November 17 owner correction: one-shots hide Book without deleting existing data
 
 
 Candidate a33b7ab passed [GitHub Windows run 44052607023](https://github.com/stafidopsomo/session-desk/actions/runs/44052607023) and the full local root job: 144 Python tests, seven Node tests, all four source/frozen browser suites and extracted-ZIP smoke. The clean downloaded GitHub artifact passed exact commit/digest/provenance and every-file checksum checks. Seven owned adventures completed frozen import/export/restore with zero warnings. The fresh native-backup roundtrip preserved all 883 authored files and saved fog, rendered 15 maps and five characters, and retained 26 Book entries and 10 missions. Aggregate evidence only is committed. The regular tag repeats all checks before Latest publication; no hardware/geometry deferral or future integration is certified.
+
+
+## Official 0.2.2 publication and update
+
+Tag product-v0.2.2 at 47faa0f passed [final Windows CI and publication run 44053661576](https://github.com/stafidopsomo/session-desk/actions/runs/44053661576). [0.2.2](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.2.2) is the regular Latest release, not a draft or prerelease. Its anonymous public download passed exact tag/digest, manifest and every-file verification; ZIP SHA-256 is 06b060d0f9b538e8e592a317453d903ced1b0bc73f4a5135a43363f4cff28f58.
+
+The installed 0.2.1 app completed the real official update and native restart into 0.2.2. Both existing workspaces and all eight pre-existing workspace documents were unchanged, along with all 883 original campaign files. The normal desktop shortcut points to the verified official EXE; the fresh native pre-update backup and previous shortcut are retained privately. No preview profile was merged and no repeat import was performed. Detailed reports and private content remain outside source/builds. Hardware, geometry and advanced-integration limits remain as recorded.
