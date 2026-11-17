@@ -1,4 +1,4 @@
-SESSION DESK 0.2.0 — WINDOWS X64
+SESSION DESK 0.2.1 — WINDOWS X64
 
 1. Extract the entire application ZIP. Keep _internal beside SessionDesk.exe.
 2. Double-click SessionDesk.exe. No Python, Git, Node or AI account is needed.

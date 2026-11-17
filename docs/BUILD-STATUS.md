@@ -1,6 +1,6 @@
 # Windows desktop build status
 
-Current regular release candidate: **0.2.0**, approved by the owner on November 17 for official publication and everyday use. Book / Resources / Party is the default on the normal SessionDesk profile; the separate local preview remains intact. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
+Current regular release candidate: **0.2.1**, approved by the owner on November 17 for official publication and everyday use. Book / Resources / Party is the default on the normal SessionDesk profile; the separate local preview remains intact. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
 
 
 Updated November 14, 2026. Version **0.1.3**, unsigned initial Windows desktop release. No completed alpha is claimed.
@@ -110,3 +110,8 @@ Before public release, finish advanced Party/scene-card integration, full cross-
 Candidate 0e632a0 passed [GitHub Windows run 44001763447](https://github.com/stafidopsomo/session-desk/actions/runs/44001763447) and the full local root Windows job: 144 Python tests, 7 Node checks, all four source/frozen browser workflows and extracted-ZIP smoke. The downloaded GitHub artifact independently passed clean commit/digest/provenance and every-file checksum verification. Seven representative owned sources completed frozen portable roundtrips without warnings. A fresh 0.1.3 campaign backup and isolated regular-EXE upgrade preserved every authored file, character record, all rendered maps, saved fog and native Book/mission records. Private evidence/content remains outside source and CI.
 
 The owner's explicit November 17 request authorises this regular campaign_book_workspaces release. The acceptance file covers the exact product digest; the tag pipeline rebuilds and validates its own clean same-run package before Latest publication. Laptop/friend-PC and full geometry review stay deferred, alpha_ready remains false, and advanced Party/scene-card/context/cross-source integration and AI/PDF/homebrew importing remain unfinished as documented. The release changes the default application surface, preserving the normal data profile without automatically merging preview edits.
+
+
+## Regular 0.2.1 publication candidate
+
+The 0.2.0 tag remained unpublished when its mission-creation browser check raced its own asynchronous navigation. Main carried the deterministic wait fix without moving the tag. The approved regular feature set is packaged as 0.2.1, with full candidate/tag checks repeated, immutable earlier tags, and all hardware/unfinished-feature deferrals retained. Acceptance remains pending until the new version passes.

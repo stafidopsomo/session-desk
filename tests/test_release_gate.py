@@ -86,6 +86,9 @@ class ReleaseGateTests(unittest.TestCase):
         r['version']='0.2.0';r['publication']['scope']='campaign_book_workspaces'
         self.assertEqual(self.check(r,version='0.2.0'),[])
         self.assertTrue(self.check(r,version='0.2.1'))
+        r['version']='0.2.1';r['publication']['scope']='campaign_book_publication_fix'
+        self.assertEqual(self.check(r,version='0.2.1'),[])
+        self.assertTrue(self.check(r,version='0.2.2'))
 
     def test_package_requires_clean_matching_provenance_and_every_file_hash(self):
         with tempfile.TemporaryDirectory() as temp:

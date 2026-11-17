@@ -1,11 +1,12 @@
 {
-  "version": "0.2.0",
+  "version": "0.2.1",
   "alpha_ready": false,
-  "product_digest": "3b6f5061ebcd909bcd1f696d7b3e8d083e0b1292d16836cf1e96757edcbad914",
+  "product_digest": "pending",
   "checks": {
     "owned_library_import": {
-      "passed": true,
-      "evidence": "Candidate 0e632a0: seven representative owned 2014 adventures completed frozen import/export/restore with zero warnings. Historical 80-source coverage is retained, not relabelled as a new full sweep. Sources/private reports remain local."
+      "passed": false,
+      "evidence": null,
+      "status": "pending_0.2.1_candidate"
     },
     "clean_standard_user": {
       "passed": true,
@@ -18,16 +19,19 @@
       "status": "deferred"
     },
     "backup_restore": {
-      "passed": true,
-      "evidence": "Candidate 0e632a0: normal 0.1.3 workspace exported and CRC/hash verified before upgrade; the clean regular 0.2.0 EXE opened an isolated restore, rendered all 15 maps and 5 characters, then exported/restored all 883 authored files, saved fog and native Book/mission records without differences. Synthetic tests cover current/future journal modules and conflicting edits."
+      "passed": false,
+      "evidence": null,
+      "status": "pending_0.2.1_candidate"
     },
     "privacy_audit": {
-      "passed": true,
-      "evidence": "GitHub Windows run 44001763447 and local root CI passed the independent-history/source boundary and explicit package/dependency/path audits. Its downloaded artifact independently matched the clean 0e632a0 commit, accepted product digest, companion checksum and every packaged file. No personal content, books or provider tooling enters source/builds."
+      "passed": false,
+      "evidence": null,
+      "status": "pending_0.2.1_candidate"
     },
     "frozen_browser_e2e": {
-      "passed": true,
-      "evidence": "Candidate 0e632a0 passed GitHub Windows run 44001763447 and local root CI: 144 Python tests, 7 Node checks, all four source/frozen browser workflows and extracted-ZIP lifecycle/relocation/checksum smoke. Tests exercise ordinary default URLs, Campaign/One-shot creation, native Book/mission editing, retained conflicting drafts, independent maps/tabs, compatibility return, tutorials and player-window presence."
+      "passed": false,
+      "evidence": null,
+      "status": "pending_0.2.1_candidate"
     },
     "owner_main_pc": {
       "passed": true,
@@ -52,13 +56,13 @@
     "channel": "desktop",
     "kind": "release",
     "basis": "owner_request",
-    "scope": "campaign_book_workspaces",
+    "scope": "campaign_book_publication_fix",
     "date": "2026-11-17",
-    "reason": "Owner approved the tested campaign-book interface and explicitly requested the official regular release for everyday use, rather than a preview.",
+    "reason": "Owner explicitly requested the official regular release for everyday use. The unpublished 0.2.0 tag remains intact after its browser-test timing failure; 0.2.1 contains the deterministic mission-creation wait and the same approved feature set.",
     "deferred": {
       "laptop_compatibility": "Physical laptop/friend-PC access is unavailable; no hardware result is claimed.",
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": true
+  "release_ready": false
 }

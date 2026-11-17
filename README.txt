@@ -1,4 +1,4 @@
-Session Desk - Windows x64 desktop release 0.2.0
+Session Desk - Windows x64 desktop release 0.2.1
 
 User-facing project overview: .github/README.md
 Developer documentation and instructions: docs/README.md and docs/AGENTS.md

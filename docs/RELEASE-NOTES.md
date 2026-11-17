@@ -1,6 +1,6 @@
-# Session Desk 0.2.0
+# Session Desk 0.2.1
 
-Regular Windows x64 release. Book / Resources / Party is now the default workspace interface for new and restored campaigns. Campaign and One-shot / standalone session creation use the same tools with different starting organisation.
+Regular Windows x64 release. The unpublished 0.2.0 tag was held by a browser-test timing race; 0.2.1 includes the corrected wait without changing the approved feature set. Book / Resources / Party is now the default workspace interface for new and restored campaigns. Campaign and One-shot / standalone session creation use the same tools with different starting organisation.
 
 - Edit Book entries and track missions, outcomes and offered versus awarded rewards.
 - Keep different entries, characters and maps open in independent browser tabs with stable addresses.

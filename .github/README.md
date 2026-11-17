@@ -4,9 +4,9 @@ A local Windows app for preparing tabletop adventures and showing maps, pictures
 
 [![Windows checks](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml/badge.svg?branch=main)](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml)
 
-**0.2.0 — Windows x64 regular release.** AI is Off and unavailable.
+**0.2.1 — Windows x64 regular release.** AI is Off and unavailable.
 
-[**Download the Windows application ZIP**](https://github.com/stafidopsomo/session-desk/releases/download/product-v0.2.0/SessionDesk-0.2.0-windows-x64.zip) · [Release notes and checksum](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.2.0)
+[**Download the Windows application ZIP**](https://github.com/stafidopsomo/session-desk/releases/download/product-v0.2.1/SessionDesk-0.2.1-windows-x64.zip) · [Release notes and checksum](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.2.1)
 
 ## Start
 

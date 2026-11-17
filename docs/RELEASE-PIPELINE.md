@@ -95,3 +95,6 @@ The November 13 owner report confirms main-PC testing and explicitly requests a 
 ## Regular 0.2.0 decision — November 17
 
 The owner tested and liked the campaign-book surface and explicitly requested the official regular release for everyday use. product-v0.2.0 uses campaign_book_workspaces scope, regular --latest publication, owner main-PC evidence and the same exact-tree/archive gates. It promotes the shared surface as default while keeping the regular workspace profile and separate preview data intact. New version approval does not turn laptop/full geometry or unfinished feature acceptance into passed results. Candidate acceptance stays pending until local and GitHub Windows checks, vetted package provenance, owned-source checks and isolated recovery parity complete. The tag job rebuilds and verifies its own artifact; published files remain immutable.
+
+
+The 0.2.0 tag stayed unpublished after a browser-test timing race. Its tag is not replaced. The current official-release request is fulfilled as product-v0.2.1, campaign_book_publication_fix scope, after repeated exact-tree evidence. The deterministic wait changes test synchronisation, not application behaviour. All automated/private/package requirements and hardware deferrals remain in force.
