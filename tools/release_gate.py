@@ -18,7 +18,7 @@ PREVIEW_SCOPES = {FIRST_PREVIEW: 'first_windows_preview',
                   '0.1.0-preview.2': 'reviewed_windows_preview'}
 DESKTOP_SCOPES = {'0.1.0':'initial_desktop_release','0.1.1':'desktop_update_handoff',
     '0.1.2':'guided_adventure_management','0.1.3':'prepared_map_rendering_fix',
-    '0.2.0':'campaign_book_workspaces', '0.2.1':'campaign_book_publication_fix'}
+    '0.2.0':'campaign_book_workspaces', '0.2.1':'campaign_book_publication_fix', '0.2.2':'resource_navigation_corrections'}
 
 
 def product_digest(root=ROOT):

@@ -4,9 +4,9 @@ A local Windows app for preparing tabletop adventures and showing maps, pictures
 
 [![Windows checks](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml/badge.svg?branch=main)](https://github.com/stafidopsomo/session-desk/actions/workflows/readiness.yml)
 
-**0.2.1 — Windows x64 regular release.** AI is Off and unavailable.
+**0.2.2 — Windows x64 regular release.** AI is Off and unavailable.
 
-[**Download the Windows application ZIP**](https://github.com/stafidopsomo/session-desk/releases/download/product-v0.2.1/SessionDesk-0.2.1-windows-x64.zip) · [Release notes and checksum](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.2.1)
+[**Download the Windows application ZIP**](https://github.com/stafidopsomo/session-desk/releases/download/product-v0.2.2/SessionDesk-0.2.2-windows-x64.zip) · [Release notes and checksum](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.2.2)
 
 ## Start
 
@@ -25,7 +25,7 @@ Have a backup? Choose **Restore backup**. No Python, Git, Node or AI account is 
 - **Party:** concepts and private notes, with complete restored sheets available through Open full sheet.
 - **Independent tabs:** keep characters, rooms and book entries open separately. Map inspection is private; presentation and reveal are explicit.
 
-Campaign starts at Book. One-shot starts at Resources with a smaller notebook. Both use the same tools. Settings contains display, updates and Quick tour; Open player screen stays separate.
+Campaign starts at Book. One-shot opens Resources directly without a Book section. Adventure tabs keep imported sources side by side. Settings contains display, updates and Quick tour; Open player screen stays separate.
 
 ## Saves and updates
 

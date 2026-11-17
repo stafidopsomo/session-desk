@@ -1,15 +1,15 @@
-SESSION DESK 0.2.1 — WINDOWS X64
+SESSION DESK 0.2.2 — WINDOWS X64
 
 1. Extract the entire application ZIP. Keep _internal beside SessionDesk.exe.
 2. Double-click SessionDesk.exe. No Python, Git, Node or AI account is needed.
 3. Create a workspace: Campaign starts with Book; One-shot / standalone session
-   starts with Resources and a smaller notebook. Both have the same tools.
+   starts with Resources and has no Book section.
 4. Choose Add adventure. Select your local 5e.tools library or explicitly
-   install the supported local 2014 copy. Choose and import an adventure.
+   install the supported local 2014 copy. Search titles, choose and import.
 5. Prepare your resources, then Present and Open player screen for the TV.
    Map/room inspection is private. Reveal room or the brush changes fog.
 
-BOOK: write session records, preparation and missions. Choose Edit, then Save.
+BOOK (Campaign workspaces): write session records, preparation and missions. Choose Edit, then Save.
 Mission offers, outcomes and rewards awarded are separate. A conflicting save
 keeps your draft; copy it before choosing Reload saved record.
 PARTY: edit concepts and private notes. Restored characters keep their complete

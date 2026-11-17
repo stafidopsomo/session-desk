@@ -183,7 +183,7 @@ document.addEventListener('keydown',e=>{if(activeTour&&e.key==='Escape'){e.preve
 let disposeHome = null;
 function disposeStage() { previewDispose?.();previewDispose=null;disposeHome?.(); disposeHome=null; S.stage?.dispose(); S.stage = null; }
 function home() {
-  disposeStage();S.overview=null;S.graph=null;S.aid=null;S.wid=null;
+  $('#app').classList.remove('workspace-shell');disposeStage();S.overview=null;S.graph=null;S.aid=null;S.wid=null;
   $('#app').innerHTML=header()+'<div id="home-root"></div>';
   disposeHome=mountHome($('#home-root'),{workspaces:S.boot.workspaces});
 }
@@ -200,8 +200,11 @@ async function openWorkspace(wid) {
       <div class="row">${button('adventure','Open adventure','primary',`data-id="${a.id}"`)}${button('remove-adventure','Remove','quiet',`data-id="${a.id}"`)}</div></article>`).join('')}</div>
     ${!S.overview.adventures.length&&!S.overview.modules?.length ? '<div class="empty"><h2>Add your first adventure</h2><p>Use your existing local 5e.tools copy, or install one at a location you choose.</p></div>' : ''}</main>`;
 }
-async function openAdventure(aid) {
-  S.aid = aid; S.graph = await request('adventure'); S.session = await request('session');
+async function openAdventure(aid,epoch=null) {
+  const wid=S.wid;
+  const [graph,session]=await Promise.all([request('adventure',{workspace:wid,adventure:aid}),request('session',{workspace:wid,adventure:aid})]);
+  if(epoch!==null&&(epoch!==previewEpoch||S.wid!==wid))return;
+  S.aid=aid;S.graph=graph;S.session=session;
   S.media = dmMedia()[0]?.id || null;
   S.entry = S.graph.entries[0]?.id || null; S.region = null; S.view = S.media?'media':'text'; S.search = '';S.sourceOpen=false;S.drafts={};S.navOpen=new Set();S.resourceType='all';
   renderAdventure();await showTour('adventure');
@@ -234,11 +237,11 @@ function library() {
   const pins=(S.graph.pins||[]).map(p=>({pin:p,item:(p.kind==='entry'?entries:media).find(x=>x.id===p.id)})).filter(x=>x.item);
   const pinnedHTML=pins.length?`<section class="pinned-resources"><h3>Pinned</h3>${pins.map(({pin:p,item})=>`<div class="pinned-row">${button(p.kind==='entry'?'entry':'media',esc(p.kind==='entry'?cleanResourceTitle(item.name):mediaTitle(item))+(resourceSubtitle(p.kind,item)?'<small class="resource-meta">'+esc(resourceSubtitle(p.kind,item))+'</small>':''),'item',`data-id="${item.id}"`)}${button('pin','×','quiet',`data-kind="${p.kind}" data-id="${p.id}" aria-label="Unpin ${esc(item.name)}"`)}</div>`).join('')}</section>`:'';
   const filtered=q||S.resourceType!=='all';
-  const search=`<div class="resource-heading"><h2>Resources</h2>${button('collapse-all','Collapse all','quiet','title="Clear search filters and return to collapsed chapters"')}</div>${pinnedHTML}<input id="search" placeholder="Search adventure resources" value="${esc(S.search)}" aria-label="Search adventure resources">
+  const search=`<div class="resource-heading"><h2>Resources</h2>${button('collapse-all','Collapse all','quiet','title="Clear search filters and return to collapsed chapters"')}</div>${pinnedHTML}<input id="search" placeholder="Search resource titles" value="${esc(S.search)}" aria-label="Search adventure resources">
     <label class="sr-only" for="resource-type">Resource type</label><select id="resource-type">${[['all','All types'],['text','Text'],['image','Images'],['map','Maps']].map(([value,label])=>`<option value="${value}" ${S.resourceType===value?'selected':''}>${label}</option>`).join('')}</select>`;
   if(filtered){
-    const matches=[...entries.filter(e=>(S.resourceType==='all'||S.resourceType==='text')&&`${e.name} ${e.text}`.toLowerCase().includes(q)).map(e=>({kind:'entry',...e})),
-      ...media.filter(m=>(S.resourceType==='all'||S.resourceType===(m.kind==='map'?'map':'image'))&&m.name.toLowerCase().includes(q)).map(m=>({...m,mediaKind:m.kind,kind:'media'}))].slice(0,200);
+    const matches=[...entries.filter(e=>e.has_heading!==false&&(S.resourceType==='all'||S.resourceType==='text')&&cleanResourceTitle(e.name).toLowerCase().includes(q)).map(e=>({kind:'entry',...e})),
+      ...media.filter(m=>(S.resourceType==='all'||S.resourceType===(m.kind==='map'?'map':'image'))&&mediaTitle(m).toLowerCase().includes(q)).map(m=>({...m,mediaKind:m.kind,kind:'media'}))].slice(0,200);
     return search+`<div class="search-results">${matches.map(r=>button(r.kind,`${esc(r.kind==='entry'?cleanResourceTitle(r.name):mediaTitle(r))}${resourceSubtitle(r.kind,r)?`<small class="resource-meta">${esc(resourceSubtitle(r.kind,r))}</small>`:''}`,'item'+(resourceActive(r.kind,r.id)?' active':''),`data-id="${r.id}"`)).join('')||'<p class="muted">No matches.</p>'}</div>`;
   }
   return search+`<nav class="book-navigation" aria-label="Adventure contents">${navigationChildren()}</nav><p>${button('add-picture','Add picture','quiet')}</p>`;
@@ -254,8 +257,7 @@ function toolbar() {
 function renderAdventure() {
   capturePreparation();
   disposeStage();
-  $('#app').innerHTML = header() + `<nav class="sectionnav"><strong>${esc(S.graph.name)}</strong><span class="spacer"></span>
-    ${button('workspace',preview?'All sources':'Workspace','quiet',`data-id="${S.wid}"`)}</nav><main class="workspace"><aside class="library">${library()}</aside>
+  $('#app').innerHTML = header() + (preview?resourceTabs():`<nav class="sectionnav"><strong>${esc(S.graph.name)}</strong><span class="spacer"></span>${button('workspace','Workspace','quiet',`data-id="${S.wid}"`)}</nav>`)+`<main class="workspace"><aside class="library">${library()}</aside>
     <section class="center"><div class="presentation"><span>On player screen</span><div id="dm-tabs" class="tabs"></div></div><div id="resource-content"></div></section>
     <div id="inspector-divider" class="inspector-divider" role="separator" aria-label="Resize preparation panel" aria-controls="inspector" aria-orientation="vertical" aria-valuemin="280" aria-valuemax="780" aria-valuenow="410" tabindex="0"></div><aside class="inspector" id="inspector"></aside></main>`;
   setupInspectorResize();bindSearch();renderContent();renderTabs($('#dm-tabs'),S.session,false);
@@ -370,11 +372,21 @@ async function validateSource() {
     const result=await request('library',{path,images});sourceValidation={...result,selectedPath:path,selectedImages:images};
     $('#source-status').innerHTML=`<div class="notice success"><strong>✓ Local 5e.tools copy found</strong><p>${result.version ? `Version ${esc(result.version)} · ` : ''}${result.available} of ${result.adventures.length} adventure data files found.</p>
       <p>${result.download_images ? 'Adventure images will download during import, as selected at installation.' : result.images_found ? 'Image folder found.' : 'No images found. Text can still be imported; missing images will be reported.'}</p></div>`;
-    $('#inventory').innerHTML=`<label for="adventure-source">Choose adventure</label><select id="adventure-source">${result.adventures.map(a=>`<option value="${esc(a.id)}" ${a.available?'':'disabled'}>${esc(a.name)}${a.available?'':' · data missing'}</option>`).join('')}</select><p>${button('import-adventure','Import adventure','primary',result.available?'':'disabled')}</p>`;
+    $('#inventory').innerHTML=`<label for="adventure-search">Find an adventure</label><input id="adventure-search" type="search" placeholder="Search adventure titles" autocomplete="off"><label for="adventure-source">Choose adventure</label><select id="adventure-source"></select><small id="adventure-count" role="status"></small><p>${button('import-adventure','Import adventure','primary',result.available?'':'disabled')}</p>`;
+    const filterAdventures=()=>{
+      const select=$('#adventure-source'),previous=select.value,q=$('#adventure-search').value.trim().toLowerCase();
+      const matches=result.adventures.filter(a=>a.name.toLowerCase().includes(q));
+      select.innerHTML=matches.map(a=>`<option value="${esc(a.id)}" ${a.available?'':'disabled'}>${esc(a.name)}${a.available?'':' · data missing'}</option>`).join('');
+      select.value=matches.some(a=>a.id===previous&&a.available)?previous:matches.find(a=>a.available)?.id||'';
+      select.disabled=!matches.length;$('#adventure-count').textContent=matches.length?`${matches.length} adventures`:'No matching adventures.';
+      $('[data-action=import-adventure]').disabled=!select.value;
+    };
+    $('#adventure-search').oninput=filterAdventures;filterAdventures();
   } catch(error) { $('#source-status').innerHTML=`<div class="notice error"><strong>Copy not validated</strong><p>${esc(error.message)}</p></div>`; }
 }
 function sourceBusy(busy) {
-  for(const node of document.querySelectorAll('#source-form input,#source-form button,#source-form select,#inventory button,#inventory select,.source-modes button'))node.disabled=busy;
+  for(const node of document.querySelectorAll('#source-form input,#source-form button,#source-form select,#inventory button,#inventory input,#inventory select,.source-modes button'))node.disabled=busy;
+  if(!busy&&$('#adventure-source')){$('#adventure-source').disabled=!$('#adventure-source').options.length;$('[data-action=import-adventure]').disabled=!$('#adventure-source').value;}
 }
 function jobStatus(state) {
   const root=$('#source-status');if(!root)return;
@@ -415,7 +427,7 @@ async function importAdventure() {
   try {
     const job=await request('import/start',{path:sourceValidation.selectedPath,images:sourceValidation.selectedImages,source});
     const result=await trackSourceJob(job);
-    if(result){dismiss();await openWorkspace(S.wid);toast(result.repaired_assets?`Repaired ${result.repaired_assets} source image(s); preparation and session preserved.`:result.enriched?'Book formatting added; notes, boundaries and session preserved.':result.unchanged?'Already imported; preparation and session preserved.':'Adventure imported. Review maps and import warnings before sharing.');}
+    if(result){dismiss();if(preview&&result.id)history.pushState(null,'',previewHref({section:'resources',adventure:result.id,prepared:null,map:null,room:null,text:null,media:null}));await openWorkspace(S.wid);toast(result.repaired_assets?`Repaired ${result.repaired_assets} source image(s); preparation and session preserved.`:result.enriched?'Book formatting added; notes, boundaries and session preserved.':result.unchanged?'Already imported; preparation and session preserved.':'Adventure imported. Review maps and import warnings before sharing.');}
   } catch(error){sourceJob=null;jobStatus({kind:'import',state:'failed',error:error.message});sourceBusy(false);}
 }
 function transferStatus(job) {
@@ -519,7 +531,7 @@ async function onAction(b) {
     }catch(e){b.disabled=false;throw e;}return;
   }
   if (a === 'new-workspace') return modal(`${button('dismiss','×','quiet dialog-close','aria-label="Close new workspace"')}<h2>New adventure</h2><form data-form="workspace"><label for="workspace-name">Name</label><input name="name" id="workspace-name" required maxlength="100" autofocus>
-    <label for="session-mode">Play style</label><select name="session_mode" id="session-mode"><option value="campaign">Campaign</option><option value="oneshot">One-shot / standalone session</option></select><p class="muted">Campaign starts with its Book. One-shot starts with Resources and a smaller session notebook. Both keep the same tools.</p><label>Preparation language</label><input name="language" value="English" maxlength="80"><label>Rules profile</label><select name="rules"><option>Unspecified</option><option>2014</option><option>2024</option><option>Other</option></select>
+    <label for="session-mode">Play style</label><select name="session_mode" id="session-mode"><option value="campaign">Campaign</option><option value="oneshot">One-shot / standalone session</option></select><p class="muted">Campaign includes a Book for notes and missions. One-shot opens Resources directly, without a Book section.</p><label>Preparation language</label><input name="language" value="English" maxlength="80"><label>Rules profile</label><select name="rules"><option>Unspecified</option><option>2014</option><option>2024</option><option>Other</option></select>
     <div class="row"><button type="submit" class="primary">Create workspace</button>${button('dismiss','Cancel','quiet')}</div></form>`);
   if (a === 'import') return importDialog();
   if (a === 'source-existing') {
@@ -765,20 +777,59 @@ function previewHref(fields={}){
   for(const [key,value] of Object.entries(fields)){if(value==null)u.searchParams.delete(key);else u.searchParams.set(key,value);}
   return u.pathname+u.search;
 }
-function previewNav(){const section=new URL(location.href).searchParams.get('section')||(S.overview?.meta.session_mode==='oneshot'?'resources':'book');return `${isolatedPreview?'<div class="preview-banner">Separate preview workspace</div>':''}<nav class="campaign-nav">${[['book','Book'],['resources','Resources'],['party','Party']].map(([id,label])=>`<a class="${section===id?'active':''}" href="${previewHref({section:id})}">${label}</a>`).join('')}<span class="grow"></span>${button('import','Add adventure','quiet')}${button('backup','Export backup','quiet')}</nav>`;}
-function previewRoute(fields,options={}){const path=previewHref(fields);if(path!==location.pathname+location.search)history.pushState(null,'',path);if(options.render!==false)return renderPreview();}
+const resourceFields=['adventure','prepared','map','room','text','media'];
+function resourceSources(){
+  return [...(S.overview?.modules||[]).filter(m=>m.enabled&&m.kind==='campaign-desk-v1'&&m.schema===1).map(m=>({id:'prepared',title:m.title,fields:{prepared:'1'}})),
+    ...(S.overview?.adventures||[]).map(a=>({id:a.id,title:a.name,fields:{adventure:a.id}}))];
+}
+function rememberResources(selection){
+  const value=Object.fromEntries(resourceFields.filter(k=>selection[k]).map(k=>[k,selection[k]]));
+  try{sessionStorage.setItem('resources:'+S.wid,JSON.stringify(value));}catch{}
+}
+function resourceChoice(selection){
+  const sources=resourceSources();
+  const valid=value=>sources.some(s=>value?.prepared?s.id==='prepared':s.id===value?.adventure);
+  if(valid(selection))return {...selection};
+  let saved;try{saved=JSON.parse(sessionStorage.getItem('resources:'+S.wid));}catch{}
+  return valid(saved)?saved:(sources[0]?.fields||{});
+}
+function resourceTabs(){
+  const selection=Object.fromEntries(new URL(location.href).searchParams);
+  const current=selection.prepared?'prepared':selection.adventure;
+  if(!resourceSources().length)return '';
+  return `<nav class="sectionnav resource-sources" aria-label="Adventure sources"><div class="resource-source-links">${resourceSources().map(source=>`<a class="source-tab ${source.id===current?'active':''}" ${source.id===current?'aria-current="page"':''} title="${esc(source.title)}" href="${previewHref({section:'resources',adventure:null,prepared:null,map:null,room:null,text:null,media:null,...source.fields})}">${esc(source.title)}</a>`).join('')}</div>${S.aid?button('remove-adventure','Remove adventure','quiet',`data-id="${S.aid}"`):''}</nav>`;
+}
+function previewNav(){
+  const section=new URL(location.href).searchParams.get('section')||(S.overview?.meta.session_mode==='oneshot'?'resources':'book');
+  const sections=S.overview?.meta.session_mode==='oneshot'?[['resources','Resources'],['party','Party']]:[['book','Book'],['resources','Resources'],['party','Party']];
+  return `${isolatedPreview?'<div class="preview-banner">Separate preview workspace</div>':''}<nav class="campaign-nav">${sections.map(([id,label])=>`<a class="${section===id?'active':''}" href="${previewHref({section:id})}">${label}</a>`).join('')}<span class="grow"></span>${button('import','Add adventure','quiet')}${button('backup','Export backup','quiet')}</nav>`;
+}
+function previewRoute(fields,options={}){
+  const path=previewHref(fields);if(path!==location.pathname+location.search)history.pushState(null,'',path);
+  const selection=Object.fromEntries(new URL(location.href).searchParams);if(selection.section==='resources')rememberResources(selection);
+  if(options.render!==false)return renderPreview();
+}
 async function renderPreview(){
   const epoch=++previewEpoch;disposeStage();S.graph=null;S.aid=null;S.stage=null;
-  const selection=Object.fromEntries(new URL(location.href).searchParams);const section=selection.section||(S.overview.meta.session_mode==='oneshot'?'resources':'book');
-  if(!selection.workspace){history.replaceState(null,'',previewHref({workspace:S.wid}));}
-  if(section==='resources'&&selection.adventure){return openAdventure(selection.adventure);}
-  $('#app').innerHTML=header()+'<div id="campaign-surface"><p class="home">Loading…</p></div>';
+  $('#app').classList.add('workspace-shell');
+  const selection=Object.fromEntries(new URL(location.href).searchParams);
+  const oneshot=S.overview.meta.session_mode==='oneshot';
+  const section=oneshot&&selection.section==='book'?'resources':selection.section||(oneshot?'resources':'book');
+  selection.section=section;
+  if(section==='resources'){
+    const choice=resourceChoice(selection);
+    for(const key of resourceFields){delete selection[key];if(choice[key])selection[key]=choice[key];}
+    rememberResources(selection);
+  }
+  history.replaceState(null,'',previewHref({workspace:S.wid,section,...Object.fromEntries(resourceFields.map(k=>[k,selection[k]||null]))}));
+  if(section==='resources'&&selection.adventure)return openAdventure(selection.adventure,epoch);
+  $('#app').innerHTML=header()+(section==='resources'?resourceTabs():'')+'<div id="campaign-surface"><p class="home">Loading…</p></div>';
   const root=$('#campaign-surface'),wid=S.wid;
   const context={api:(path,body={})=>request(path,{workspace:wid,...body}),route:previewRoute,href:previewHref,wid,selection,preparedBase:'/campaign/'+wid+'/'+token};
-  if(section==='book'){const {mountBook}=await import('./campaign.js');try{await mountBook(root,context);}catch(e){root.innerHTML='<main class="home"><h1>Book unavailable</h1><p>'+esc(e.message)+'</p><p>Your other workspace resources remain available.</p></main>';}}
-  else if(section==='party'){const {mountParty}=await import('./campaign.js');await mountParty(root,context);}
-  else if(selection.prepared){const {mountPrepared}=await import('./prepared-resources.js');const dispose=await mountPrepared(root,{...context,base:context.preparedBase});if(epoch===previewEpoch)previewDispose=dispose;else dispose?.();}
-  else {root.innerHTML=`<main class="home workspace-home"><h1>Resources</h1><div class="cards">${(S.overview.modules||[]).filter(m=>m.kind==='campaign-desk-v1').map(m=>`<article class="card"><h2>${esc(m.title)}</h2><p>${m.summary?.maps||0} maps · authored images and room preparation</p>${button('prepared','Open maps and images','primary')} ${button('connect-rules',S.overview.rules_connected?'Change 2014 library':'Connect 2014 library','quiet')}</article>`).join('')}${S.overview.adventures.map(a=>`<article class="card"><h2>${esc(a.name)}</h2><p>${a.maps} maps · ${a.pictures} images</p>${button('adventure','Open adventure','primary',`data-id="${a.id}"`)}</article>`).join('')}</div>${!S.overview.adventures.length&&!S.overview.modules?.some(m=>m.kind==='campaign-desk-v1')?'<p>Add an adventure to bring its book, maps and images here.</p>':''}</main>`;}
+  if(section==='book'){const {mountBook}=await import('./campaign.js');if(epoch!==previewEpoch)return;try{await mountBook(root,context);}catch(e){root.innerHTML='<main class="home"><h1>Book unavailable</h1><p>'+esc(e.message)+'</p><p>Your other workspace resources remain available.</p></main>';}}
+  else if(section==='party'){const {mountParty}=await import('./campaign.js');if(epoch===previewEpoch)await mountParty(root,context);}
+  else if(selection.prepared){const {mountPrepared}=await import('./prepared-resources.js');if(epoch!==previewEpoch)return;const dispose=await mountPrepared(root,{...context,base:context.preparedBase});if(epoch===previewEpoch)previewDispose=dispose;else dispose?.();}
+  else root.innerHTML='<main class="home workspace-home"><h1>Resources</h1><p>Add an adventure to bring its book, maps and images here.</p></main>';
 }
 if(preview){
   document.documentElement.style.setProperty('--campaign-top',isolatedPreview?'158px':'126px');

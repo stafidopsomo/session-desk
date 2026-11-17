@@ -1,20 +1,19 @@
-# Session Desk 0.2.1
+# Session Desk 0.2.2
 
-Regular Windows x64 release. The unpublished 0.2.0 tag was held by a browser-test timing race; 0.2.1 includes the corrected wait without changing the approved feature set. Book / Resources / Party is now the default workspace interface for new and restored campaigns. Campaign and One-shot / standalone session creation use the same tools with different starting organisation.
+Regular Windows x64 correction release.
 
-- Edit Book entries and track missions, outcomes and offered versus awarded rewards.
-- Keep different entries, characters and maps open in independent browser tabs with stable addresses.
-- Inspect restored maps without changing the TV; explicitly Present and Reveal with the existing calibrated fog.
-- Edit Party concepts/private notes with revision checks. Conflicting drafts are retained; reload or copy them explicitly.
-- Keep imported source readers, pins, preparation, original authored files, character records, assets and saved fog. Native Book/mission records travel in ordinary backups.
-- Use the control-anchored Quick tour and player connection indicator from the shared workspace.
+- One-shot workspaces open Resources directly and hide Book, including old Book links. Existing notebook data is retained in backups.
+- Search adventure titles in Add adventure, with clear empty results and unavailable-source handling.
+- Resource search matches entry and displayed image/map titles, rather than body text.
+- Switch between imported adventures and restored resources using adjacent tabs. Returning to Resources reopens the selected source without another chooser.
+- Fill the workspace viewport, including wide screens, with readable navigation and no cut-off background.
 
-## Updating from 0.1.3
+## Updating
 
-Use Settings → Check for updates → Download and install → Restart into update, or extract this ZIP and run SessionDesk.exe. The regular app keeps the existing SessionDesk data profile. A native Book is created without replacing source files or changing fog/character mechanics. Back up before changing installations or computers. The separate local campaign preview profile is not merged automatically.
+Use Settings → Check for updates → Download and install → Restart into update. Existing workspaces, Book entries, characters, preparation, pins, images and saved fog are preserved. No repeat import is required. Keep a workspace backup when changing installations or computers.
 
 ## Limits
 
-Full restored mechanical sheets still open the compatibility editor. Full cross-source presentation, scene-card migration, advanced Party integration and native context projections remain future work. Homebrew JSON/PDF/OCR import, AI providers/generation and remote/LAN player devices are unavailable. No books, maps, private campaigns or credentials are bundled.
+The campaign Book remains available in Campaign workspaces. Restored full mechanical sheets use the compatibility editor. Advanced Party/scene-card/cross-source presentation remains incomplete; PDF/OCR/homebrew imports, AI providers and LAN players are unavailable. No books, artwork, private campaigns or credentials are bundled.
 
-This package is unsigned. Automated Windows tests, owned-library/campaign checks in isolated profiles and the owner's main-PC report are distinct from physical laptop/friend-PC testing. Laptop compatibility and complete geometry review remain deferred; review source maps before presenting them. This release does not claim completed alpha acceptance or AI integration.
+Unsigned Windows x64 package. Same-PC automated and owned-library checks are separate from physical laptop/friend-PC and full geometry acceptance, which remain deferred. No completed alpha or new hardware result is claimed.
