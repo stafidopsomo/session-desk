@@ -44,7 +44,7 @@ def run(exe=None,artifacts=None):
             expect(other.get_by_role('status').filter(has_text='another tab')).to_be_visible()
             expect(other.get_by_label('Text',exact=True)).to_have_value('Second tab draft must survive.')
             other.reload();expect(other.get_by_label('Text',exact=True)).to_have_value('Second tab draft must survive.')
-            page.get_by_role('button',name='New mission',exact=True).click();page.get_by_role('button',name='Edit',exact=True).click()
+            page.get_by_role('button',name='New mission',exact=True).click();expect(page.get_by_role('heading',name='New mission',exact=True)).to_be_visible();page.get_by_role('button',name='Edit',exact=True).click()
             page.get_by_label('Title',exact=True).fill('Original local investigation');page.get_by_label('Status',exact=True).select_option('Offered');page.get_by_label('Objective',exact=True).fill('Find the missing survey notes.');page.get_by_label('Reward offered',exact=True).fill('50 gp')
             page.get_by_role('button',name='Save',exact=True).click();expect(page.locator('dd').filter(has_text='50 gp')).to_be_visible()
             expect(page.locator('dd').last).to_have_text('Not recorded')
