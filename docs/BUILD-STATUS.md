@@ -1,6 +1,6 @@
 # Windows desktop build status
 
-Current regular release: **0.3.0**, published as GitHub Latest and installed from its verified public package on November 17 for everyday use. Book / Resources / Party is the default on the normal SessionDesk profile; the separate local preview remains intact. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
+Current regular release: **0.3.1**, published as GitHub Latest and installed through the verified native updater on November 20. The existing host workspace and its private endpoint were preserved. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
 
 
 Updated November 14, 2026. Version **0.1.3**, unsigned initial Windows desktop release. No completed alpha is claimed.
@@ -177,3 +177,9 @@ November 17 owner follow-up: the main-PC browser successfully opened the shared 
 Clean candidate f834ae2 passed the full local root CI and [GitHub Windows run 44734214707](https://github.com/stafidopsomo/session-desk/actions/runs/44734214707). The GitHub ZIP passed exact-tree and every-file verification. Both runs passed 153 Python tests, seven Node tests, the four source and four frozen browser suites, and portable ZIP smoke.
 
 Seven local adventures and three reference books passed import, portable export and restore with no warnings. Recovery of a fresh 0.3.0 backup preserved 884 original campaign files, 5 characters, 15 rendered maps, saved fog, 27 native Book entries and 11 missions. The isolated frozen browser verified exact keyed room sections, current player controls and the fogged standalone-map workflow. The owner approved 0.3.1 for the regular release channel. Additional Windows device and complete visual-geometry checks remain deferred.
+
+## Official 0.3.1 publication and host upgrade
+
+[Release run 44735173228](https://github.com/stafidopsomo/session-desk/actions/runs/44735173228) packaged the accepted tag at 2213523 and validated every file before publishing. [0.3.1](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.3.1) is GitHub's regular Latest release. The public ZIP, independently downloaded and verified, has SHA-256 `2af898ed174cdcd14eea8c6a8a52440439f6d6463abaf836a5949b3928f831d3`.
+
+The verified 0.3.0-to-0.3.1 native update and restart preserved both workspaces, all 15 original workspace documents and 883 authored files. The intended prepared resource archive preference was updated. The existing private HTTPS link opened after restart and the normal desktop shortcut was updated to the verified executable. The loaded room reader used the existing local rules connection. Both native backups passed ZIP integrity checks, and the updated backup restored independently with the saved source order, campaign Book, archived-resource settings and prior presentation fog.
