@@ -125,6 +125,70 @@ class CoreTests(WorkspaceCase):
         with self.assertRaises(UserError):
             other.move_source(restored,book["id"],self.aid,False)
 
+    def test_campaign_library_roundtrip_preserves_source_state_and_prunes_removed_members(self):
+        media = self.imported()
+        entry = self.graph['entries'][1]['id']
+        self.store.prepare(self.wid, self.aid, entry, {'notes': 'Original private note'})
+        self.store.pin(self.wid, self.aid, 'entry', entry, True)
+        state = self.store.session_action(self.wid, self.aid, {
+            'action': 'fog', 'media': media['id'], 'mode': 'reveal', 'points': [[30, 40]], 'radius': 20})
+        sources = []
+        for _ in range(2):
+            graph = {**self.graph, 'id': str(uuid.uuid4())}
+            self.store.import_graph(self.wid, graph, self.blobs)
+            sources.append(graph['id'])
+        secondary, archived = sources
+        config = {'title': 'Campaign Shelf', 'encounters': [self.aid, secondary], 'archive': [archived],
+                  'journal_chapters': [0]}
+        self.assertEqual(self.store.set_campaign_library(self.wid, config)['campaign_library'], config)
+        self.assertEqual(self.store.session(self.wid, self.aid), state)
+        self.assertEqual(self.store.overview(self.wid)['meta']['campaign_library'], config)
+        self.assertEqual(len(self.store.overview(self.wid)['adventures']), 3)
+
+        other = Store(self.root / 'restored campaign shelf')
+        restored = other.restore(self.store.backup(self.wid))['id']
+        self.assertEqual(other.overview(restored)['meta']['campaign_library'], config)
+        self.assertEqual(other.adventure(restored, self.aid), self.store.adventure(self.wid, self.aid))
+        self.assertEqual(other.session(restored, self.aid), state)
+        other.remove_adventure(restored, self.aid)
+        self.assertEqual(other.overview(restored)['meta']['campaign_library'],
+                         {'title': 'Campaign Shelf', 'encounters': [secondary], 'archive': [archived]})
+        other.remove_adventure(restored, secondary)
+        self.assertNotIn('campaign_library', other.overview(restored)['meta'])
+        self.assertEqual([item['id'] for item in other.overview(restored)['adventures']], [archived])
+
+    def test_campaign_library_rejects_unknown_members_wrong_scope_and_malformed_chapter_indices(self):
+        self.imported()
+        config = {'title': 'Campaign Shelf', 'encounters': [self.aid], 'archive': []}
+        for change in ({'title': ' '}, {'encounters': []}, {'encounters': ['prepared']},
+                       {'archive': [self.aid]}, {'encounters': [str(uuid.uuid4())]},
+                       {'journal_chapters': [True]}, {'journal_chapters': [-1]},
+                       {'journal_chapters': [len(self.graph['book'])]}, {'journal_chapters': [0, 0]}):
+            with self.subTest(change=change), self.assertRaises(UserError):
+                self.store.set_campaign_library(self.wid, {**config, **change})
+        self.assertNotIn('campaign_library', self.store.overview(self.wid)['meta'])
+        oneshot = self.store.create('Original standalone session', session_mode='oneshot')['id']
+        self.store.import_graph(oneshot, self.graph, self.blobs)
+        with self.assertRaises(UserError):
+            self.store.set_campaign_library(oneshot, config)
+
+        self.store.set_campaign_library(self.wid, config)
+        backup = io.BytesIO(self.store.backup(self.wid))
+        altered = io.BytesIO()
+        with zipfile.ZipFile(backup) as source, zipfile.ZipFile(altered, 'w') as target:
+            for name in source.namelist():
+                data = source.read(name)
+                if name == 'workspace.json':
+                    snapshot = json.loads(data)
+                    snapshot['documents']['meta']['campaign_library']['archive'] = [str(uuid.uuid4())]
+                    data = json.dumps(snapshot).encode()
+                target.writestr(name, data)
+        count = len(self.store.listing())
+        with self.assertRaises(UserError):
+            self.store.restore(altered.getvalue())
+        self.assertEqual(len(self.store.listing()), count)
+        self.assertEqual(self.store.overview(self.wid)['meta']['campaign_library'], config)
+
     def test_backup_restores_into_different_root_with_images_and_state(self):
         media = self.imported()
         self.store.prepare(self.wid,self.aid,self.graph["entries"][1]["id"],{"translation":"Καλημέρα", "notes":"private"})
@@ -231,6 +295,21 @@ class HttpTests(WorkspaceCase):
         with self.assertRaises(HTTPError):
             urlopen(self.origin+f"/asset/{self.wid}/{digest}?token={self.app.player_token}&adventure={self.aid}")
         self.assertNotIn("DM_ONLY",json.dumps(self.call("/api/player",token=self.app.player_token)))
+
+    def test_campaign_library_route_is_dm_only_and_clears_explicitly(self):
+        route = '/api/workspace/campaign-library'
+        payload = {'campaign_library': {'title': '  Campaign Shelf ', 'encounters': [self.aid], 'archive': []}}
+        with self.assertRaises(HTTPError) as denied:
+            self.call(route, payload, token=self.app.player_token)
+        self.assertEqual(denied.exception.code, 403)
+        config = self.call(route, payload)['campaign_library']
+        self.assertEqual(config['title'], 'Campaign Shelf')
+        with self.assertRaises(HTTPError) as invalid:
+            self.call(route)
+        self.assertEqual(invalid.exception.code, 400)
+        self.assertEqual(self.call('/api/workspace')['meta']['campaign_library'], config)
+        self.assertIsNone(self.call(route, {'campaign_library': None})['campaign_library'])
+        self.assertNotIn('campaign_library', self.call('/api/workspace')['meta'])
 
     def test_ai_routes_cannot_be_enabled_or_submitted(self):
         for path in ("/api/ai/enable","/api/ai/jobs","/api/ai"):

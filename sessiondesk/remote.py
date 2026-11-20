@@ -21,10 +21,13 @@ class RemoteHost:
             if not isinstance(self.config,dict):self.config={}
         except (OSError,ValueError):pass
         self.local_port=None
+        self._closing=False
+        self._may_be_serving=False
     def _run(self,args):
         exe=Path(os.environ.get('ProgramFiles',r'C:\Program Files'))/'Tailscale/tailscale.exe'
         if not exe.is_file():raise UserError('Install Tailscale on this host and sign in first.')
-        try:r=subprocess.run([str(exe),*args],capture_output=True,text=True,timeout=25,
+        timeout=24 if args[:2]==['serve','--bg'] else 8
+        try:r=subprocess.run([str(exe),*args],capture_output=True,text=True,timeout=timeout,
             creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
         except (OSError,subprocess.TimeoutExpired) as exc:raise UserError('Tailscale did not respond. Check its tray app and HTTPS/Serve permissions, then retry.') from exc
         if r.returncode:raise UserError('Tailscale could not configure private hosting. Check that you are signed in and Serve/HTTPS is enabled for this device.')
@@ -37,9 +40,11 @@ class RemoteHost:
         name=self.config.get('hostname','')
         return 'https://'+name+':'+str(PORT) if self.active and re.fullmatch(r'[a-z0-9][a-z0-9.-]*\.ts\.net',name) else None
     def status(self,include_link=True):
-        result={'enabled':self.config.get('enabled') is True,'online':bool(self.origin),'error':self.error,
-            'origin':self.origin,'port':PORT}
-        if include_link and self.origin:result['url']=self.origin+'/connect/'+self.config['key']
+        origin=self.origin
+        key=self.config.get('key')
+        result={'enabled':self.config.get('enabled') is True,'online':bool(origin),'error':self.error,
+            'origin':origin,'port':PORT}
+        if include_link and origin and key:result['url']=origin+'/connect/'+key
         return result
     def _rules(self):
         raw=json.loads(self.run(['serve','status','--json']) or '{}')
@@ -55,6 +60,7 @@ class RemoteHost:
         return True
     def start(self,port):
         with self.lock:
+            if self._closing:raise UserError('Session Desk is closing.')
             self.local_port=port;self.error=''
             try:
                 state=json.loads(self.run(['status','--json']))
@@ -64,12 +70,13 @@ class RemoteHost:
                 rules=self._rules();old_name=self.config.get('hostname')
                 if old_name and old_name!=name:raise UserError('The Tailscale hostname changed. Disable hosting before reconnecting it.')
                 self.config['hostname']=name
-                self._owned(rules)
+                owned=self._owned(rules)
                 # Never replace any existing port-level configuration we do not own.
-                if str(PORT) in rules.get('TCP',{}) and not self._owned(rules):raise UserError('Tailscale port 8443 is in use by another service.')
+                if str(PORT) in rules.get('TCP',{}) and not owned:raise UserError('Tailscale port 8443 is in use by another service.')
                 if rules.get('AllowFunnel',{}).get(name+':'+str(PORT)):raise UserError('Public Funnel is enabled on port 8443. Disable it before using private hosting.')
                 self.config['previous_port']=self.config.get('target_port')
                 self.config.update(enabled=True,target_port=port,key=self.config.get('key') or secrets.token_urlsafe(32));self.save()
+                self._may_be_serving=True
                 self.run(['serve','--bg','--https='+str(PORT),'http://127.0.0.1:'+str(port)])
                 if not self._owned(self._rules()):raise UserError('Tailscale did not confirm the private endpoint.')
                 self.active=True
@@ -82,10 +89,18 @@ class RemoteHost:
                 rules=self._rules()
                 if self._owned(rules):self.run(['serve','--https='+str(PORT),'off'])
             self.active=False;self.error=''
+            self._may_be_serving=False
             if disable:self.config['enabled']=False;self.config.pop('key',None);self.config.pop('hostname',None);self.save()
             return self.status()
+    def shutdown(self):
+        with self.lock:
+            self._closing=True
+            if self._may_be_serving:
+                self.stop(disable=False)
+
     def resume(self,port):
-        self.local_port=port
-        if self.config.get('enabled'):
-            try:self.start(port)
-            except UserError:pass
+        with self.lock:
+            self.local_port=port
+            if self.config.get('enabled'):
+                try:self.start(port)
+                except UserError:pass

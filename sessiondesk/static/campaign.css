@@ -38,3 +38,18 @@ html,body{min-height:100%}
   .campaign-map-layout .campaign-room{grid-column:2}
 }
 @media(max-width:650px){.campaign-map-layout .campaign-room{grid-column:auto}}
+
+.prepared-map-content{display:contents}
+.resource-header{flex:none}
+@media(min-width:801px){
+  .resource-header{transition:margin-top .14s ease-out}
+  .resource-header.is-collapsed{margin-top:calc(-1 * var(--resource-header-height,0px));pointer-events:none}
+}
+@media(prefers-reduced-motion:reduce){.resource-header{transition:none}}
+.campaign-sections{display:flex;align-items:center;flex-wrap:wrap;gap:.25rem .65rem;padding:.3rem 1rem;background:#151a20;border-bottom:1px solid var(--line)}
+.campaign-section{padding:.35rem .5rem;border-radius:5px;color:#dce3ec;text-decoration:none}
+.campaign-section:visited{color:#dce3ec}
+.campaign-section.active{color:#f1d8a9;background:#2d333c}
+.campaign-archive{display:flex;color:#dce3ec}
+.campaign-archive summary{cursor:pointer;padding:.35rem .5rem}
+.campaign-archive .campaign-section{display:inline-block}

@@ -13,7 +13,7 @@ ALLOWED_FILES = frozenset({
     'tools/check_product_boundary.py', 'tools/probe_codex.py',
     'tests/test_readiness.py',
     'SessionDesk.spec', 'launcher.pyw', 'requirements-build.lock', 'requirements-e2e.lock',
-    'sessiondesk/journal.py', 'sessiondesk/static/campaign.js', 'sessiondesk/static/campaign.css', 'sessiondesk/static/prepared-resources.js', 'tests/test_journal.py', 'tools/e2e_journal.py',
+    'sessiondesk/journal.py', 'sessiondesk/presentation.py', 'sessiondesk/static/presentation.js', 'sessiondesk/static/campaign.js', 'sessiondesk/static/campaign.css', 'sessiondesk/static/prepared-resources.js', 'tests/test_journal.py', 'tools/e2e_journal.py',
     'sessiondesk/__init__.py', 'sessiondesk/__main__.py', 'sessiondesk/importer.py',
     'sessiondesk/store.py', 'sessiondesk/server.py', 'sessiondesk/remote.py', 'tests/test_remote.py', 'tests/test_reference_books.py',
     'sessiondesk/library_setup.py',

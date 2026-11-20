@@ -55,3 +55,47 @@ export async function mountParty(root,{api,href,route,selection,wid,preparedBase
     remember(wid,key,null);status.textContent='Saved';
   }catch(error){remember(wid,key,{revision,fields:values()});status.textContent=error.message;status.className='save-error';}};
 }
+
+export function findPreparedSource(overview) {
+  return overview?.modules?.find(m=>m.enabled&&m.kind==='campaign-desk-v1'&&m.schema===1);
+}
+
+export function campaignContains(library,id) {
+  return !!library&&(id==='prepared'||library.encounters.includes(id)||library.archive.includes(id));
+}
+
+export function listResourceSources(overview) {
+  const library=overview?.meta.campaign_library,prepared=findPreparedSource(overview);
+  const imported=(overview?.adventures||[]).filter(a=>!campaignContains(library,a.id))
+    .map(a=>({id:a.id,title:a.name,fields:{section:'resources',adventure:a.id}}));
+  const sources=library
+    ? [{id:library.encounters[0],title:library.title,campaign:true,
+        fields:{section:'book',entry:null,mission:null}},...imported]
+    : [...(prepared?[{id:'prepared',title:prepared.title,fields:{section:'resources',prepared:'1'}}]:[]),...imported];
+  const positions=new Map((overview?.meta.source_order||[]).map((id,i)=>[id,i]));
+  const position=source=>positions.get(source.id)??Infinity;
+  return sources.sort((a,b)=>position(a)===position(b)?0:position(a)-position(b));
+}
+
+export function campaignContents(overview,selection,href) {
+  const library=overview?.meta.campaign_library;
+  const current=selection.prepared==='1'?'prepared':selection.adventure;
+  const journal=selection.section==='book';
+  if(!library||(!campaignContains(library,current)&&!journal))return '';
+  const sources=new Map(overview.adventures.map(source=>[source.id,source.name]));
+  const link=(label,fields,active=false)=>{
+    const url=href({adventure:null,prepared:null,map:null,room:null,text:null,media:null,...fields});
+    return `<a class="campaign-section${active?' active':''}" ${active?'aria-current="page"':''} href="${esc(url)}">${esc(label)}</a>`;
+  };
+  const imported=(id,label)=>link(label,{section:'resources',adventure:id},id===current);
+  const encounters=library.encounters.map((id,index)=>imported(id,index===0?'Encounters':sources.get(id)));
+  const archive=library.archive.map(id=>imported(id,sources.get(id)));
+  const archiveNav=archive.length===1?imported(library.archive[0],'Archive'):archive.length?
+    `<details class="campaign-archive" ${library.archive.includes(current)?'open':''}><summary>Archive</summary>${archive.join('')}</details>`:'';
+  return `<nav class="campaign-sections" aria-label="Campaign contents">
+    ${link('Journal',{section:'book',entry:null,mission:null},journal)}
+    ${encounters.join('')}
+    ${findPreparedSource(overview)?link('Maps & Images',{section:'resources',prepared:'1'},current==='prepared'):''}
+    ${archiveNav}
+  </nav>`;
+}

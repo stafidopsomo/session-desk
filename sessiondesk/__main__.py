@@ -103,7 +103,9 @@ def main():
     app = Application(Store(root))
     app.recover()
     server = make_server(app, args.port)
-    app.remote.resume(server.server_port)
+    # The local window can start while Tailscale checks its network state.
+    remote_start = threading.Thread(target=app.remote.resume, args=(server.server_port,), daemon=True)
+    remote_start.start()
     if not args.no_browser or args.auto_exit:
         def monitor():
             while True:

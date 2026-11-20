@@ -32,3 +32,10 @@
 @media(max-width:800px){.workspace{grid-template-columns:170px minmax(180px,1fr)}.inspector-divider{display:none}.inspector{grid-column:1/-1}.player-presence{margin-left:-.3rem}.top{gap:.55rem}.sourceview{padding:1.1rem}}
 
 .settings{max-height:calc(100dvh - 80px);overflow:auto}#remote-link{width:100%;font-size:.8rem}
+
+.workspace-player-stage{position:relative;flex:1;min-height:0}
+.workspace-player-stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.workspace-player-stage iframe[aria-hidden=true]{visibility:hidden;pointer-events:none}
+.embedded-player #player-tabs,.embedded-player #playerTabs,.embedded-player #closeAllTabs,.embedded-player .brand{display:none}
+.embedded-player .player-tabbar:not(:has(select:not([hidden]))){display:none}
+.embedded-player .player-tabbar{min-height:auto;height:auto}

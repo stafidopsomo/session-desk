@@ -18,6 +18,7 @@ from .importer import Library, MAX_IMAGE, UserError, confined
 from .library_setup import LibrarySetup
 from .updates import Updater, activate_application
 from .preferences import Preferences
+from .presentation import PREPARED, PREPARED_PRESENT, Presentation
 from .remote import RemoteHost
 from .jobs import TransferJobs
 from .transfers import CHUNK, MAX_BACKUP
@@ -42,6 +43,7 @@ class Application:
         self.recovered = 0
         self.transfers = TransferJobs(store)
         self.prepared_cache = {}
+        self.presentation = Presentation(self)
         self.updater = Updater(store.root)
         self.update_candidate = None
         self.pending_update = None
@@ -51,9 +53,8 @@ class Application:
 
     def close(self):
         self.transfers.close()
-        if self.remote.active:
-            try:self.remote.stop(disable=False)
-            except UserError:pass
+        try:self.remote.shutdown()
+        except UserError:pass
 
 
     def start_import(self, payload):
@@ -204,7 +205,8 @@ class Application:
         store = self.store
         if path.startswith("/api/ai"):
             raise UserError("AI is unavailable in this build. No provider is connected or invoked.")
-        if player and path not in ("/api/player", "/api/session/action", "/api/ink", "/api/heartbeat", "/api/client/ping", "/api/client/close"):
+        if player and path not in ("/api/player", "/api/session/action", "/api/ink", "/api/heartbeat", "/api/client/ping", "/api/client/close",
+                                   "/api/presentation", "/api/presentation/action"):
             raise PermissionError("This route is DM-only.")
         if path == "/api/heartbeat":
             return {"version": __version__, "ai": {"enabled": False, "available": False}}
@@ -222,8 +224,12 @@ class Application:
             with self.lock:
                 return {'online': any(c.get('role') == 'player' and not c['closed']
                     and c.get('workspace') == body.get('workspace')
-                    and c.get('adventure') == body.get('adventure')
+                    and (body.get('workspace_wide') is True or c.get('adventure') == body.get('adventure'))
                     and time.monotonic() - c['seen'] < 20 for c in self.clients.values())}
+        if path == "/api/presentation":
+            return self.presentation.snapshot(body["workspace"])
+        if path == "/api/presentation/action":
+            return self.presentation.action(body["workspace"], body)
         if path == '/api/tutorial':
             self.store.folder(body['workspace'])
             if body.get('adventure'):
@@ -267,6 +273,10 @@ class Application:
             return store.create(body.get("name", ""), body.get("language", "English"), body.get("rules", "Unspecified"), body.get("session_mode", "campaign"))
         if path == "/api/workspace/source-order":
             return store.move_source(body["workspace"], body.get("source"), body.get("target"), body.get("after"))
+        if path == "/api/workspace/campaign-library":
+            if 'campaign_library' not in body:
+                raise UserError('Provide the campaign source grouping or clear it explicitly.')
+            return store.set_campaign_library(body["workspace"], body['campaign_library'])
         if path == "/api/workspace":
             return store.overview(body["workspace"]) | {'rules_connected': body['workspace'] in self.source_settings()}
         if path == '/api/campaign/open':
@@ -325,8 +335,12 @@ class Application:
         if path == "/api/player":
             return store.session(body["workspace"], body["adventure"], player=True)
         if path == "/api/session/action":
-            result = store.session_action(body["workspace"], body["adventure"], body, player)
-            return store.session(body["workspace"], body["adventure"], True) if player else result
+            with store.lock:
+                wid, aid = body["workspace"], body["adventure"]
+                result = store.session_action(wid, aid, body, player)
+                if body.get("action") in ("present", "activate"):
+                    self.presentation.activate(wid, aid, result["active"])
+                return store.session(wid, aid, True) if player else result
         if path == "/api/ink":
             # Temporary drawing only: never stored in a database/backup. Shared by both windows.
             state = store.session(body["workspace"], body["adventure"], True)
@@ -447,10 +461,13 @@ def make_server(app, port=0):
                     return self.send(200,file,mime,csp=csp)
                 if path.startswith('/campaign/'):
                     return self.prepared_dispatch(path, query, origin)
-                if self.command == "GET" and path in ("/", "/app.js", "/book.js", "/home.js", "/home.css", "/hero.svg", "/style.css", "/icon.svg", "/campaign.js", "/campaign.css", "/prepared-resources.js"):
+                if self.command == "GET" and path in ("/", "/app.js", "/book.js", "/home.js", "/home.css", "/hero.svg", "/style.css", "/icon.svg", "/campaign.js", "/campaign.css", "/prepared-resources.js", "/presentation.js"):
                     filename = "index.html" if path == "/" else path[1:]
-                    mime = {"index.html": "text/html", "app.js": "text/javascript", "book.js": "text/javascript", "style.css": "text/css", "icon.svg": "image/svg+xml", "home.js":"text/javascript", "home.css":"text/css", "hero.svg":"image/svg+xml", "campaign.js":"text/javascript", "prepared-resources.js":"text/javascript", "campaign.css":"text/css"}[filename]
-                    return self.send(200, (STATIC / filename).read_bytes(), mime)
+                    mime = {"index.html": "text/html", "app.js": "text/javascript", "book.js": "text/javascript", "style.css": "text/css", "icon.svg": "image/svg+xml", "home.js":"text/javascript", "home.css":"text/css", "hero.svg":"image/svg+xml", "campaign.js":"text/javascript", "prepared-resources.js":"text/javascript", "campaign.css":"text/css", "presentation.js":"text/javascript"}[filename]
+                    csp = None
+                    if path == "/" and query.get("view") == ["player"] and query.get("embed") == ["1"]:
+                        csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'"
+                    return self.send(200, (STATIC / filename).read_bytes(), mime, csp=csp)
                 token = self.headers.get("Authorization", "").removeprefix("Bearer ")
                 if path.startswith(("/asset/", '/download/')):
                     token = query.get("token", [token])[0]
@@ -561,7 +578,10 @@ def make_server(app, port=0):
                 body = json.loads(self.rfile.read(length), parse_constant=lambda _: (_ for _ in ()).throw(UserError('Invalid number.')))
                 if not isinstance(body, dict):
                     raise UserError('Expected a campaign action object.')
-                result = mount.api(route, 'POST', unmount(body, base), query, not dm)
+                with app.store.lock:
+                    result = mount.api(route, 'POST', unmount(body, base), query, not dm)
+                    if route in ('/api/action', '/api/player-action') and body.get('action') in PREPARED_PRESENT:
+                        app.presentation.activate(wid, PREPARED, result.get('activeTabId'))
                 return self.send(200, rewrite(result, base))
             if self.command != 'GET':
                 raise PermissionError('Unsupported campaign request method.')

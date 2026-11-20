@@ -1,5 +1,7 @@
 import {bookContext,renderSource} from './book.js';
 import {mountHome} from './home.js';
+import {campaignContains,campaignContents,listResourceSources,findPreparedSource} from './campaign.js';
+import {drawPresentationTabs,mountWorkspacePlayer} from './presentation.js';
 const $ = (s, root = document) => root.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fragment = new URLSearchParams(location.hash.slice(1));
@@ -17,7 +19,7 @@ const S = {wid:params.get('workspace'), aid:params.get('adventure'), boot:null, 
   graph:null, media:null, entry:null, region:null, view:'media', mode:'pan', radius:60,
   color:'#f3c76a', session:null, stage:null, search:'', pollBusy:false, boundary:[],
   sourceOpen:false, drafts:{}, navOpen:new Set(), resourceType:'all'};
-let toastTimer, activeTour=null, checkedUpdate=null;
+let toastTimer, activeTour=null, checkedUpdate=null, sharedPlayerWindow=null;
 const tourPhaseKey=phase=>`${S.wid}:${phase}:${phase==='adventure'?S.aid||'':''}`;
 function toast(text) {
   $('#toast').textContent = text; $('#toast').style.display = 'block';
@@ -38,6 +40,11 @@ function selectedEntry() { return S.graph?.entries.find(x => x.id === S.entry); 
 function selectedRegion() { return selectedMedia()?.regions.find(x => x.id === S.region); }
 function playerVariant(m) { return m.image_type==='mapPlayer'||(!m.image_type&&/player/i.test(m.source_path||'')); }
 function dmMedia() { return mediaItems().filter(m=>!playerVariant(m)); }
+function isJournalChapter(chapter) {
+  const library=campaignLibrary();
+  return S.aid===library?.encounters[0]&&library.journal_chapters?.includes(chapter);
+}
+function encounterEntries() { return S.graph.entries.filter(entry=>!isJournalChapter(entry.chapter)); }
 function sourceContext() { if(S.bookCtx?.graph!==S.graph)S.bookCtx=bookContext(S.graph,asset);return S.bookCtx; }
 function bookUpgradeHint(){return S.graph.book?'':'<p class="notice">Re-import this same adventure once to add the original book layout. Existing notes, boundaries and session are kept.</p>';}
 function breadcrumbs(entry) {
@@ -57,7 +64,7 @@ const button = (action, text, klass = '', extra = '') => `<button type="button" 
 function header() {
   return `<header class="top"><div class="brand"><img src="/icon.svg" alt="">Session Desk</div>
     ${S.overview ? button('home', 'Workspaces', 'quiet') : ''}<span class="title muted">${esc(S.overview?.meta.name || 'Local workspace')}</span>
-    <span class="grow"></span>${button('player', 'Open player screen', '', (S.aid || (preview&&S.overview?.modules?.some(m=>m.kind==='campaign-desk-v1'))) ? '' : 'disabled')}<span id="player-presence" class="player-presence" role="status" aria-label="Player screen offline" title="Player screen offline"><i></i></span>
+    <span class="grow"></span>${button('player', 'Open player screen', '', (S.aid || (preview&&(S.overview?.adventures?.length||S.overview?.modules?.some(m=>m.kind==='campaign-desk-v1')))) ? '' : 'disabled')}<span id="player-presence" class="player-presence" role="status" aria-label="Player screen offline" title="Player screen offline"><i></i></span>
     ${button('settings', 'Settings', 'quiet', 'aria-expanded="false"')}</header>` + (preview&&S.overview?previewNav():'');
 }
 function showSettings() {
@@ -215,14 +222,14 @@ async function openAdventure(aid,epoch=null) {
   if(epoch!==null&&(epoch!==previewEpoch||S.wid!==wid))return;
   S.aid=aid;S.graph=graph;S.session=session;
   S.media = dmMedia()[0]?.id || null;
-  S.entry = S.graph.entries[0]?.id || null; S.region = null; S.view = S.graph.source_kind==='book'?'text':S.media?'media':'text'; S.search = '';S.sourceOpen=false;S.drafts={};S.navOpen=new Set();S.resourceType='all';
+  S.entry = encounterEntries()[0]?.id || null; S.region = null; S.view = S.graph.source_kind==='book'?'text':S.media?'media':'text'; S.search = '';S.sourceOpen=false;S.drafts={};S.navOpen=new Set();S.resourceType='all';
   renderAdventure();await showTour('adventure');
   if(preview){const u=new URL(location.href);if(u.searchParams.get('text'))openEntry(u.searchParams.get('text'));else if(u.searchParams.get('media'))openMedia(u.searchParams.get('media'));}
 }
 function navigationIndex() {
   if(S.navigation?.graph===S.graph)return S.navigation;
   const entries=new Map(S.graph.entries.map(e=>[e.id,e]));
-  const visible=S.graph.entries.filter(e=>e.has_heading===true||(e.has_heading===undefined&&e.name!==e.key)),ids=new Set(visible.map(e=>e.id));
+  const visible=encounterEntries().filter(e=>e.has_heading===true||(e.has_heading===undefined&&e.name!==e.key)),ids=new Set(visible.map(e=>e.id));
   const parent=id=>{const seen=new Set();while(id&&!ids.has(id)&&!seen.has(id)){seen.add(id);id=entries.get(id)?.parent;}return id||null;};
   const nodes=visible.map((e,i)=>({id:e.id,parent:parent(e.parent),name:cleanResourceTitle(e.name),item:e,kind:'entry',order:e.order??i*2}));
   nodes.push(...dmMedia().map((m,i)=>({id:m.id,parent:parent(m.entry),name:mediaTitle(m),item:m,kind:'media',mediaKind:m.kind,order:m.order??100000+i})));
@@ -242,11 +249,13 @@ function navigationChildren(parent=null) {
   }).join('');
 }
 function library() {
-  const q=S.search.trim().toLowerCase(),entries=S.graph.entries,media=dmMedia();
+  const q=S.search.trim().toLowerCase(),entries=encounterEntries(),media=dmMedia();
   const pins=(S.graph.pins||[]).map(p=>({pin:p,item:(p.kind==='entry'?entries:media).find(x=>x.id===p.id)})).filter(x=>x.item);
   const pinnedHTML=pins.length?`<section class="pinned-resources"><h3>Pinned</h3>${pins.map(({pin:p,item})=>`<div class="pinned-row">${button(p.kind==='entry'?'entry':'media',esc(p.kind==='entry'?cleanResourceTitle(item.name):mediaTitle(item))+(resourceSubtitle(p.kind,item)?'<small class="resource-meta">'+esc(resourceSubtitle(p.kind,item))+'</small>':''),'item',`data-id="${item.id}"`)}${button('pin','×','quiet',`data-kind="${p.kind}" data-id="${p.id}" aria-label="Unpin ${esc(item.name)}"`)}</div>`).join('')}</section>`:'';
   const filtered=q||S.resourceType!=='all';
-  const search=`<div class="resource-heading"><h2>Resources</h2>${button('collapse-all','Collapse all','quiet','title="Clear search filters and return to collapsed chapters"')}</div>${pinnedHTML}<input id="search" placeholder="Search resource titles" value="${esc(S.search)}" aria-label="Search adventure resources">
+  const retained=S.graph.entries.filter(entry=>isJournalChapter(entry.chapter)&&(S.graph.preparation?.[entry.id]||pinned('entry',entry.id)));
+  const saved=retained.length?`<details class="journal-preparation"><summary>Earlier journal preparation</summary>${retained.map(entry=>button('entry',esc(entry.name),'item',`data-id="${esc(entry.id)}"`)).join('')}</details>`:'';
+  const search=`<div class="resource-heading"><h2>Resources</h2>${button('collapse-all','Collapse all','quiet','title="Clear search filters and return to collapsed chapters"')}</div>${pinnedHTML}${saved}<input id="search" placeholder="Search resource titles" value="${esc(S.search)}" aria-label="Search adventure resources">
     <label class="sr-only" for="resource-type">Resource type</label><select id="resource-type">${[['all','All types'],['text','Text'],['image','Images'],['map','Maps']].map(([value,label])=>`<option value="${value}" ${S.resourceType===value?'selected':''}>${label}</option>`).join('')}</select>`;
   if(filtered){
     const matches=[...entries.filter(e=>e.has_heading!==false&&(S.resourceType==='all'||S.resourceType==='text')&&cleanResourceTitle(e.name).toLowerCase().includes(q)).map(e=>({kind:'entry',...e})),
@@ -266,9 +275,10 @@ function toolbar() {
 function renderAdventure() {
   capturePreparation();
   disposeStage();
-  $('#app').innerHTML = header() + (preview?resourceTabs():`<nav class="sectionnav"><strong>${esc(S.graph.name)}</strong><span class="spacer"></span>${button('workspace','Workspace','quiet',`data-id="${S.wid}"`)}</nav>`)+`<main class="workspace"><aside class="library">${library()}</aside>
+  $('#app').innerHTML = (preview?resourceHeader():header()+`<nav class="sectionnav"><strong>${esc(S.graph.name)}</strong><span class="spacer"></span>${button('workspace','Workspace','quiet',`data-id="${S.wid}"`)}</nav>`)+`<main class="workspace"><aside class="library">${library()}</aside>
     <section class="center"><div class="presentation"><span>On player screen</span><div id="dm-tabs" class="tabs"></div></div><div id="resource-content"></div></section>
     <div id="inspector-divider" class="inspector-divider" role="separator" aria-label="Resize preparation panel" aria-controls="inspector" aria-orientation="vertical" aria-valuemin="280" aria-valuemax="780" aria-valuenow="410" tabindex="0"></div><aside class="inspector" id="inspector"></aside></main>`;
+  if(preview)measureResourceHeader();
   setupInspectorResize();bindSearch();renderContent();renderTabs($('#dm-tabs'),S.session,false);
 }
 function renderContent() {
@@ -338,14 +348,45 @@ function renderInspector() {
 function warnings() {
   return S.graph.warnings.length ? `<details class="warnings"><summary>Import warnings (${S.graph.warnings.length})</summary>${S.graph.warnings.map(w => `<p>${esc(w)}</p>`).join('')}</details>` : '';
 }
+let sharedPresentation = {tabs:[],active:null};
+let presentationWorkspace, presentationGeneration=0, presentationWrites=0;
+let presentationQueue=Promise.resolve();
+
+function applyDmPresentation(workspace,generation,state) {
+  if(S.wid!==workspace||generation!==presentationGeneration)return;
+  sharedPresentation=state;
+  presentationWorkspace=workspace;
+  renderDmPresentation();
+}
+
+function renderDmPresentation() {
+  const state=presentationWorkspace===S.wid?sharedPresentation:{tabs:[],active:null};
+  for (const root of document.querySelectorAll('#dm-tabs,#preview-player-tabs')) {
+    drawPresentationTabs(root,state,payload=>{
+      const workspace=S.wid,generation=++presentationGeneration;
+      presentationWrites++;
+      presentationQueue=presentationQueue.then(async()=>{
+        try {
+          const next=await request('presentation/action',{workspace,...payload});
+          applyDmPresentation(workspace,generation,next);
+        }catch(error){if(S.wid===workspace)toast(error.message);}
+        finally{presentationWrites--;}
+      });
+    });
+  }
+}
+
 function renderTabs(root, session, player) {
   if (!root) return;
+  if (preview&&!player) {renderDmPresentation();return;}
   const tabs = player ? session.tabs : session.tabs.map(id => mediaItems().find(x => x.id === id)).filter(Boolean);
   root.innerHTML = tabs.map(t => `<div class="tab ${session.active === t.id ? 'active' : ''}">${button('activate',esc(t.name),'',`data-id="${t.id}"`)}${button('close','×','',`data-id="${t.id}" aria-label="Close ${esc(t.name)}"`)}</div>`).join('') +
     (tabs.length ? button('close-all','Close all','quiet') : '<small class="muted">Nothing is being presented.</small>');
 }
 async function sessionAction(action, extra = {}) {
+  const workspace=S.wid,adventure=S.aid;
   const result = await request('session/action',{action,media:S.media,...extra});
+  if(S.wid!==workspace||S.aid!==adventure||result.revision<S.session?.revision)return;
   S.session = result;
   if (isPlayer) updatePlayer();
   else { renderTabs($('#dm-tabs'),S.session,false); S.stage?.paint();visibilityStatus(); }
@@ -580,10 +621,22 @@ async function onAction(b) {
   if (a === 'fit') return S.stage?.fit();
   if (a === 'zoom-in' || a === 'zoom-out') return S.stage?.zoom(a === 'zoom-in' ? 1.25 : .8);
   if (a === 'player') {
-    const prepared=preview&&!S.aid&&S.overview?.modules?.some(m=>m.kind==='campaign-desk-v1');
+    if(preview&&sharedPlayerWindow&&!sharedPlayerWindow.closed){
+      try {
+        const current=new URL(sharedPlayerWindow.location.href);
+        if(current.origin===location.origin&&current.searchParams.get('workspace')===S.wid
+          &&current.searchParams.get('view')==='player'&&current.searchParams.get('shared')==='1'){
+          sharedPlayerWindow.focus();
+          return;
+        }
+      }catch{}
+    }
     const u = new URL(location.href);
-    u.search = new URLSearchParams({view:'player',workspace:S.wid,...(prepared?{prepared:'1'}:{adventure:S.aid})});
-    u.hash = 'player=' + S.boot.player_token; window.open(u,'sessiondesk-player'); return;
+    u.search = new URLSearchParams({view:'player',workspace:S.wid,...(preview?{shared:'1'}:{adventure:S.aid})});
+    u.hash = 'player=' + S.boot.player_token;
+    const playerWindow=window.open(u,'sessiondesk-player');
+    if(preview)sharedPlayerWindow=playerWindow;
+    return;
   }
   if (a === 'present') { await sessionAction('present',{with_fog:m?.kind==='map'}); toast('Presented. Open the player screen for your TV.'); return; }
   if (a === 'activate' || a === 'close') { await sessionAction(a,{media:b.dataset.id}); if (!isPlayer && a === 'activate') openMedia(b.dataset.id); return; }
@@ -776,14 +829,35 @@ function updatePlayer(){
   const note=S.session.notes[S.media]||'';$('#player-note').textContent=note;$('#player-note').hidden=!note;
 }
 async function poll(){
-  if(preview&&S.wid&&!S.aid){const p=await request('player/presence').catch(()=>({online:false}));const led=$('#player-presence');if(led){led.classList.toggle('online',p.online);led.title=p.online?'Player screen online':'Player screen offline';led.setAttribute('aria-label',led.title);}return;}
-  if(!S.wid||!S.aid||S.pollBusy)return;S.pollBusy=true;
+  if(!S.wid||S.pollBusy)return;
+  S.pollBusy=true;
+  const workspace=S.wid,adventure=S.aid;
   try {
-    if(!isPlayer){const presence=await request('player/presence').catch(()=>({online:false}));const led=$('#player-presence');if(led){led.classList.toggle('online',!!presence.online);led.setAttribute('aria-label',presence.online?'Player screen online':'Player screen offline');led.title=presence.online?'Player screen online':'Player screen offline';}}
-    const next=await request(isPlayer?'player':'session');const changed=JSON.stringify(next)!==JSON.stringify(S.session);S.session=next;
+    if(!isPlayer){
+      const presence=await request('player/presence',{workspace_wide:preview}).catch(()=>({online:false}));
+      if(S.wid!==workspace)return;
+      const led=$('#player-presence');
+      if(led){
+        led.classList.toggle('online',presence.online);
+        led.title=presence.online?'Player screen online':'Player screen offline';
+        led.setAttribute('aria-label',led.title);
+      }
+      if(preview&&!presentationWrites&&$('#dm-tabs,#preview-player-tabs')){
+        const generation=presentationGeneration;
+        applyDmPresentation(workspace,generation,await request('presentation'));
+      }
+    }
+    if(!adventure||S.wid!==workspace||S.aid!==adventure)return;
+    const next=await request(isPlayer?'player':'session');
+    if(S.wid!==workspace||S.aid!==adventure||next.revision<S.session?.revision)return;
+    const changed=JSON.stringify(next)!==JSON.stringify(S.session);S.session=next;
     if(isPlayer){$('#connection').textContent='';if(changed)updatePlayer();}
     else if(changed){renderTabs($('#dm-tabs'),S.session,false);S.stage?.paint();visibilityStatus();}
-    if(S.media&&S.session.tabs.some(t=>(typeof t==='string'?t:t.id)===S.media)&&S.stage){const ink=await request('ink',{media:S.media});S.stage.ink=ink.strokes;S.stage.paint();}
+    const media=S.media,stage=S.stage;
+    if(media&&stage&&S.session.tabs.some(tab=>(typeof tab==='string'?tab:tab.id)===media)){
+      const ink=await request('ink',{media});
+      if(S.stage===stage&&S.media===media){stage.ink=ink.strokes;stage.paint();}
+    }
   }catch(error){if(isPlayer)$('#connection').textContent='Connection lost · your DM may need to reopen this window.';}
   finally{S.pollBusy=false;}
 }
@@ -794,29 +868,64 @@ function previewHref(fields={}){
   return u.pathname+u.search;
 }
 const resourceFields=['adventure','prepared','map','room','text','media'];
-function resourceSources(){
-  const sources = [...(S.overview?.modules||[]).filter(m=>m.enabled&&m.kind==='campaign-desk-v1'&&m.schema===1).map(m=>({id:'prepared',title:m.title,fields:{prepared:'1'}})),
-    ...(S.overview?.adventures||[]).map(a=>({id:a.id,title:a.name,fields:{adventure:a.id}}))];
-  const positions=new Map((S.overview?.meta.source_order||[]).map((id,i)=>[id,i]));
-  const position=source=>positions.get(source.id)??Infinity;
-  return sources.sort((a,b)=>position(a)===position(b)?0:position(a)-position(b));
-}
+function campaignLibrary(){return S.overview?.meta.campaign_library;}
+function preparedSource(){return findPreparedSource(S.overview);}
+function campaignMember(id){return campaignContains(campaignLibrary(),id);}
+function resourceSelectionId(selection){return selection.prepared==='1'?'prepared':selection.adventure;}
+function resourceSources(){return listResourceSources(S.overview);}
 function rememberResources(selection){
   const value=Object.fromEntries(resourceFields.filter(k=>selection[k]).map(k=>[k,selection[k]]));
   try{sessionStorage.setItem('resources:'+S.wid,JSON.stringify(value));}catch{}
 }
 function resourceChoice(selection){
-  const sources=resourceSources();
-  const valid=value=>sources.some(s=>value?.prepared?s.id==='prepared':s.id===value?.adventure);
+  const valid=value=>value?.prepared==='1'?!!preparedSource():S.overview.adventures.some(a=>a.id===value?.adventure);
   if(valid(selection))return {...selection};
   let saved;try{saved=JSON.parse(sessionStorage.getItem('resources:'+S.wid));}catch{}
-  return valid(saved)?saved:(sources[0]?.fields||{});
+  if(valid(saved))return saved;
+  const source=resourceSources()[0];
+  if(!source?.campaign)return source?.fields||{};
+  if(preparedSource())return {prepared:'1'};
+  const adventure=campaignLibrary().encounters[0]||campaignLibrary().archive[0];
+  return adventure?{adventure}:{};
 }
 function resourceTabs(){
   const selection=Object.fromEntries(new URL(location.href).searchParams);
-  const current=selection.prepared?'prepared':selection.adventure;
-  if(!resourceSources().length)return '';
-  return `<nav class="sectionnav resource-sources" aria-label="Resource sources"><div class="resource-source-links">${resourceSources().map(source=>`<a class="source-tab ${source.id===current?'active':''}" ${source.id===current?'aria-current="page"':''} data-source-id="${esc(source.id)}" draggable="true" title="${esc(source.title)} · Drag to reorder, or use Alt + Left/Right" href="${previewHref({section:'resources',adventure:null,prepared:null,map:null,room:null,text:null,media:null,...source.fields})}">${esc(source.title)}</a>`).join('')}</div>${S.aid?button('remove-adventure',S.graph?.source_kind==='book'?'Remove reference book':'Remove adventure','quiet',`data-id="${S.aid}"`):''}</nav>`;
+  const current=resourceSelectionId(selection),sources=resourceSources();
+  if(!sources.length)return '';
+  const links=sources.map(source=>{
+    const active=source.campaign?selection.section==='book'||campaignMember(current):source.id===current;
+    const reorder=source.id?`data-source-id="${esc(source.id)}" draggable="true" title="${esc(source.title)} · Drag to reorder, or use Alt + Left/Right"`:'';
+    return `<a class="source-tab ${active?'active':''}" ${active?'aria-current="page"':''} ${reorder} href="${previewHref({adventure:null,prepared:null,map:null,room:null,text:null,media:null,...source.fields})}">${esc(source.title)}</a>`;
+  });
+  const remove=S.aid&&!campaignMember(S.aid)?button('remove-adventure',S.graph?.source_kind==='book'?'Remove reference book':'Remove adventure','quiet',`data-id="${S.aid}"`):'';
+  return `<nav class="sectionnav resource-sources" aria-label="Resource sources"><div class="resource-source-links">${links.join('')}</div>${remove}</nav>${campaignContents(S.overview,selection,previewHref)}`;
+}
+function resourceHeader(){
+  return `<div class="resource-header">${header()}${resourceTabs()}</div>`;
+}
+const resourcePanes='.library,.inspector,.campaign-index,.campaign-room,.campaign-reading,.sourceview,#resource-content';
+const paneScroll=new WeakMap();
+let headerSettlingUntil=0;
+function measureResourceHeader(){
+  const bar=$('.workspace-shell > .resource-header');
+  if(bar)bar.style.setProperty('--resource-header-height',bar.offsetHeight+'px');
+}
+function setResourceHeaderCollapsed(collapsed){
+  const bar=$('.workspace-shell > .resource-header');
+  if(!bar||window.innerWidth<=800||bar.classList.contains('is-collapsed')===collapsed)return;
+  measureResourceHeader();
+  // Expanding the panes can clamp their scroll positions while the header moves.
+  headerSettlingUntil=performance.now()+180;
+  bar.classList.toggle('is-collapsed',collapsed);
+  if(collapsed)closeSettings();
+}
+function onResourceScroll(event){
+  const pane=event.target;
+  if(!(pane instanceof Element)||!pane.matches(resourcePanes))return;
+  const position=pane.scrollTop,previous=paneScroll.get(pane)??0;
+  paneScroll.set(pane,position);
+  if(position!==previous&&performance.now()>=headerSettlingUntil)
+    setResourceHeaderCollapsed(position>previous);
 }
 // Move the DOM node after saving so the open map and its inspector stay mounted.
 async function moveResourceTab(source,target,after){
@@ -883,13 +992,14 @@ document.addEventListener('keydown',event=>{
   if(!tab||!event.altKey||!['ArrowLeft','ArrowRight'].includes(event.key))return;
   event.preventDefault();
   const after=event.key==='ArrowRight',target=after?tab.nextElementSibling:tab.previousElementSibling;
-  if(target)moveResourceTab(tab.dataset.sourceId,target.dataset.sourceId,after);
+  if(target?.dataset.sourceId)moveResourceTab(tab.dataset.sourceId,target.dataset.sourceId,after);
 });
 
 function previewNav(){
   const section=new URL(location.href).searchParams.get('section')||(S.overview?.meta.session_mode==='oneshot'?'resources':'book');
-  const sections=S.overview?.meta.session_mode==='oneshot'?[['resources','Resources'],['party','Party']]:[['book','Book'],['resources','Resources'],['party','Party']];
-  return `${isolatedPreview?'<div class="preview-banner">Separate preview workspace</div>':''}<nav class="campaign-nav">${sections.map(([id,label])=>`<a class="${section===id?'active':''}" href="${previewHref({section:id})}">${label}</a>`).join('')}<span class="grow"></span>${button('import','Add source','quiet')}${button('backup','Export backup','quiet')}</nav>`;
+  const grouped=!!campaignLibrary(),resourcesActive=grouped&&section==='book'||section==='resources';
+  const sections=grouped||S.overview?.meta.session_mode==='oneshot'?[['resources','Resources'],['party','Party']]:[['book','Book'],['resources','Resources'],['party','Party']];
+  return `${isolatedPreview?'<div class="preview-banner">Separate preview workspace</div>':''}<nav class="campaign-nav">${sections.map(([id,label])=>`<a class="${(id==='resources'?resourcesActive:section===id)?'active':''}" href="${previewHref(grouped&&id==='resources'?{section:'book',entry:null,mission:null}:{section:id})}">${label}</a>`).join('')}<span class="grow"></span>${button('import','Add source','quiet')}${button('backup','Export backup','quiet')}</nav>`;
 }
 function previewRoute(fields,options={}){
   const path=previewHref(fields);if(path!==location.pathname+location.search)history.pushState(null,'',path);
@@ -910,27 +1020,78 @@ async function renderPreview(){
   }
   history.replaceState(null,'',previewHref({workspace:S.wid,section,...Object.fromEntries(resourceFields.map(k=>[k,selection[k]||null]))}));
   if(section==='resources'&&selection.adventure)return openAdventure(selection.adventure,epoch);
-  $('#app').innerHTML=header()+(section==='resources'?resourceTabs():'')+'<div id="campaign-surface"><p class="home">Loading…</p></div>';
+  const prepared=section==='resources'&&selection.prepared==='1';
+  if(!prepared||$('#campaign-surface')?.dataset.preparedWorkspace!==S.wid){
+    const inLibrary=section==='resources'||section==='book'&&campaignLibrary();
+    $('#app').innerHTML=(inLibrary?resourceHeader():header())+'<div id="campaign-surface"><p class="home">Loading…</p></div>';
+    measureResourceHeader();
+  }
   const root=$('#campaign-surface'),wid=S.wid;
+  if(prepared)root.dataset.preparedWorkspace=wid;
   const context={api:(path,body={})=>request(path,{workspace:wid,...body}),route:previewRoute,href:previewHref,wid,selection,preparedBase:'/campaign/'+wid+'/'+token};
   if(section==='book'){const {mountBook}=await import('./campaign.js');if(epoch!==previewEpoch)return;try{await mountBook(root,context);}catch(e){root.innerHTML='<main class="home"><h1>Book unavailable</h1><p>'+esc(e.message)+'</p><p>Your other workspace resources remain available.</p></main>';}}
   else if(section==='party'){const {mountParty}=await import('./campaign.js');if(epoch===previewEpoch)await mountParty(root,context);}
-  else if(selection.prepared){const {mountPrepared}=await import('./prepared-resources.js');if(epoch!==previewEpoch)return;const dispose=await mountPrepared(root,{...context,base:context.preparedBase,setupInspectorResize});if(epoch===previewEpoch)previewDispose=dispose;else dispose?.();}
+  else if(prepared){
+    const {mountPrepared}=await import('./prepared-resources.js');
+    const isCurrent=()=>epoch===previewEpoch&&root.isConnected;
+    if(!isCurrent())return;
+    const dispose=await mountPrepared(root,{...context,base:context.preparedBase,setupInspectorResize,isCurrent});
+    if(isCurrent())previewDispose=dispose;else dispose?.();
+  }
   else root.innerHTML='<main class="home workspace-home"><h1>Resources</h1><p>Add an adventure to bring its book, maps and images here.</p></main>';
+}
+function navigatePreview(url){
+  const wid=url.searchParams.get('workspace');
+  if(!wid){home();return;}
+  if(wid===S.wid&&$('#campaign-surface')?.dataset.preparedWorkspace===wid
+    &&url.searchParams.get('section')==='resources'&&url.searchParams.get('prepared')==='1'){
+    return renderPreview();
+  }
+  return openWorkspace(wid);
 }
 if(preview){
   document.documentElement.style.setProperty('--campaign-top',isolatedPreview?'158px':'126px');
   const style=document.createElement('link');style.rel='stylesheet';style.href='/campaign.css';document.head.append(style);
-  document.addEventListener('click',e=>{const a=e.target.closest('a');if(!a||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||a.target)return;const u=new URL(a.href);if(u.origin===location.origin&&u.pathname==='/'&&u.searchParams.has('workspace')&&u.searchParams.get('legacy')!=='1'){e.preventDefault();history.pushState(null,'',u);openWorkspace(u.searchParams.get('workspace')).catch(e=>toast(e.message));}});
-  window.addEventListener('popstate',()=>{const u=new URL(location.href);const wid=u.searchParams.get('workspace');if(wid)openWorkspace(wid).catch(e=>toast(e.message));else home();});
+  document.addEventListener('click',e=>{
+    const a=e.target.closest('a');
+    if(!a||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey||a.target)return;
+    const u=new URL(a.href);
+    if(u.origin===location.origin&&u.pathname==='/'&&u.searchParams.has('workspace')&&u.searchParams.get('legacy')!=='1'){
+      e.preventDefault();
+      if(a.matches('[data-map-id][aria-current="page"]'))return;
+      history.pushState(null,'',u);
+      navigatePreview(u)?.catch(error=>toast(error.message));
+    }
+  });
+  window.addEventListener('popstate',()=>navigatePreview(new URL(location.href))?.catch(error=>toast(error.message)));
+  window.addEventListener('resize',measureResourceHeader);
+  document.addEventListener('scroll',onResourceScroll,{capture:true,passive:true});
+  document.addEventListener('wheel',event=>{
+    if(event.deltaY<0&&!event.ctrlKey&&Math.abs(event.deltaY)>Math.abs(event.deltaX)
+      &&event.target.closest(resourcePanes)&&!event.target.closest('canvas,input,select,textarea')){
+      setResourceHeaderCollapsed(false);
+    }
+  },{passive:true});
+  document.addEventListener('focusin',event=>{
+    if(event.target.closest('.resource-header'))setResourceHeaderCollapsed(false);
+  });
 }
 async function start(){
-  const client=crypto.randomUUID();
-  await request('client/ping',{client,role:isPlayer?'player':'dm'});
-  setInterval(()=>request('client/ping',{client,role:isPlayer?'player':'dm'}).catch(()=>{}),10000);
-  window.addEventListener('pagehide',()=>{
-    fetch('/api/client/close',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({client})}).catch(()=>{});
-  });
+  if(isPlayer&&params.get('embed')==='1'){
+    document.body.classList.add('embedded-player');
+  }else{
+    const client=crypto.randomUUID();
+    await request('client/ping',{client,role:isPlayer?'player':'dm'});
+    setInterval(()=>request('client/ping',{client,role:isPlayer?'player':'dm'}).catch(()=>{}),10000);
+    window.addEventListener('pagehide',()=>{
+      fetch('/api/client/close',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({client})}).catch(()=>{});
+    });
+  }
+  if(isPlayer&&S.wid&&params.get('shared')==='1'&&params.get('embed')!=='1'){
+    document.title='Session Desk · Player screen';
+    mountWorkspacePlayer($('#app'),{workspace:S.wid,token,request});
+    return;
+  }
   document.documentElement.style.setProperty('--scale',(localStorage.getItem('textSize')||100)/100);document.body.classList.toggle('dense',localStorage.getItem('density')==='true');
   if(isPlayer&&S.wid&&params.get('prepared')==='1'){
     const base='/campaign/'+encodeURIComponent(S.wid)+'/'+encodeURIComponent(token)+'/static/';

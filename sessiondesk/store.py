@@ -30,6 +30,37 @@ def string(value, maximum=100000):
     return value
 
 
+def validate_campaign_library(value, source_ids, session_mode, get_source):
+    if session_mode != 'campaign':
+        raise UserError('Only campaign workspaces can group campaign sources.')
+    required = {'title', 'encounters', 'archive'}
+    if (not isinstance(value, dict) or not required.issubset(value)
+            or set(value) - required - {'journal_chapters'}):
+        raise UserError('Invalid campaign source grouping.')
+    title = string(value['title'], 100).strip()
+    if not title:
+        raise UserError('Enter a campaign book title.')
+    encounters, archive = value['encounters'], value['archive']
+    if (not isinstance(encounters, list) or not encounters or not isinstance(archive, list)
+            or len(encounters) + len(archive) > len(source_ids)):
+        raise UserError('Choose imported sources for the campaign book.')
+    members = [identifier(item) for item in encounters + archive]
+    if len(set(members)) != len(members) or not set(members).issubset(source_ids):
+        raise UserError('Choose distinct sources imported into this workspace.')
+    grouping = {'title': title, 'encounters': list(encounters), 'archive': list(archive)}
+    if 'journal_chapters' in value:
+        chapters = value['journal_chapters']
+        source = get_source(encounters[0])
+        book = source.get('book') if isinstance(source, dict) else None
+        chapter_count = len(book) if isinstance(book, list) else 0
+        if (not isinstance(chapters, list) or len(chapters) > chapter_count
+                or any(type(index) is not int or not 0 <= index < chapter_count for index in chapters)
+                or len(set(chapters)) != len(chapters)):
+            raise UserError('Choose distinct chapter indices in the primary campaign source.')
+        grouping['journal_chapters'] = list(chapters)
+    return grouping
+
+
 class Store:
     def __init__(self, root):
         self.root = Path(root).resolve()
@@ -175,6 +206,21 @@ class Store:
             self.put(conn, "meta", meta)
             return {"source_order": order}
 
+    def set_campaign_library(self, wid, value):
+        """Organize existing sources while keeping each document and presentation intact."""
+        with self.lock, self.db(wid) as conn:
+            meta = self.get(conn, "meta")
+            if value is None:
+                meta.pop('campaign_library', None)
+            else:
+                source_ids = {key.split(':', 1)[1] for (key,) in conn.execute(
+                    "SELECT key FROM documents WHERE key LIKE 'adventure:%'")}
+                meta['campaign_library'] = validate_campaign_library(
+                    value, source_ids, meta.get('session_mode', 'campaign'),
+                    lambda aid: self.get(conn, 'adventure:' + aid))
+            self.put(conn, "meta", meta)
+        return {'campaign_library': meta.get('campaign_library')}
+
     def remove_adventure(self, wid, aid):
         aid = identifier(aid)
         with self.lock, self.db(wid) as conn:
@@ -185,9 +231,19 @@ class Store:
             for prefix in ('adventure:', 'prep:', 'session:', 'pins:'):
                 conn.execute('DELETE FROM documents WHERE key=?', (prefix + aid,))
             meta = self.get(conn, "meta")
-            if aid in meta.get("source_order", []):
-                meta["source_order"].remove(aid)
-                self.put(conn, "meta", meta)
+            library = meta.get('campaign_library')
+            order = meta.get('source_order', [])
+            if aid in order:
+                order.remove(aid)
+            if library:
+                if aid == library['encounters'][0]:
+                    library.pop('journal_chapters', None)
+                for group in ('encounters', 'archive'):
+                    if aid in library[group]:
+                        library[group].remove(aid)
+                if not library['encounters']:
+                    meta.pop('campaign_library')
+            self.put(conn, "meta", meta)
         return {'removed': True}
 
     def remove_workspace(self, wid):
@@ -551,6 +607,11 @@ class Store:
                 for item in source_order:
                     if item != 'prepared':
                         identifier(item)
+                if 'campaign_library' in value:
+                    source_ids = {key.split(':', 1)[1] for key in documents if key.startswith('adventure:')}
+                    validate_campaign_library(
+                        value['campaign_library'], source_ids, value.get('session_mode', 'campaign'),
+                        lambda aid: documents.get('adventure:' + aid))
                 continue
             prefix, _, suffix = key.partition(":")
             identifier(suffix)
@@ -694,6 +755,8 @@ class Store:
                                      meta.get('language', 'English'), meta.get('rules', 'Unspecified'), meta.get('session_mode','campaign'))
                 if 'source_order' in meta:
                     new['source_order'] = list(meta['source_order'])
+                if 'campaign_library' in meta:
+                    new['campaign_library'] = meta['campaign_library']
                 check_cancel(cancelled)
                 folder = staging(self.workspaces, '_restore-')
                 (folder / 'assets').mkdir()
