@@ -1,11 +1,11 @@
 {
   "version": "0.3.2",
   "alpha_ready": false,
-  "product_digest": null,
+  "product_digest": "3b5f4a11f065e542f2d5dbb17c51d4fb73af674dc77509a55f47f7351c2fff67",
   "checks": {
     "owned_library_import": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "evidence": "Exact frozen candidate 7a17b24 passed import, export and restore for seven owned adventures and three reference books with zero warnings."
     },
     "clean_standard_user": {
       "passed": true,
@@ -18,16 +18,16 @@
       "status": "deferred"
     },
     "backup_restore": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "evidence": "Offline backup of the prior app was restored in isolation. The frozen 0.3.2 candidate rendered the unified book and mixed player tabs. A second restore preserved grouped navigation, 29 native journal entries, 11 missions, original files and saved map fog."
     },
     "privacy_audit": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "evidence": "Windows run 44826883447 passed the explicit product boundary. The independently downloaded artifact passed exact commit, version, tree digest, ZIP checksum and every-file manifest validation. Private sources and backup evidence remain outside the public project."
     },
     "frozen_browser_e2e": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "evidence": "Exact Windows run 44826883447 passed the full source and frozen browser suites and portable ZIP smoke. Targeted regressions cover persistent left navigation, imported and prepared tabs in one player screen, frame isolation, showing and closing tabs, preserved fog and a missing optional prepared map."
     },
     "owner_main_pc": {
       "passed": true,
@@ -36,7 +36,7 @@
     },
     "private_hosting": {
       "passed": true,
-      "evidence": "0.3.0 validated private HTTPS, authenticated writing and stable links after restart. A separate shared 0.3.1 review copy was used before release."
+      "evidence": "Remote-origin player/API tests and a simulated slow Tailscale launcher verified local startup responsiveness, private access validation and graceful Serve cleanup. Existing physical browser acceptance is recorded under 0.3.0."
     },
     "second_device_browser": {
       "passed": true,
@@ -70,5 +70,5 @@
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": false
+  "release_ready": true
 }
