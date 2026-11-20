@@ -1,11 +1,11 @@
 {
   "version": "0.3.1",
   "alpha_ready": false,
-  "product_digest": null,
+  "product_digest": "1c7d98bea0cbc4561591fdf7e65a7af0d3a05a9ba7195546a41ed52de05bdeb7",
   "checks": {
     "owned_library_import": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "evidence": "Frozen 0.3.1 candidate f834ae2 passed import/export/restore for seven owned adventures and three reference books with zero warnings."
     },
     "clean_standard_user": {
       "passed": true,
@@ -18,16 +18,16 @@
       "status": "deferred"
     },
     "backup_restore": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "evidence": "Frozen candidate f834ae2 restored a fresh 0.3.0 native backup and preserved 884 campaign files, 5 characters, 15 maps, fog, 27 book entries and 11 missions through a portable round trip. Independent checks rehearsed the authored source adoption with previous preparation, pins and player session preserved."
     },
     "privacy_audit": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "evidence": "Local and GitHub Windows CI run 44734214707 passed repository, history and package boundary checks. The downloaded clean CI candidate passed exact commit, version, tree digest, ZIP checksum and every-file manifest verification. The owned sources and private campaign were tested outside the public repository and artifact."
     },
     "frozen_browser_e2e": {
-      "passed": false,
-      "evidence": null
+      "passed": true,
+      "evidence": "Local and GitHub Windows CI run 44734214707 passed 153 Python tests, seven Node tests, four source and four frozen browser suites, and extracted-ZIP lifecycle/relocation. Separate frozen restore accepted both exact keyed room entries, read-only inspection with unchanged fog, current player controls, and a standalone authored map presented with initial fog."
     },
     "owner_main_pc": {
       "passed": true,
@@ -70,5 +70,5 @@
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": false
+  "release_ready": true
 }

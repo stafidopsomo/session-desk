@@ -171,3 +171,9 @@ Same-host private HTTPS, frozen browser writing/restart/revocation and main-PC T
 
 
 November 17 owner follow-up: the main-PC browser successfully opened the shared campaign and PHB, DMG and SCAG over the private Tailscale link. This completes the requested second-device browser access check by owner report. The same laptop workspace is used on both devices. This report does not establish exhaustive hardware/geometry or concurrent-edit acceptance; broader deferrals and alpha_ready=false remain unchanged. No application code, release tag, campaign data or private link changed.
+
+## Prepared room reader and Resources 0.3.1 candidate
+
+Clean candidate f834ae2 passed the full local root CI and [GitHub Windows run 44734214707](https://github.com/stafidopsomo/session-desk/actions/runs/44734214707). The GitHub ZIP passed exact-tree and every-file verification. Both runs passed 153 Python tests, seven Node tests, the four source and four frozen browser suites, and portable ZIP smoke.
+
+Seven local adventures and three reference books passed import, portable export and restore with no warnings. Recovery of a fresh 0.3.0 backup preserved 884 original campaign files, 5 characters, 15 rendered maps, saved fog, 27 native Book entries and 11 missions. The isolated frozen browser verified exact keyed room sections, current player controls and the fogged standalone-map workflow. The owner approved 0.3.1 for the regular release channel. Additional Windows device and complete visual-geometry checks remain deferred.
