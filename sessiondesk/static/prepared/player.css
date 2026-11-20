@@ -11,3 +11,22 @@ body,h1,.guide-body h1,.guide-body p,.location p,.notebook p{font-family:Segoe U
 .player-tools{display:flex;align-items:center;gap:16px;min-height:44px;padding:6px 14px;flex-shrink:0;background:#172016;border-bottom:1px solid #3c4932;font:11px Segoe UI,Arial,sans-serif;flex-wrap:wrap}.player-tools button{border:1px solid #46573a;border-radius:4px;background:#202d1b;color:#d8dfc9;padding:6px 10px;cursor:pointer;font:11px Segoe UI,Arial,sans-serif}.player-tools button.active{border-color:#c1a365;background:#3b4229;color:#f1db9e}.player-tools button:disabled{opacity:.4;cursor:default}.zoom-tools,.drawing-tools{display:flex;align-items:center;gap:6px}.zoom-tools output{min-width:40px;text-align:center;color:#c7b37c}.drawing-tools label{display:flex;gap:7px;align-items:center;color:#a8b69a}.drawing-tools input[type=range]{width:75px;accent-color:#d6b77b}.drawing-tools input[type=color]{width:27px;height:27px;border:1px solid #5b6d46;padding:2px;background:transparent}.player-tools>button:last-child{margin-left:auto}.picture-stage{display:block;overflow:hidden;min-width:0;min-height:0;height:100%}#pictureCanvas{position:absolute;inset:0;width:100%;height:100%;min-width:0;min-height:0;display:block;user-select:none}.picture-loading{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;background:#080d09;font:14px Segoe UI,Arial,sans-serif;color:#bda977}.lost{top:100px}@media(max-width:800px){.player-tools{gap:8px;padding:6px 8px}.drawing-tools{flex-wrap:wrap}.player-tools button{padding:6px 7px}}
 
 .player-stage.scene-mode>.map-stage{position:absolute;right:20px;bottom:20px;width:min(28vw,340px);height:min(22vh,220px);min-width:180px;min-height:110px;z-index:5;border:2px solid #c9ae77;border-radius:9px;overflow:hidden;box-shadow:0 6px 25px #000b}.scene-mode .map-stage canvas{pointer-events:none}.scene-map-return{position:absolute;inset:0;border:0;background:linear-gradient(transparent 55%,#10180fe8);color:#f3e3b7;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;padding:9px;font:600 12px Segoe UI,sans-serif}.scene-map-return:hover{outline:2px solid #ead39b;outline-offset:-4px}.scene-mode #overlay{height:100%}
+
+/* Match the shared Session Desk player controls around the restored map viewer. */
+.prepared-player-modern{background:#101318;color:#e9e8e4;--gold:#d5b36b;--muted:#aeb9c6}
+.prepared-player-modern>.toolbar{background:#20242b;border-color:#343a43;min-height:54px;gap:.6rem;padding:.65rem .9rem}
+.prepared-player-modern .toolbar button,.prepared-player-modern .close-all-tabs{
+  border:1px solid #485361;border-radius:7px;background:#2c333e;color:#ece9e3;padding:.35rem .6rem;
+  font:inherit;
+}
+.prepared-player-modern .toolbar button.active{border-color:#d5b36b;background:#303641;color:#f1d8a9}
+.prepared-player-modern .drawing-tools label{margin:0;color:#b8c1cb}
+.prepared-player-modern #inkColor{border-color:#485361}
+.prepared-player-modern .player-tabbar{min-height:50px;height:auto;background:#15191e;border-color:#343a43;gap:.5rem;padding:.5rem .8rem}
+.prepared-player-modern .player-tab{border:1px solid #3b444f;border-radius:6px;color:#dce3eb}
+.prepared-player-modern .player-tab.active{background:#282e36;border-color:#d5b36b;color:#f1d8a9}
+.prepared-player-modern .location,.prepared-player-modern .notebook,.prepared-player-modern #roomPicker{background:#1c2127;border-color:#434c57}
+.prepared-player-modern .notebook textarea{background:#15191f;border-color:#485361}
+.prepared-player-modern .map-stage,.prepared-player-modern .picture-stage,.prepared-player-modern .picture-loading{background:#101318}
+.prepared-player-modern>.player-stage{min-height:0;flex:1}
+@media(max-width:900px){.prepared-player-modern .drawing-tools{flex-wrap:wrap}.prepared-player-modern>.toolbar{gap:.4rem}}

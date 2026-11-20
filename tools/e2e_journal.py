@@ -28,6 +28,7 @@ def run(exe=None,artifacts=None):
         extra_graph,extra_blobs=Library(library).load('ALT');store.import_graph(fresh,extra_graph,extra_blobs)
         original=make_prepared(base/'original');archive=pack(original,base/'original.zip',recovery=True)
         restored=store.restore_file(archive)['id']
+        (profile/'local-sources.json').write_text(json.dumps({restored:str(library)}),encoding='utf-8')
         store.import_graph(restored,extra_graph,extra_blobs)
         root=store.folder(restored)/'module-files'/MODULE_ID
         initial_state=(root/'state/table.json').read_bytes()
@@ -71,6 +72,17 @@ def run(exe=None,artifacts=None):
             expect(tabs.get_by_role('link',name='The Tidal Archive',exact=True)).to_have_attribute('aria-current','page')
             page.reload();expect(tabs.get_by_role('link',name='The Tidal Archive',exact=True)).to_have_attribute('aria-current','page')
             session_before=call(ready,'session',{'workspace':fresh,'adventure':extra_graph['id']})
+            archive_tab=tabs.get_by_role('link',name='The Tidal Archive',exact=True)
+            observatory_tab=tabs.get_by_role('link',name='The Glass Observatory',exact=True)
+            archive_tab.drag_to(observatory_tab,target_position={'x':4,'y':10})
+            expect(tabs.get_by_role('link').first).to_have_text('The Tidal Archive')
+            expect(archive_tab).to_have_attribute('aria-current','page')
+            expect(page.locator('#stage canvas')).to_be_visible()
+            other.goto(address(fresh,'&section=resources'))
+            expect(other.get_by_role('navigation',name='Resource sources').get_by_role('link').first).to_have_text('The Tidal Archive')
+            archive_tab.focus()
+            page.keyboard.press('Alt+ArrowRight')
+            expect(tabs.get_by_role('link').first).to_have_text('The Glass Observatory')
             for width,height in ((2836,695),(1500,1000)):
                 page.set_viewport_size({'width':width,'height':height})
                 expect(page.locator('#stage canvas')).to_be_visible()
@@ -98,6 +110,20 @@ def run(exe=None,artifacts=None):
             assert (root/'state/table.json').read_bytes()==initial_state,'Inspection changed saved state'
             map_page.get_by_role('link',name='Practice floor',exact=True).click();expect(map_page.get_by_role('heading',name='Practice floor',exact=True)).to_be_visible();expect(map_page.locator('#preview-map-loading')).to_be_hidden()
             map_page.locator('#preview-room').select_option('b');expect(map_page.get_by_role('heading',name='Upper platform',exact=True)).to_be_visible()
+            room=map_page.locator('#prepared-room-panel')
+            expect(room).to_contain_text('Original private room contents.')
+            expect(room).to_contain_text('Original encounter ambush.')
+            expect(room).to_contain_text('Original keeper')
+            expect(room.locator('[data-room-source]')).to_contain_text('The suspended lens')
+            deny_url=ready['url']+f"campaign/{restored}/{ready['player_token']}/api/room-source?mapId=practice&roomId=b"
+            assert context.request.get(deny_url).status==403
+            divider=map_page.get_by_role('separator',name='Resize room panel',exact=True)
+            before_width=room.bounding_box()['width'];handle=divider.bounding_box()
+            map_page.mouse.move(handle['x']+handle['width']/2,handle['y']+80)
+            map_page.mouse.down()
+            map_page.mouse.move(handle['x']-90,handle['y']+80,steps=8)
+            map_page.mouse.up()
+            assert room.bounding_box()['width']>=before_width+80
             assert (root/'state/table.json').read_bytes()==initial_state,'Room inspection changed presentation/fog'
             specific_url=map_page.url;map_page.reload();expect(map_page.get_by_role('heading',name='Upper platform',exact=True)).to_be_visible()
             assert 'room=b' in specific_url
@@ -108,6 +134,11 @@ def run(exe=None,artifacts=None):
                 map_page.get_by_role('button',name='Open player screen',exact=True).click()
             player=opened.value
             expect(player.locator('#canvas')).to_be_visible()
+            expect(player.locator('.prepared-player-modern .brand')).to_have_text('Session Desk')
+            expect(player.locator('#playerTabs')).to_contain_text('Practice floor')
+            expect(player.get_by_role('button',name='Zoom in')).to_be_visible()
+            assert 'view=player' in player.url and '/campaign/' not in player.url
+            assert 'Original private room contents.' not in player.locator('body').inner_text()
             expect(map_page.locator('#player-presence')).to_have_attribute('aria-label','Player screen online')
             player.close()
             if artifacts:

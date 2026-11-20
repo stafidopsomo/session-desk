@@ -1,6 +1,7 @@
 import {setupAtlasSplitter,setupDisplaySettings} from './layout.js';
 import {AtlasMap, assetUrl} from './map.js';
 import {setupTokens} from './tokens.js';
+import {renderEncounter} from './after-citadel.js';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let data, state, view='atlas', detailMode=false, filter='all', toastTimer, busy=0, queue=Promise.resolve(), selectedAsset;
@@ -8,14 +9,7 @@ let displayedMap='', listKey='', detailKey='';
 let collection='auto', noteTimer;
 const COLLECTIONS={'sunless-citadel':'Sunless Citadel','forge-of-fury':'Forge of Fury',waterdeep:'Waterdeep','sword-coast':'Sword Coast','session-00':'Session 0','session-01':'Session 1',party:'Party portraits'};
 function currentCollection(){return currentMap().kind==='dungeon'?(currentMap().adventureId||'sunless-citadel'):currentMap().id==='waterdeep'?'waterdeep':'sword-coast';}
-function encounterPanel(encounter){
-  if(!encounter)return '';
-  const level=encounter.partyLevel||data.encounters.partyLevel, size=encounter.partySize||data.encounters.partySize;
-  const text=value=>esc(Array.isArray(value)?value.join('\n'):value||'').replace(/\n/g,'<br>');
-  const nameLink=c=>c.statLink?`<a target="_blank" rel="noopener" href="${esc(c.statLink)}">${esc(c.name)} ↗</a>`:esc(c.name);
-  const roster=encounter.instances?.length?`<p><b>Separate rooms—use only the chamber entered:</b></p><ul>${encounter.instances.map(i=>`<li><b>${esc(i.name)}:</b> ${esc(i.creatures)}</li>`).join('')}</ul><details><summary>Creature stat references</summary><p>${(encounter.creatures||[]).map(nameLink).join(' · ')}</p></details>`:encounter.creatures?.length?`<table><thead><tr><th>Count</th><th>Creature</th><th>HP</th></tr></thead><tbody>${encounter.creatures.map(c=>`<tr><td>${esc(c.count)}</td><td>${nameLink(c)}</td><td>${esc(c.hp??'See stats')}</td></tr>${c.notes?`<tr><td colspan="3" class="creature-note">${text(c.notes)}</td></tr>`:''}`).join('')}</tbody></table>`:'';
-  return `<section class="table-encounter"><h3>Level ${esc(level)} · ${esc(size)} characters · play at the table</h3><strong>${esc(encounter.title|| (encounter.combat?'Encounter':'No combat by default'))}</strong>${roster}${encounter.setup?`<p><b>Setup:</b> ${text(encounter.setup)}</p>`:''}${encounter.tactics?`<p><b>Run it:</b> ${text(encounter.tactics)}</p>`:''}${encounter.adjustment?`<p><b>Adjust if needed:</b> ${text(encounter.adjustment)}</p>`:''}${encounter.risk?`<p><b>Watch for:</b> ${text(encounter.risk)}</p>`:''}<small>${esc(encounter.source||'Campaign level-3 encounter plan')}</small></section>`;
-}
+const encounterPanel=encounter=>renderEncounter(encounter,data.encounters);
 function renderPlayerTabs(){
   $('closeAllTabs').disabled=!(state.tabs||[]).length;
   $('presentationTabs').innerHTML=(state.tabs||[]).map(t=>`<div class="presentation-tab ${t.id===state.activeTabId?'active':''}"><button data-show-tab="${esc(t.id)}" title="Show ${esc(t.title)} on the TV">${t.kind==='map'?'◈':t.kind==='guide'?'▤':'▧'} ${esc(t.title)}</button><button class="tab-close" data-close-tab="${esc(t.id)}" aria-label="Close player tab ${esc(t.title)}">×</button></div>`).join('');

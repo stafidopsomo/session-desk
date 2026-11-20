@@ -31,7 +31,7 @@ const hashPart = value => encodeURIComponent(String(value).toLowerCase()).toLowe
 const validReferencePart = value => typeof value==='string' && value.trim().length>0 && value.length<=500 && !/[\x00-\x1f\x7f]/.test(value);
 function localReference(ctx,page,hash) {
   const base=ctx.referenceURL ?? ctx.graph?.reference_base ?? '/reference/';
-  if(typeof base!=='string'||!/^\/reference\/(?:[a-zA-Z0-9_-]{1,100}\/)*$/.test(base))return null;
+  if(typeof base!=='string'||!/^\/(?:reference\/(?:[a-zA-Z0-9_-]{1,100}\/)*|campaign\/[a-zA-Z0-9_-]{1,100}\/[a-zA-Z0-9_-]{1,100}\/reference\/)$/.test(base))return null;
   return base+page+'#'+hash;
 }
 export function referenceHref(tag,parts,ctx) {
@@ -150,6 +150,11 @@ export function renderSource(entry,ctx) {
   if(!entry)return '';
   const node=sourceNode(entry,ctx.graph);
   const href=referenceHref(ctx.graph.source_kind==='book'?'book':'adventure',['',ctx.graph.source,String(entry.chapter),entry.name],ctx);
-  const sourceLink=href?`<p><a href="${escape(href)}" target="_blank" rel="noopener noreferrer">Open source in 5e.tools ↗</a></p>`:'';
+  const sourceLink=href&&ctx.graph.source_document!==false?`<p><a href="${escape(href)}" target="_blank" rel="noopener noreferrer">Open source in 5e.tools ↗</a></p>`:'';
   return sourceLink+(node?render(node,ctx,entry.path):`<div class="legacy-source">${escape(entry.text)}</div>`);
+}
+
+// Prepared maps use the same structured reader as imported books.
+export function renderRoomSource(node, referenceURL){
+  return render(node,bookContext({entries:[],maps:[],pictures:[],reference_base:referenceURL}),[0]);
 }

@@ -1,11 +1,11 @@
 {
-  "version": "0.3.0",
+  "version": "0.3.1",
   "alpha_ready": false,
-  "product_digest": "846a17004d2f635a4659890cdbd3e700d672c56dc0fca32b3f0b8a2ebe12e911",
+  "product_digest": null,
   "checks": {
     "owned_library_import": {
-      "passed": true,
-      "evidence": "Final frozen candidate a326e55: ten owned sources (seven adventures and PHB/DMG/SCAG) passed import/export/restore with zero warnings. All three reference books also rendered with correct book.html source links in isolated reader checks. Private books/reports remain outside source/CI."
+      "passed": false,
+      "evidence": null
     },
     "clean_standard_user": {
       "passed": true,
@@ -18,25 +18,25 @@
       "status": "deferred"
     },
     "backup_restore": {
-      "passed": true,
-      "evidence": "Final candidate a326e55 restored the fresh native 0.2.2 backup in an isolated profile. All 883 authored files, five characters, 15 rendered maps, saved fog, 26 native Book entries and 10 missions were preserved through portable roundtrip. No live-profile UI test."
+      "passed": false,
+      "evidence": null
     },
     "privacy_audit": {
-      "passed": true,
-      "evidence": "Full local root CI and GitHub Windows run 44095099309 passed source/package boundaries. Downloaded clean GitHub package passed exact commit/version/product digest and every-file manifest/hash verification. No private data, owned books, artwork, authentication links, Tailscale state or certificate keys in source/builds."
+      "passed": false,
+      "evidence": null
     },
     "frozen_browser_e2e": {
-      "passed": true,
-      "evidence": "Local root CI and GitHub Windows run 44095099309 passed 151 Python tests, seven Node checks, all four source/frozen browser suites and extracted-ZIP lifecycle/relocation smoke. Reference-book import/reader/source links and hosting controls are covered; zero script errors/external requests in offline browser suites. Same-host real Tailscale HTTPS/frozen browser editing, stable link after complete restart and disable/revocation passed with synthetic state."
+      "passed": false,
+      "evidence": null
     },
     "owner_main_pc": {
       "passed": true,
       "basis": "owner_report",
-      "evidence": "Owner tested the local campaign-book interface, said they liked it and explicitly requested the official regular release on 2026-11-17. No new laptop/friend-PC result is asserted."
+      "evidence": "Owner reviewed the 0.3.1 shared copy and approved the regular release on 2026-11-20. A clean installation on another Windows device remains deferred."
     },
     "private_hosting": {
       "passed": true,
-      "evidence": "Final candidate a326e55 private real HTTPS browser check passed authenticated writing, complete frozen shutdown/restart, stable-link reuse, saved-record preservation and link revocation. Synthetic/unit checks reject invalid hosts/origins, player administration, unrelated service replacement and public Funnel. Main-PC Tailscale ping passed; a second physical browser remains unverified."
+      "evidence": "0.3.0 validated private HTTPS, authenticated writing and stable links after restart. A separate shared 0.3.1 review copy was used before release."
     },
     "second_device_browser": {
       "passed": true,
@@ -62,13 +62,13 @@
     "channel": "desktop",
     "kind": "release",
     "basis": "owner_request",
-    "scope": "reference_books_private_hosting",
-    "date": "2026-11-17",
-    "reason": "Owner explicitly requests reference books and private laptop-hosted campaign access through the official app, with PDF conversion left deferred.",
+    "scope": "room_reader_campaign_resources",
+    "date": "2026-11-20",
+    "reason": "Owner approved the reviewed prepared room reader, player screen and source navigation for regular desktop publication.",
     "deferred": {
       "laptop_compatibility": "Other physical-device/browser acceptance has not been performed; same-host automated Tailscale HTTPS checks are recorded separately.",
       "full_visual_geometry": "Every source map has not undergone complete visual/geometry acceptance; review imported maps before presentation."
     }
   },
-  "release_ready": true
+  "release_ready": false
 }

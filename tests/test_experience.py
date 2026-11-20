@@ -137,3 +137,15 @@ class ExperienceTests(WorkspaceCase):
         app=Application(self.store);app.remember_source(Library(self.lib),str(images),self.wid)
         file,mime=app.reference_file(self.wid,'img/example.png')
         self.assertEqual(file.resolve(),(images/'example.png').resolve())
+
+    def test_data_only_import_keeps_the_existing_reference_reader(self):
+        from sessiondesk.importer import Library
+        from tests.fixtures import make_library
+        reader=self.lib/'book.html'
+        reader.write_text('Original reference reader',encoding='utf-8')
+        app=Application(self.store)
+        app.remember_source(Library(self.lib),workspace=self.wid)
+        new_library=make_library(self.root/'authored')
+        app.remember_source(Library(new_library),workspace=self.wid)
+        file,_=app.reference_file(self.wid,'book.html')
+        self.assertEqual(file,reader.resolve())

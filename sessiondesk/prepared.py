@@ -42,7 +42,9 @@ class Workspace:
 
     def public(self):
         return {k: self.manifest[k] for k in ('id','title','rulesEdition','mapGroups') if k in self.manifest} | {
-            'narrationMaps': self.catalog('narrationMaps', [])}
+            'narrationMaps': self.catalog('narrationMaps', []),
+            'archivedMapIds': self.catalog('archivedMapIds', []),
+            'archivedAssetPrefixes': self.catalog('archivedAssetPrefixes', [])}
 
 
 class Prepared:
@@ -66,6 +68,54 @@ class Prepared:
                 'shopping': bool(data['shopping'].get('items')),
                 'sessions': bool(data['sessions'] or data['guide'].get('cards')), 'rules': (self.workspace.reference / 'data/book/book-phb.json').is_file()}
 
+    def room_source(self, map_id, room_id):
+        """Resolve a saved room against its exact entry in the local source library."""
+        map_data = self.runtime.map_by_id(map_id)
+        room = next((room for room in (map_data or {}).get('locations', [])
+                     if room.get('id') == room_id), None)
+        if not room:
+            raise UserError('Room not found.')
+
+        source_link = urlsplit(room.get('sourceLink') or '')
+        kind = {'/reference/adventure.html': 'adventure',
+                '/reference/book.html': 'book'}.get(source_link.path)
+        locator = source_link.fragment.split(',')
+        if not kind or source_link.netloc or source_link.scheme or len(locator) < 2:
+            return {'entry': None}
+        source_id, chapter_index = locator[:2]
+        if not re.fullmatch(r'[a-zA-Z0-9_-]{1,100}', source_id) or not re.fullmatch(r'[0-9]{1,4}', chapter_index):
+            return {'entry': None}
+        source_id = ('book:' if kind == 'book' else '') + source_id
+        try:
+            _, _, chapters, _ = Library(self.workspace.reference).read_source(source_id)
+            section = chapters[int(chapter_index)]
+        except (OSError, ValueError, IndexError):
+            return {'entry': None}
+
+        area = room.get('sourceAreaId')
+        heading = unquote(locator[2]).casefold() if len(locator) > 2 else ''
+        # Prefer the stable area key. Some source data has unkeyed headings,
+        # so accept the title only when it uniquely identifies one entry.
+        stack = [section]
+        keyed, titled = [], []
+        while stack:
+            node = stack.pop()
+            if isinstance(node, list):
+                stack.extend(reversed(node))
+            elif isinstance(node, dict):
+                if area and node.get('id') == area:
+                    keyed.append(node)
+                if heading and str(node.get('name', '')).casefold() == heading:
+                    titled.append(node)
+                for field in ('entries', 'items', 'rows', 'entry'):
+                    if isinstance(node.get(field), (dict, list)):
+                        stack.append(node[field])
+        if len(keyed) == 1:
+            return {'entry': keyed[0]}
+        if len(titled) == 1:
+            return {'entry': titled[0]}
+        return {'entry': None}
+
     def api(self, path, method, body, query, player):
         r = self.runtime
         if player and path not in ('/api/player-state','/api/player-action','/api/shop'):
@@ -84,6 +134,8 @@ class Prepared:
                     return data | {'capabilities': self.capabilities()}
                 if path in ('/api/state','/api/player-state'):
                     return r.snapshot(player=path.endswith('player-state'))
+                if path == '/api/room-source':
+                    return self.room_source(query.get('mapId', [''])[0], query.get('roomId', [''])[0])
                 if path == '/api/map-state':
                     import copy
                     m = r.map_by_id(query.get('mapId',[''])[0])

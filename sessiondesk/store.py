@@ -143,7 +143,7 @@ class Store:
     def overview(self, wid):
         with self.db(wid) as conn:
             adventures = [json.loads(row[0]) for row in conn.execute(
-                "SELECT value FROM documents WHERE key LIKE 'adventure:%'")]
+                "SELECT value FROM documents WHERE key LIKE 'adventure:%' ORDER BY rowid")]
             modules = [{"id": key.split(':', 1)[1], **{k: value.get(k) for k in
                         ('kind', 'schema', 'enabled', 'title', 'summary')}}
                        for key, raw in conn.execute("SELECT key,value FROM documents WHERE key LIKE 'module:%'")
@@ -152,6 +152,28 @@ class Store:
                 {k: a[k] for k in ("id", "name", "source", "fingerprint")} |
                 {"maps": sum(x.get("image_type") != "mapPlayer" for x in a["maps"]), "pictures": len(a["pictures"]), "warnings": len(a["warnings"])}
                 for a in adventures]}
+
+    def move_source(self, wid, source, target, after):
+        """Move a tab against the current workspace order, including restored resources."""
+        if not isinstance(source, str) or not isinstance(target, str) or type(after) is not bool:
+            raise UserError("Invalid source order.")
+        with self.lock, self.db(wid) as conn:
+            ids = [key.split(':', 1)[1] for (key,) in conn.execute(
+                "SELECT key FROM documents WHERE key LIKE 'adventure:%' ORDER BY rowid")]
+            from .workspace_modules import MODULE_ID, supported
+            prepared = self.get(conn, 'module:' + MODULE_ID)
+            if prepared and supported(prepared):
+                ids.insert(0, 'prepared')
+            if source not in ids or target not in ids or source == target:
+                raise UserError("Choose two different sources in this workspace.")
+            meta = self.get(conn, "meta")
+            order = [value for value in meta.get("source_order", []) if value in ids]
+            order.extend(value for value in ids if value not in order)
+            order.remove(source)
+            order.insert(order.index(target) + int(after), source)
+            meta["source_order"] = order
+            self.put(conn, "meta", meta)
+            return {"source_order": order}
 
     def remove_adventure(self, wid, aid):
         aid = identifier(aid)
@@ -162,6 +184,10 @@ class Store:
             # Remove only this adventure's documents; never unlink shared assets.
             for prefix in ('adventure:', 'prep:', 'session:', 'pins:'):
                 conn.execute('DELETE FROM documents WHERE key=?', (prefix + aid,))
+            meta = self.get(conn, "meta")
+            if aid in meta.get("source_order", []):
+                meta["source_order"].remove(aid)
+                self.put(conn, "meta", meta)
         return {'removed': True}
 
     def remove_workspace(self, wid):
@@ -517,6 +543,14 @@ class Store:
                     raise UserError("Invalid workspace metadata.")
                 string(value.get("name"), 100)
                 if value.get("session_mode","campaign") not in ("campaign","oneshot"): raise UserError("Invalid workspace mode.")
+                source_order = value.get("source_order", [])
+                if (not isinstance(source_order, list) or len(source_order) > len(documents) + 1
+                        or any(not isinstance(item, str) for item in source_order)
+                        or len(set(source_order)) != len(source_order)):
+                    raise UserError("Invalid resource source order.")
+                for item in source_order:
+                    if item != 'prepared':
+                        identifier(item)
                 continue
             prefix, _, suffix = key.partition(":")
             identifier(suffix)
@@ -658,6 +692,8 @@ class Store:
                 self.validate_backup(documents, assets)
                 new = self._metadata(string(meta['name'], 100)[:89] + ' (restored)',
                                      meta.get('language', 'English'), meta.get('rules', 'Unspecified'), meta.get('session_mode','campaign'))
+                if 'source_order' in meta:
+                    new['source_order'] = list(meta['source_order'])
                 check_cancel(cancelled)
                 folder = staging(self.workspaces, '_restore-')
                 (folder / 'assets').mkdir()

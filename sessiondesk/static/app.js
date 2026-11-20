@@ -86,9 +86,9 @@ async function loadRemoteStatus(value){
 function closeSettings(){ $('#settings')?.remove();document.querySelector('[data-action=settings]')?.setAttribute('aria-expanded','false'); }
 document.addEventListener('pointerdown',e=>{if($('#settings')&&!e.target.closest('#settings,[data-action=settings]'))closeSettings();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#settings')){closeSettings();document.querySelector('[data-action=settings]')?.focus();}});
-function setupInspectorResize(){
-  const divider=$('#inspector-divider'),workspace=$('.workspace');if(!divider||!workspace)return;
-  const set=value=>{const max=Math.max(280,Math.min(780,workspace.clientWidth-460));const width=Math.max(280,Math.min(max,value));workspace.style.setProperty('--inspector-width',width+'px');divider.setAttribute('aria-valuenow',Math.round(width));try{localStorage.setItem('inspectorWidth',width);}catch{}};
+function setupInspectorResize(workspace=$('.workspace')){
+  const divider=workspace?.querySelector('.inspector-divider');if(!divider)return;
+  const set=value=>{const sidebar=workspace.firstElementChild.getBoundingClientRect().width;const max=Math.max(280,Math.min(780,workspace.clientWidth-sidebar-229));divider.setAttribute('aria-valuemax',max);const width=Math.max(280,Math.min(max,value));workspace.style.setProperty('--inspector-width',width+'px');divider.setAttribute('aria-valuenow',Math.round(width));try{localStorage.setItem('inspectorWidth',width);}catch{}};
   set(Number(localStorage.getItem('inspectorWidth'))||410);
   divider.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();divider.setPointerCapture(e.pointerId);divider.dataset.dragging='true';document.body.classList.add('resizing-inspector');};
   divider.onpointermove=e=>{if(divider.dataset.dragging==='true')set(workspace.getBoundingClientRect().right-e.clientX);};
@@ -580,8 +580,9 @@ async function onAction(b) {
   if (a === 'fit') return S.stage?.fit();
   if (a === 'zoom-in' || a === 'zoom-out') return S.stage?.zoom(a === 'zoom-in' ? 1.25 : .8);
   if (a === 'player') {
-    if(preview&&!S.aid&&S.overview?.modules?.some(m=>m.kind==='campaign-desk-v1')){window.open('/campaign/'+S.wid+'/'+S.boot.player_token+'/player','sessiondesk-player');return;}
-    const u = new URL(location.href); u.search = new URLSearchParams({view:'player',workspace:S.wid,adventure:S.aid});
+    const prepared=preview&&!S.aid&&S.overview?.modules?.some(m=>m.kind==='campaign-desk-v1');
+    const u = new URL(location.href);
+    u.search = new URLSearchParams({view:'player',workspace:S.wid,...(prepared?{prepared:'1'}:{adventure:S.aid})});
     u.hash = 'player=' + S.boot.player_token; window.open(u,'sessiondesk-player'); return;
   }
   if (a === 'present') { await sessionAction('present',{with_fog:m?.kind==='map'}); toast('Presented. Open the player screen for your TV.'); return; }
@@ -794,8 +795,11 @@ function previewHref(fields={}){
 }
 const resourceFields=['adventure','prepared','map','room','text','media'];
 function resourceSources(){
-  return [...(S.overview?.modules||[]).filter(m=>m.enabled&&m.kind==='campaign-desk-v1'&&m.schema===1).map(m=>({id:'prepared',title:m.title,fields:{prepared:'1'}})),
+  const sources = [...(S.overview?.modules||[]).filter(m=>m.enabled&&m.kind==='campaign-desk-v1'&&m.schema===1).map(m=>({id:'prepared',title:m.title,fields:{prepared:'1'}})),
     ...(S.overview?.adventures||[]).map(a=>({id:a.id,title:a.name,fields:{adventure:a.id}}))];
+  const positions=new Map((S.overview?.meta.source_order||[]).map((id,i)=>[id,i]));
+  const position=source=>positions.get(source.id)??Infinity;
+  return sources.sort((a,b)=>position(a)===position(b)?0:position(a)-position(b));
 }
 function rememberResources(selection){
   const value=Object.fromEntries(resourceFields.filter(k=>selection[k]).map(k=>[k,selection[k]]));
@@ -812,8 +816,76 @@ function resourceTabs(){
   const selection=Object.fromEntries(new URL(location.href).searchParams);
   const current=selection.prepared?'prepared':selection.adventure;
   if(!resourceSources().length)return '';
-  return `<nav class="sectionnav resource-sources" aria-label="Resource sources"><div class="resource-source-links">${resourceSources().map(source=>`<a class="source-tab ${source.id===current?'active':''}" ${source.id===current?'aria-current="page"':''} title="${esc(source.title)}" href="${previewHref({section:'resources',adventure:null,prepared:null,map:null,room:null,text:null,media:null,...source.fields})}">${esc(source.title)}</a>`).join('')}</div>${S.aid?button('remove-adventure',S.graph?.source_kind==='book'?'Remove reference book':'Remove adventure','quiet',`data-id="${S.aid}"`):''}</nav>`;
+  return `<nav class="sectionnav resource-sources" aria-label="Resource sources"><div class="resource-source-links">${resourceSources().map(source=>`<a class="source-tab ${source.id===current?'active':''}" ${source.id===current?'aria-current="page"':''} data-source-id="${esc(source.id)}" draggable="true" title="${esc(source.title)} · Drag to reorder, or use Alt + Left/Right" href="${previewHref({section:'resources',adventure:null,prepared:null,map:null,room:null,text:null,media:null,...source.fields})}">${esc(source.title)}</a>`).join('')}</div>${S.aid?button('remove-adventure',S.graph?.source_kind==='book'?'Remove reference book':'Remove adventure','quiet',`data-id="${S.aid}"`):''}</nav>`;
 }
+// Move the DOM node after saving so the open map and its inspector stay mounted.
+async function moveResourceTab(source,target,after){
+  const wid=S.wid, overview=S.overview;
+  try{
+    const result=await request('workspace/source-order',{workspace:wid,source,target,after});
+    if(S.wid!==wid||S.overview!==overview)return;
+    overview.meta.source_order=result.source_order;
+    const strip=$('.resource-source-links');
+    if(strip){
+      const tabs=new Map([...strip.children].map(tab=>[tab.dataset.sourceId,tab]));
+      for(const item of resourceSources())if(tabs.has(item.id))strip.append(tabs.get(item.id));
+      const moved=tabs.get(source);
+      moved?.focus({preventScroll:true});
+      moved?.scrollIntoView({block:'nearest',inline:'nearest'});
+    }
+    toast('Source order saved');
+  }catch(error){toast(error.message);}
+}
+
+let draggedSource=null;
+document.addEventListener('dragstart',event=>{
+  const tab=event.target.closest('.source-tab[data-source-id]');
+  if(!tab)return;
+  draggedSource=tab;
+  event.dataTransfer.effectAllowed='move';
+  event.dataTransfer.setData('text/plain',tab.dataset.sourceId);
+  tab.classList.add('source-dragging');
+});
+function sourceDrop(event){
+  const target=event.target.closest('.source-tab[data-source-id]');
+  if(!draggedSource?.isConnected||!target||target===draggedSource||target.parentNode!==draggedSource.parentNode)return null;
+  const bounds=target.getBoundingClientRect();
+  return {target,after:event.clientX>=bounds.left+bounds.width/2};
+}
+function clearSourceDrop(){
+  document.querySelector('[data-source-drop]')?.removeAttribute('data-source-drop');
+}
+document.addEventListener('dragover',event=>{
+  const spot=sourceDrop(event);
+  clearSourceDrop();
+  if(!spot)return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect='move';
+  spot.target.dataset.sourceDrop=spot.after?'after':'before';
+});
+document.addEventListener('dragleave',event=>{
+  if(!event.relatedTarget?.closest?.('.resource-source-links'))clearSourceDrop();
+});
+document.addEventListener('dragend',()=>{
+  clearSourceDrop();
+  draggedSource?.classList.remove('source-dragging');
+  draggedSource=null;
+});
+document.addEventListener('drop',event=>{
+  const spot=sourceDrop(event);
+  if(!spot)return;
+  event.preventDefault();
+  clearSourceDrop();
+  moveResourceTab(draggedSource.dataset.sourceId,spot.target.dataset.sourceId,spot.after);
+});
+document.addEventListener('keydown',event=>{
+  const tab=event.target.closest('.source-tab[data-source-id]');
+  if(!tab||!event.altKey||!['ArrowLeft','ArrowRight'].includes(event.key))return;
+  event.preventDefault();
+  const after=event.key==='ArrowRight',target=after?tab.nextElementSibling:tab.previousElementSibling;
+  if(target)moveResourceTab(tab.dataset.sourceId,target.dataset.sourceId,after);
+});
+
 function previewNav(){
   const section=new URL(location.href).searchParams.get('section')||(S.overview?.meta.session_mode==='oneshot'?'resources':'book');
   const sections=S.overview?.meta.session_mode==='oneshot'?[['resources','Resources'],['party','Party']]:[['book','Book'],['resources','Resources'],['party','Party']];
@@ -843,7 +915,7 @@ async function renderPreview(){
   const context={api:(path,body={})=>request(path,{workspace:wid,...body}),route:previewRoute,href:previewHref,wid,selection,preparedBase:'/campaign/'+wid+'/'+token};
   if(section==='book'){const {mountBook}=await import('./campaign.js');if(epoch!==previewEpoch)return;try{await mountBook(root,context);}catch(e){root.innerHTML='<main class="home"><h1>Book unavailable</h1><p>'+esc(e.message)+'</p><p>Your other workspace resources remain available.</p></main>';}}
   else if(section==='party'){const {mountParty}=await import('./campaign.js');if(epoch===previewEpoch)await mountParty(root,context);}
-  else if(selection.prepared){const {mountPrepared}=await import('./prepared-resources.js');if(epoch!==previewEpoch)return;const dispose=await mountPrepared(root,{...context,base:context.preparedBase});if(epoch===previewEpoch)previewDispose=dispose;else dispose?.();}
+  else if(selection.prepared){const {mountPrepared}=await import('./prepared-resources.js');if(epoch!==previewEpoch)return;const dispose=await mountPrepared(root,{...context,base:context.preparedBase,setupInspectorResize});if(epoch===previewEpoch)previewDispose=dispose;else dispose?.();}
   else root.innerHTML='<main class="home workspace-home"><h1>Resources</h1><p>Add an adventure to bring its book, maps and images here.</p></main>';
 }
 if(preview){
@@ -860,6 +932,17 @@ async function start(){
     fetch('/api/client/close',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({client})}).catch(()=>{});
   });
   document.documentElement.style.setProperty('--scale',(localStorage.getItem('textSize')||100)/100);document.body.classList.toggle('dense',localStorage.getItem('density')==='true');
+  if(isPlayer&&S.wid&&params.get('prepared')==='1'){
+    const base='/campaign/'+encodeURIComponent(S.wid)+'/'+encodeURIComponent(token)+'/static/';
+    for(const name of ['player.css','tokens.css']){
+      const style=document.createElement('link');
+      style.rel='stylesheet';style.href=base+name;document.head.append(style);
+    }
+    const {mountPreparedPlayer}=await import(base+'player.js');
+    document.title='Session Desk · Player screen';
+    mountPreparedPlayer($('#app'),{modern:true});
+    return;
+  }
   if(isPlayer){if(!S.wid||!S.aid)throw Error('Open this player screen from an adventure.');playerShell();S.session=await request('player');updatePlayer();}
   else{S.boot=await request('bootstrap');if(S.wid)await openWorkspace(S.wid);else home();if(S.boot.recovered_operations)toast('Discarded an interrupted operation. Saved workspaces were kept.');}
   setInterval(poll,900);

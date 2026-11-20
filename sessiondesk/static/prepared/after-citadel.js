@@ -1,5 +1,14 @@
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+export function renderEncounter(encounter, defaults={}){
+  if(!encounter)return '';
+  const level=encounter.partyLevel||defaults.partyLevel, size=encounter.partySize||defaults.partySize;
+  const text=value=>esc(Array.isArray(value)?value.join('\n'):value||'').replace(/\n/g,'<br>');
+  const nameLink=c=>c.statLink?`<a target="_blank" rel="noopener" href="${esc(c.statLink)}">${esc(c.name)} ↗</a>`:esc(c.name);
+  const roster=encounter.instances?.length?`<p><b>Separate rooms—use only the chamber entered:</b></p><ul>${encounter.instances.map(i=>`<li><b>${esc(i.name)}:</b> ${esc(i.creatures)}</li>`).join('')}</ul><details><summary>Creature stat references</summary><p>${(encounter.creatures||[]).map(nameLink).join(' · ')}</p></details>`:encounter.creatures?.length?`<table><thead><tr><th>Count</th><th>Creature</th><th>HP</th></tr></thead><tbody>${encounter.creatures.map(c=>`<tr><td>${esc(c.count)}</td><td>${nameLink(c)}</td><td>${esc(c.hp??'See stats')}</td></tr>${c.notes?`<tr><td colspan="3" class="creature-note">${text(c.notes)}</td></tr>`:''}`).join('')}</tbody></table>`:'';
+  return `<section class="table-encounter"><h3>Level ${esc(level)} · ${esc(size)} characters · play at the table</h3><strong>${esc(encounter.title|| (encounter.combat?'Encounter':'No combat by default'))}</strong>${roster}${encounter.setup?`<p><b>Setup:</b> ${text(encounter.setup)}</p>`:''}${encounter.tactics?`<p><b>Run it:</b> ${text(encounter.tactics)}</p>`:''}${encounter.adjustment?`<p><b>Adjust if needed:</b> ${text(encounter.adjustment)}</p>`:''}${encounter.risk?`<p><b>Watch for:</b> ${text(encounter.risk)}</p>`:''}<small>${esc(encounter.source||'')}</small></section>`;
+}
+
 export async function mountChapter(root,{data,action,setView,encounterPanel,toast}){
   const chapter=data.afterCitadel;
   if(!chapter?.scenes?.length){root.textContent='No chapter preparation available.';return;}

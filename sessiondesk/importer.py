@@ -167,7 +167,8 @@ class Library:
                 if not isinstance(item,dict) or not item.get('id'):continue
                 ident=('book:' if kind=='book' else '')+str(item['id'])
                 result.append({'id':ident,'name':plain(item.get('name',item['id'])),'kind':kind,
-                    'available':self.source_path(ident).is_file()})
+                    'available':self.source_path(ident).is_file(),
+                    'source_document':item.get('source_document') is not False})
         return result
 
     def validate(self):
@@ -193,7 +194,7 @@ class Library:
             raise UserError("Invalid adventure source ID.")
         return confined(self.data, f"{kind}/{kind}-{source.lower()}.json")
 
-    def load(self, source, cancelled=lambda: False, fetch_missing=None):
+    def read_source(self, source):
         meta = next((x for x in self.inventory() if x["id"].lower() == source.lower()), None)
         if not meta or not meta["available"]:
             raise UserError("Adventure data is missing from the selected library.")
@@ -216,12 +217,20 @@ class Library:
             chapters = wrapper.get("data") if isinstance(wrapper, dict) else None
         if not isinstance(chapters, list) or not chapters or any(not isinstance(chapter, dict) for chapter in chapters):
             raise UserError("Unsupported adventure schema: expected data chapters.")
+        return meta, raw, chapters, schema
+
+    def load(self, source, cancelled=lambda: False, fetch_missing=None):
+        meta, raw, chapters, schema = self.read_source(source)
+        kind = meta['kind']
+        source = meta['id'].removeprefix('book:')
         aid = stable("5etools-book" if kind=="book" else "5etools", source.lower())
         graph = {"id": aid, "name": meta["name"], "source": source, "source_kind":kind,
                  "adapter": "5etools-local-v2", "source_schema": schema, "book_schema": 1, "book": chapters,
                  "entries": [], "maps": [], "pictures": [],
                  "warnings": [], "source_fingerprint": hashlib.sha256(
                      json.dumps(raw, sort_keys=True, ensure_ascii=False).encode()).hexdigest()}
+        if not meta["source_document"]:
+            graph["source_document"] = False
         blobs, images, lookup = {}, [], {}
         count = 0
 

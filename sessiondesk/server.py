@@ -111,16 +111,22 @@ class Application:
         return {'connected': True, 'version': info['version']}
 
     def remember_source(self, library, images=None, workspace=None):
-        # Preferences must never turn a completed import into a failed job.
+        # A folder of authored data can be imported without replacing the 5e.tools reader.
         try:
             selection = {'path': str(library.root), 'images': str(images or '')}
             self.preferences.update('library', selection)
+            viewer = library.root.parent if library.root.name.lower() == 'data' else library.root
             if workspace:
                 sources = self.preferences.read().get('sources', {})
-                sources[workspace] = selection
-                self.preferences.update('sources', sources)
+                if self.has_reference_reader(viewer) or (workspace not in sources and workspace not in self.source_settings()):
+                    sources[workspace] = selection
+                    self.preferences.update('sources', sources)
         except (OSError, UserError):
             pass
+
+    @staticmethod
+    def has_reference_reader(root):
+        return any((Path(root) / name).is_file() for name in ('book.html', 'adventure.html', 'bestiary.html'))
 
     def source_defaults(self):
         saved = self.preferences.read().get('library', {})
@@ -139,6 +145,13 @@ class Application:
     def reference_file(self, wid, name):
         self.store.folder(wid)
         selection = self.preferences.read().get('sources', {}).get(wid, {})
+        preferred = selection.get('path')
+        if preferred and wid in self.source_settings():
+            viewer = Path(preferred)
+            if viewer.name.lower() == 'data':
+                viewer = viewer.parent
+            if not self.has_reference_reader(viewer):
+                selection = {}
         path = selection.get('path') or self.source_settings().get(wid) or self.source_defaults()['path']
         if not path:
             raise UserError('Choose a local 5e.tools library through Add adventure first.')
@@ -252,6 +265,8 @@ class Application:
             return journal.party(self,body['workspace'],body)
         if path == "/api/workspace/create":
             return store.create(body.get("name", ""), body.get("language", "English"), body.get("rules", "Unspecified"), body.get("session_mode", "campaign"))
+        if path == "/api/workspace/source-order":
+            return store.move_source(body["workspace"], body.get("source"), body.get("target"), body.get("after"))
         if path == "/api/workspace":
             return store.overview(body["workspace"]) | {'rules_connected': body['workspace'] in self.source_settings()}
         if path == '/api/campaign/open':

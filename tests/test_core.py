@@ -6,6 +6,7 @@ import sqlite3
 import tempfile
 import threading
 import unittest
+import uuid
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 import zipfile
@@ -109,6 +110,20 @@ class CoreTests(WorkspaceCase):
         with self.assertRaises(UserError): self.store.session_action(self.wid,self.aid,{"action":"show_map","media":mid},True)
         self.store.session_action(self.wid,self.aid,{"action":"close_all"},True)
         self.assertEqual(self.store.session(self.wid,self.aid)["tabs"],[])
+
+    def test_source_order_roundtrips_and_removes_missing_tabs(self):
+        self.imported()
+        book=copy.deepcopy(self.graph)
+        book["id"]=str(uuid.uuid4())
+        self.store.import_graph(self.wid,book,self.blobs)
+        self.assertEqual(self.store.move_source(self.wid,book["id"],self.aid,False)["source_order"],[book["id"],self.aid])
+        other=Store(self.root/"restored order")
+        restored=other.restore(self.store.backup(self.wid))["id"]
+        self.assertEqual(other.overview(restored)["meta"]["source_order"],[book["id"],self.aid])
+        other.remove_adventure(restored,book["id"])
+        self.assertEqual(other.overview(restored)["meta"]["source_order"],[self.aid])
+        with self.assertRaises(UserError):
+            other.move_source(restored,book["id"],self.aid,False)
 
     def test_backup_restores_into_different_root_with_images_and_state(self):
         media = self.imported()

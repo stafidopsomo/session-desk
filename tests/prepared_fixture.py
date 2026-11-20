@@ -31,7 +31,11 @@ def make_prepared(root):
         'sourceLink':'/reference/adventure.html#demo,0,arrival',
         'shapes':[[[85,105],[385,105],[385,445],[85,445]]]},
         {'id':'b','number':'B','name':'Upper platform','x':.7,'y':.4,
-         'summary':'Original upper room.','shapes':[[[520,105],[810,105],[810,445],[520,445]]]}]
+         'summary':'Original upper room.','dmNotes':'Original private room contents.',
+         'sourceLink':'/reference/adventure.html#demo,0,the%20suspended%20lens','sourceAreaId':'lens',
+         'encounter':{'title':'Original room encounter','setup':'Original encounter ambush.',
+                      'creatures':[{'name':'Original keeper','count':2,'hp':9}]},
+         'shapes':[[[520,105],[810,105],[810,445],[520,445]]]}]
     dungeon = {'id':'practice','title':'Practice floor','kind':'dungeon','image':'maps/dm.png',
         'playerImage':'maps/player.png','width':900,'height':600,'roomRevealPadding':5,
         'initialRevealed':['a'],'locations':locations,'partyLevel':3,'partySize':4}
