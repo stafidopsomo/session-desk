@@ -12,11 +12,12 @@ from urllib.request import Request, urlopen
 import uuid
 import zipfile
 
-from sessiondesk.importer import UserError
+from sessiondesk.importer import Library, UserError
 from sessiondesk.prepared import Prepared
 from sessiondesk.server import Application, make_server
 from sessiondesk.store import SCHEMA, Store
 from sessiondesk.workspace_modules import MODULE_ID, local
+from tests.fixtures import make_library
 from tests.prepared_fixture import make_prepared, pack, rules_library
 
 
@@ -41,6 +42,22 @@ class PreparedCase(unittest.TestCase):
 
 
 class PreparedStorageTests(PreparedCase):
+    def test_missing_prepared_map_keeps_independent_player_tabs_available(self):
+        wid=self.imported()
+        graph,assets=Library(make_library(self.root/'imported')).load('DEMO')
+        self.store.import_graph(wid,graph,assets)
+        media=graph['maps'][0]
+        self.store.session_action(wid,graph['id'],{'action':'present','media':media['id'],'with_fog':True})
+        root=self.store.folder(wid)/'module-files'/MODULE_ID
+        maps=json.loads((root/'data/maps.json').read_text())
+        (root/maps['maps'][0]['image']).unlink()
+        app=Application(self.store)
+        with self.assertRaises(UserError):
+            app.prepared(wid)
+        state=app.presentation.snapshot(wid)
+        self.assertEqual(state['tabs'],[{'source':graph['id'],'id':media['id'],'title':media['name']}])
+        self.assertEqual(app.presentation.action(wid,{'action':'close_all'})['tabs'],[])
+
     def test_all_files_and_original_recovery_are_preserved_without_executing_code(self):
         self.imported()
         module=self.module()

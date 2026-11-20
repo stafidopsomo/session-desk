@@ -32,10 +32,15 @@ class Presentation:
                 if json.loads(raw)['tabs']]
         tabs, selected = [], {}
         if prepared and supported(prepared):
-            state = self.app.prepared(wid).runtime.snapshot(player=True)
-            selected[PREPARED] = state.get('activeTabId')
-            tabs.extend({'source': PREPARED, 'id': tab['id'], 'title': tab['title']}
-                        for tab in state['tabs'])
+            try:
+                state = self.app.prepared(wid).runtime.snapshot(player=True)
+            except (OSError, ValueError):
+                # Unavailable local prepared files must not block independent imports.
+                state = None
+            if state is not None:
+                selected[PREPARED] = state.get('activeTabId')
+                tabs.extend({'source': PREPARED, 'id': tab['id'], 'title': tab['title']}
+                            for tab in state['tabs'])
         for aid in imports:
             state = self.store.session(wid, aid, player=True)
             selected[aid] = state['active']
