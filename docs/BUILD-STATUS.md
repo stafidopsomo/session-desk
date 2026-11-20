@@ -1,6 +1,6 @@
 # Windows desktop build status
 
-Current regular release: **0.3.1**, published as GitHub Latest and installed through the verified native updater on November 20. The existing host workspace and its private endpoint were preserved. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
+Current regular release: **0.3.2**, published as GitHub Latest on November 21. The verified Windows release includes a workspace-wide Player Screen, grouped campaign navigation and a responsive local launcher. The evidence below distinguishes automated checks, owner reports and deferred hardware/geometry acceptance.
 
 
 Updated November 14, 2026. Version **0.1.3**, unsigned initial Windows desktop release. No completed alpha is claimed.
@@ -187,3 +187,9 @@ The verified 0.3.0-to-0.3.1 native update and restart preserved both workspaces,
 ## Shared Player Screen and campaign library 0.3.2 candidate
 
 Exact candidate 7a17b24 passed [Windows run 44826883447](https://github.com/stafidopsomo/session-desk/actions/runs/44826883447), the full source and frozen browser suites, package boundary, and extracted ZIP smoke. The downloaded candidate was verified against the accepted source tree. A packaged copy verified ten local sources with no warnings and restored a private grouped workspace with source order, notes, and prior fog. Regression tests cover using prepared and imported tabs from a single window, an unavailable optional prepared source, and a slow private-hosting startup followed by a clean shutdown. Additional physical-device checks remain deferred.
+
+## Official 0.3.2 release
+
+[Tagged Windows run 44827691249](https://github.com/stafidopsomo/session-desk/actions/runs/44827691249) published [regular 0.3.2](https://github.com/stafidopsomo/session-desk/releases/tag/product-v0.3.2). The public Windows ZIP passed independent verification of its file manifest, source commit and SHA-256 `8130a8e14215451bbbe47682ed4cc93e64112e6a9b6bc2a9ce08db3259797b71`. The tagged tree passed 158 Python tests, seven Node tests and all source and frozen browser suites.
+
+The official updater installed the package while the hosts were stopped. The desktop shortcut points to the verified release. The updated workspace backup restored independently with the campaign grouping, native journal, saved presentation and fog. Both Session Desk Serve endpoints and both hosts remained stopped after deployment.
